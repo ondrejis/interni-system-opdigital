@@ -14,11 +14,6 @@ Tlačítko Export v každém seznamu entity volá `/api/export/[entity]` (`POST`
 | `company` | kontakty | chybí, stačí čtení `kontakty.read` |
 | `person` | kontakty | chybí, stačí čtení `kontakty.read` |
 | `job` | zakazky | chybí, stačí čtení `zakazky.read` |
-| `inquiry` | poptavky | chybí, stačí čtení `poptavky.read` |
-| `crm_activity` | poptavky | chybí, stačí čtení `poptavky.read` |
-| `crm_note` | poptavky | chybí, stačí čtení `poptavky.read` |
-| `crm_activity_type` | poptavky | chybí, stačí čtení `poptavky.read` |
-| `time_entry` | dochazka | chybí, stačí čtení `dochazka.read` |
 | `event` | kalendar | chybí, stačí čtení `kalendar.read` |
 | `calendar_resource` | kalendar | chybí, stačí čtení `kalendar.read` |
 
@@ -39,7 +34,6 @@ Route handlery a příkazy, jejichž název napovídá import, příjem poptávk
 
 | Adresa | Metody | Soubor | Popis |
 | --- | --- | --- | --- |
-| `/api/intake/poptavky` | `POST` | `apps/web/src/app/api/intake/poptavky/route.ts` | Přečte tělo požadavku nejvýš do `max` bajtů; delší tělo se zahodí (`null`), aniž by se načetlo celé do paměti. |
 | `/api/invitations/accept` | `POST` | `apps/web/src/app/api/invitations/accept/route.ts` | Přijetí pozvánky (bez přihlášení): jméno a heslo. Omezeno na 10 pokusů za 10 minut z jedné adresy. |
 
 | Příkaz | Popis |
@@ -48,9 +42,6 @@ Route handlery a příkazy, jejichž název napovídá import, příjem poptávk
 | `kalendar.import.delete` |  |
 | `kalendar.import.list` |  |
 | `kalendar.import.sync` |  |
-| `poptavky.createIntakeKey` |  |
-| `poptavky.intakeKeys` |  |
-| `poptavky.revokeIntakeKey` |  |
 
 ## Příkazy související s exportem nebo odesláním dokladů
 

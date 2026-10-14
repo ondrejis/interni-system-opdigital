@@ -3,6 +3,7 @@ import type { SQL } from "drizzle-orm";
 import type { Executor } from "../db/client";
 import type { ModuleId } from "../modules/ids";
 import type { Ctx } from "../rbac/types";
+import type { FilterGroup } from "./operators";
 
 /** Typy atributů záznamů. Z typu plyne editor v buňce, dostupné filtry, řazení i validace. */
 export const ATTRIBUTE_TYPES = [
@@ -66,6 +67,17 @@ export type AttributeDef = {
   width?: number;
 };
 
+/** Rychlá předvolba filtru nad seznamem (Moje, Dnes, Po termínu…); zobrazuje C3. */
+export type QuickFilterDef = {
+  key: string;
+  label: string;
+  /** Filtr, nebo funkce, která ho složí pro aktéra (např. „Moje“ = `owner = já`). */
+  filter: FilterGroup | ((ctx: Ctx) => FilterGroup);
+};
+
+/** Vazba záznamu na jiný typ záznamu přes sloupec (rodič pro dědění zámku, dítě pro kaskádu koše). */
+export type EntityLink = { entityType: string; column: string };
+
 export type EntityDef = {
   /** Klíč entity — shodný s `entity_type` v komentářích, úkolech, souborech a auditu. */
   key: string;
@@ -128,6 +140,33 @@ export type EntityDef = {
   /** Adresa seznamu v aplikaci, např. `/zakazky`. Záznam je na `<listPath>/<id>`. */
   listPath: string;
   url: (id: string) => string;
+  /**
+   * Viditelnost shared/private (zámek, D §5.1). Jen typ: chování doplní engine v C1. `parents` = rodiče, od kterých
+   * záznam dědí zámek (platí první nenulový sloupec; bez `parents` je záznam kořen s vlastním zámkem), `ownLock` = dítě
+   * smí mít i vlastní zámek (výchozí ano), `defaultPrivate` = výchozí hodnota pro majitele při vytvoření.
+   */
+  visibility?: {
+    parents?: readonly EntityLink[];
+    ownLock?: boolean;
+    defaultPrivate?: boolean;
+  };
+  /**
+   * Sloupce (názvy vlastností tabulky), které nepíše uživatel, ale jiný modul nebo úloha přes `writeSystemFields`
+   * (např. `driveFolderId`, `nextActivityAt`). Zapisují se jen touto cestou; C1 je vyřadí z formulářů a z `updateRecord`.
+   */
+  systemFields?: readonly string[];
+  /** Děti záznamu pro kaskádu koše a obnovy (sloupec dítěte odkazuje na `id` tohoto záznamu). Jen typ do C1. */
+  children?: readonly EntityLink[];
+  /** Rychlé předvolby filtru nad seznamem. Jen typ do C3. */
+  quickFilters?: readonly QuickFilterDef[];
+  /**
+   * Doplní do hledání text, který není ve sloupcích záznamu (telefony a e-maily z kontaktních bodů): vrací pro dané
+   * řádky mapu `id → text`. Jen typ do C3.
+   */
+  searchLoad?: (
+    db: Executor,
+    rows: readonly Record<string, unknown>[],
+  ) => Promise<Record<string, string>>;
 };
 
 export function defineEntity(def: EntityDef): EntityDef {

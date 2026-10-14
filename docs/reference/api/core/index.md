@@ -20,7 +20,7 @@ Vstupní bod `@rebar/core` (soubor `packages/core/src/index.ts`). Exportů: 27, 
 | [`ModuleResolutionError`](#moduleresolutionerror) | class |  |  |
 | [`CORE_PERMISSIONS`](manifest.md#core_permissions) | const | Oprávnění, která patří platformě, ne modulu. | v `@rebar/core/manifest` |
 | [`INTERNAL_NAME`](#internal_name) | const | Interní pracovní název jádra. Nesmí se dostat do nic, co vidí klient. |  |
-| [`MODULE_IDS`](manifest.md#module_ids) | const | Identifikátory modulů. Jediný zdroj pravdy — konfigurace klienta se validuje proti tomuto seznamu. | v `@rebar/core/manifest` |
+| [`MODULE_IDS`](manifest.md#module_ids) | const | Identifikátory modulů. Jediný zdroj pravdy — konfigurace klienta se validuje proti tomuto seznamu. Pořadí = pořadí závislostí = pořadí migrací (hard závislost vždy dřív než její konzument); hlídá ho test. | v `@rebar/core/manifest` |
 | [`clientConfigSchema`](#clientconfigschema) | const |  |  |
 | [`notificationsConfigSchema`](notifications.md#notificationsconfigschema) | const | Sekce `notifications` v konfiguraci klienta. | v `@rebar/core/notifications` |
 | [`EventMap`](#eventmap) | interface | Události, na které se dá z rozšíření klienta reagovat. Seznam roste s moduly (fáze 4); rozšíření se k jádru připojuje jen přes tyto události a sloty. |  |

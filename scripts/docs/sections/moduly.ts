@@ -635,6 +635,6 @@ async function coreModuleDoc(
           ]),
       ),
     ),
-    `Databázové tabulky jádra: ${link("databaze/jadro.md", DIR, "docs/reference/databaze/jadro.md")}. Příkazy platformy: ${link("prikazy/jadro.md", DIR, "docs/reference/prikazy/jadro.md")} (${rt.platformCommands.size}).`,
+    `Databázové tabulky jádra: ${link("databaze/jadro.md", DIR, "docs/reference/databaze/jadro.md")}. Příkazy platformy: ${rt.platformCommands.size ? `${link("prikazy/jadro.md", DIR, "docs/reference/prikazy/jadro.md")} (${rt.platformCommands.size})` : "žádné"}.`,
   );
 }

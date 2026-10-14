@@ -27,7 +27,7 @@ import { createCipher, parseKeyRing } from "@rebar/core/security";
 import { PermissionError, UserError, type Ctx } from "@rebar/core/rbac";
 import { connectAppDb, makeUser } from "@rebar/core/testing";
 import { company } from "@rebar/kontakty/schema";
-import { buildFixture, isolatedDb, MONEY, type Fixture } from "./support/security-fixture";
+import { buildFixture, isolatedDb, MONEY, type Fixture } from "./support/legacy/fixture";
 import { collect, unzip } from "./support/unzip";
 
 /** Exporty: oprávnění a skryté sloupce, audit, velké exporty na pozadí, Moje exporty, šablony, plány (idempotence, příjemci). */

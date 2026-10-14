@@ -19,8 +19,7 @@ Zakázky: fáze, termíny, tým, šablony, komentáře a úkoly (kostra, model s
 
 | Položka | Adresa | Ikona | Oprávnění | Sekce panelu | Nadřazená položka |
 | --- | --- | --- | --- | --- | --- |
-| Zakázky | `/zakazky` | `briefcase` | `zakazky.read` | Obchod |  |
-| Šablony | `/zakazky/sablony` | `clipboard-list` | `zakazky.read` |  | `/zakazky` |
+| Zakázky | `/zakazky` | `briefcase` | `zakazky.read` | Realizace |  |
 
 ## Stránky modulu
 
@@ -35,8 +34,12 @@ Výchozí přidělení rolím je v [opravneni.md](../opravneni.md).
 | Klíč | Název | Popis |
 | --- | --- | --- |
 | `zakazky.read` | Vidí zakázky |  |
+| `zakazky.create` | Zakládá zakázky |  |
 | `zakazky.write` | Upravuje zakázky |  |
-| `zakazky.finance` | Vidí hodnotu a finance zakázek | Hodnota zakázky a částky odvozené z ní (vážená hodnota obchodů) |
+| `zakazky.delete` | Maže zakázky | Do koše; obnovit smí každý své |
+| `zakazky.export` | Exportuje zakázky |  |
+| `zakazky.templates` | Spravuje šablony zakázek |  |
+| `zakazky.finance` | Vidí hodnotu a finance zakázek | Hodnota zakázky a částky odvozené z ní (přechodné; převezme modul Finance) |
 
 ## Výchozí data (seed)
 

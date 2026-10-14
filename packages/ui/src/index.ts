@@ -17,6 +17,7 @@ export {
   initials,
 } from "./components/badges";
 export { PageSkeleton } from "./components/page-skeleton";
+export { Placeholder } from "./components/placeholder";
 export {
   Popover,
   PopoverTrigger,

@@ -18,5 +18,5 @@ const · `packages/modules/kontakty/src/index.ts`
 _Bez popisu._
 
 ```ts
-const manifest: { readonly id: "kontakty"; readonly name: "Kontakty"; readonly description: "Firmy a osoby: typ, hierarchie, štítky, více telefonů a e-mailů, doplnění z ARES, kontrola duplicit a jejich sloučení."; readonly icon: "contact"; readonly nav: r…
+const manifest: { readonly id: "kontakty"; readonly name: "Organizace a kontakty"; readonly description: "Organizace a kontaktní osoby: více telefonů a e-mailů, doplnění z ARES, kontrola duplicit a jejich sloučení."; readonly icon: "contact"; readonly nav…
 ```

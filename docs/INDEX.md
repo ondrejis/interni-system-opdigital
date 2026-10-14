@@ -58,10 +58,18 @@ Jak každý modul funguje: účel, role, toky, stavy, pravidla, integrace a omez
 
 - [Šablona vyprávěcí dokumentace modulu](moduly/_sablona.md) (`docs/moduly/_sablona.md`)
 - [Kontakty](moduly/kontakty.md) (`docs/moduly/kontakty.md`)
+- [Klienti](moduly/klienti.md) (`docs/moduly/klienti.md`)
+- [Google Disk](moduly/disk.md) (`docs/moduly/disk.md`)
 - [Zakázky](moduly/zakazky.md) (`docs/moduly/zakazky.md`)
-- [Poptávky](moduly/poptavky.md) (`docs/moduly/poptavky.md`)
-- [Docházka](moduly/dochazka.md) (`docs/moduly/dochazka.md`)
+- [Obchody](moduly/obchody.md) (`docs/moduly/obchody.md`)
+- [Úkoly a poznámky](moduly/ukoly.md) (`docs/moduly/ukoly.md`)
 - [Kalendář](moduly/kalendar.md) (`docs/moduly/kalendar.md`)
+- [Hodiny](moduly/hodiny.md) (`docs/moduly/hodiny.md`)
+- [Finance](moduly/finance.md) (`docs/moduly/finance.md`)
+- [Reklama](moduly/reklama.md) (`docs/moduly/reklama.md`)
+- [Šablony e-mailů](moduly/sablony-emailu.md) (`docs/moduly/sablony-emailu.md`)
+- [Můj prostor](moduly/muj-prostor.md) (`docs/moduly/muj-prostor.md`)
+- [Přehled](moduly/prehled.md) (`docs/moduly/prehled.md`)
 
 ## Reference (generovaná z kódu)
 
@@ -118,6 +126,7 @@ Proč je věc udělaná tak, jak je. Každé rozhodnutí má vlastní číslovan
 - [Vlastní nástěnky](DASHBOARDY.md) (`docs/DASHBOARDY.md`)
 - [Exporty](EXPORTY.md) (`docs/EXPORTY.md`)
 - [Upozornění: push, zvoneček a e-mail](NOTIFICATIONS.md) (`docs/NOTIFICATIONS.md`)
+- [ZADOSTI: žádosti o změnu sdílených míst](opsys/ZADOSTI.md) (`docs/opsys/ZADOSTI.md`)
 - [OPSIS – Logická specifikace funkcí](specifikace/00-logicka-specifikace-funkci.md) (`docs/specifikace/00-logicka-specifikace-funkci.md`)
 - [OPSIS 00 – Přehled, rozhodnutí a fáze](specifikace/10-prehled-rozhodnuti-faze.md) (`docs/specifikace/10-prehled-rozhodnuti-faze.md`)
 - [OPSIS 01 – Architektura a tech stack](specifikace/11-architektura-tech-stack.md) (`docs/specifikace/11-architektura-tech-stack.md`)

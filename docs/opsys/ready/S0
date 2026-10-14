@@ -1,0 +1,1 @@
+S0 hotovo 2026-10-14: typecheck, lint, format:check, pnpm check, db:migrate na čisté DB zelené (viz E-rozbehovy-log.md, sekce S0). S1 smí začít po commitu a tagu opsys-s0.

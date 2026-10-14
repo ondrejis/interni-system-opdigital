@@ -27,11 +27,15 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 
-| Oprávnění         | Název                          | Výchozí: owner |
-| ----------------- | ------------------------------ | -------------- |
-| `zakazky.read`    | Vidí zakázky                   | vše            |
-| `zakazky.write`   | Upravuje zakázky               | vše            |
-| `zakazky.finance` | Vidí hodnotu a finance zakázek | vše            |
+| Oprávnění           | Název                          | Výchozí: owner |
+| ------------------- | ------------------------------ | -------------- |
+| `zakazky.read`      | Vidí zakázky                   | vše            |
+| `zakazky.create`    | Zakládá zakázky                | vše            |
+| `zakazky.write`     | Upravuje zakázky               | vše            |
+| `zakazky.delete`    | Maže zakázky                   | vše            |
+| `zakazky.export`    | Exportuje zakázky              | vše            |
+| `zakazky.templates` | Spravuje šablony zakázek       | vše            |
+| `zakazky.finance`   | Vidí hodnotu a finance zakázek | vše            |
 
 <!-- docs:generated:end -->
 

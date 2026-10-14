@@ -5,11 +5,12 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core/entities` (soubor `packages/core/src/entities/index.ts`). Exportů: 65, z toho s popisem 38.
+Vstupní bod `@rebar/core/entities` (soubor `packages/core/src/entities/index.ts`). Exportů: 73, z toho s popisem 46.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
 | [`aggregateRecords`](#aggregaterecords) | function | Agregace entity. Oprávnění a viditelnost řádků hlídá stejná datová vrstva jako seznam: bez práva ke čtení entity chyba, rozsah „jen moje“ zúží řádky, atributy skryté oprávněním (ceny, marže) pro aktéra neexistují, takže se nedají sečíst ani změnou definice widgetu. |  |
+| [`applyEntityExtensions`](#applyentityextensions) | function | Z položek `entities` všech modulů (definice i rozšíření) složí definice: háčky rozšíření se zřetězí za háčky entity v pořadí, v jakém moduly přicházejí. Rozšíření entity, která není v sestavě, se přeskočí. |  |
 | [`assertEntityAccess`](#assertentityaccess) | function | Ověří, že aktér smí se záznamem pracovat. Neznámý typ záznamu se odmítne (bezpečné výchozí chování), záznam, který aktér nesmí vidět, se tváří jako neexistující. |  |
 | [`clearEntityPolicies`](#clearentitypolicies) | function | Pro testy. |  |
 | [`countActive`](#countactive) | function | Spočítá nesmazané řádky tabulky (`deleted_at is null`) splňující podmínky; pomocník pro `DeleteBlocker.count`. |  |
@@ -19,10 +20,12 @@ Vstupní bod `@rebar/core/entities` (soubor `packages/core/src/entities/index.ts
 | [`deleteBlockMessage`](#deleteblockmessage) | function | Vrátí českou větu, proč záznam nejde smazat („Firma má 3 zakázky a 2 faktury; nejdřív je přesuňte nebo smažte.“), nebo `null`, když nic nebrání. `label` je název typu záznamu v 1. pádu („Firma“). |  |
 | [`deleteRecord`](#deleterecord) | function | Smaže záznam (měkce — jde obnovit). |  |
 | [`describeEntity`](#describeentity) | function | Popis entity pro prohlížeč: atributy (včetně vlastních polí), stavy pipeline a to, co aktér smí. |  |
+| [`extendEntity`](#extendentity) | function | Doplní k entitě jiného modulu háčky (např. `klienti` hlídá změnu `name` a `services` u `company`) bez zásahu do jejího modulu. Použití: `entities: [extendEntity("company", { afterUpdate })]` v `server.ts`. Háček rozšíření běží až po háčku entity samotné; chybí-li cílová entita (modul není zapnutý), rozšíření se tiše přeskočí. |  |
 | [`getEntityPolicy`](#getentitypolicy) | function |  |  |
 | [`getRecord`](#getrecord) | function | Jeden záznam. Záznam, který aktér nesmí vidět, se tváří jako neexistující. |  |
 | [`getRecordActivity`](#getrecordactivity) | function | Vše, co se kolem záznamu děje: časová osa (změny z auditu a komentáře), úkoly a soubory. Smí ji číst ten, kdo záznam vidí. S `def` entity se z auditu vynechají peníze a skryté atributy (viz `visibleAudit`). |  |
 | [`indexRecord`](#indexrecord) | function | Zapíše záznam do indexu pro hledání (ve stejné transakci jako změna záznamu). |  |
+| [`isEntityExtension`](#isentityextension) | function | Je položka seznamu `entities` rozšířením (`extendEntity`), ne definicí entity? |  |
 | [`phaseHooksFor`](#phasehooksfor) | function |  |  |
 | [`queryGroups`](#querygroups) | function | Skupiny podle atributu (počet a součty) — záhlaví skupin v tabulce a sloupce kanbanu. |  |
 | [`queryRecords`](#queryrecords) | function | Stránka záznamů: řádky, celkový počet, součty za celou filtrovanou sadu a popisky odkazů. |  |
@@ -42,6 +45,7 @@ Vstupní bod `@rebar/core/entities` (soubor `packages/core/src/entities/index.ts
 | [`visibleIds`](#visibleids) | function | Id záznamů, které aktér vidí (s oprávněním a rozsahem, bez smazaných), případně zúžená filtrem. Pro moduly, které z dat jiné entity potřebují jen „kterých se týká“ (fáze viditelných zakázek, vady…); strop chrání paměť. |  |
 | [`visibleRecordTitles`](#visiblerecordtitles) | function | Názvy záznamů podle id jen z těch záznamů, které aktér smí vidět (oprávnění i rozsah „jen moje“). Cizí záznam se v popisku neobjeví, takže montér nepozná název zakázky, ke které nepatří. Pro popisky u řádků docházky, skladu, strojů a kalendáře; místo `recordTitles` všude, kde odpověď čte uživatel s omezeným rozsahem. |  |
 | [`visibleTo`](#visibleto) | function | Entita zúžená na atributy, které aktér smí vidět (`AttributeDef.permission`). Skryté atributy pak pro aktéra neexistují: nejsou v řádcích, součtech, filtrech ani řazení a nejdou zapsat (neznámý atribut). |  |
+| [`writeSystemFields`](#writesystemfields) | function | Zapíše systémová pole záznamu: sloupce, které nepíše uživatel, ale jiný modul nebo úloha (`drive_folder_id`, `next_activity_at`, `marketing_stage`…). Povolené jsou jen sloupce deklarované v `EntityDef.systemFields`; názvy lze zadat jako vlastnost tabulky (`driveFolderId`) i jako sloupec (`drive_folder_id`). Změna se zapíše do auditu (`actorLabel` = kdo ji způsobil: „n8n“, „Google“, „Systém“…) a záznam se znovu zaindexuje. Volat v transakci (`inTx`). Chybí-li entita v registru (modul není zapnutý), nic se neděje a vrátí `false`; jinak vrací, zda se hodnota změnila. |  |
 | [`AGGREGATABLE_TYPES`](#aggregatable_types) | const |  |  |
 | [`AGG_MAX_GROUPS`](#agg_max_groups) | const |  |  |
 | [`ATTRIBUTE_TYPES`](#attribute_types) | const | Typy atributů záznamů. Z typu plyne editor v buňce, dostupné filtry, řazení i validace. |  |
@@ -59,6 +63,9 @@ Vstupní bod `@rebar/core/entities` (soubor `packages/core/src/entities/index.ts
 | [`Condition`](#condition) | type |  |  |
 | [`DeleteBlocker`](#deleteblocker) | type | Blokace smazání záznamu, který má navázané záznamy jiných modulů (firma se zakázkou a fakturou, zakázka s vystavenou fakturou…). Entita o cizích tabulkách nic neví: každý modul dodá `deleteBlockers` pro typy záznamů, na které odkazuje, a `deleteRecord` je před smazáním vyhodnotí. Počítají se jen nesmazané záznamy. |  |
 | [`EntityDef`](#entitydef) | type |  |  |
+| [`EntityExtension`](#entityextension) | type | Rozšíření cizí entity o háčky; vyrábí `extendEntity`, skládá `applyEntityExtensions` (`collectServers`). |  |
+| [`EntityHooks`](#entityhooks) | type | Háčky, které modul doplní k cizí entitě (`extendEntity`). Stejné významy jako u `EntityDef`. |  |
+| [`EntityLink`](#entitylink) | type | Vazba záznamu na jiný typ záznamu přes sloupec (rodič pro dědění zámku, dítě pro kaskádu koše). |  |
 | [`EntityPolicy`](#entitypolicy) | type | Pravidla přístupu k záznamům jednoho typu (zakázka, firma, stroj…). Komentáře, úkoly a soubory se vážou na libovolný záznam, proto se jejich oprávnění odvozují od záznamu, ke kterému patří. Moduly svou politiku registrují (ve fázi 3 ji nahradí registr entit). |  |
 | [`EntityRegistry`](#entityregistry) | type |  |  |
 | [`FilterGroup`](#filtergroup) | type |  |  |
@@ -68,6 +75,7 @@ Vstupní bod `@rebar/core/entities` (soubor `packages/core/src/entities/index.ts
 | [`PhaseTransition`](#phasetransition) | type | Hook přechodu fáze záznamu (zakázka: poptávka → nabídka → … → uzavřeno). Moduly je dodávají přes `phaseHooks` v serverové části; entita (`beforeUpdate`/`afterUpdate`) je pouští při změně fáze. Hook patří modulu, který zná důsledek přechodu (rozpočet zamkne nabídku, realizace otevře deník…), entita o nich nic neví. |  |
 | [`PhaseTransitionHook`](#phasetransitionhook) | type |  |  |
 | [`QueryInput`](#queryinput) | type |  |  |
+| [`QuickFilterDef`](#quickfilterdef) | type | Rychlá předvolba filtru nad seznamem (Moje, Dnes, Po termínu…); zobrazuje C3. |  |
 | [`RecordRow`](#recordrow) | type | Řádek záznamu: `id`, `updatedAt` (ISO) a hodnoty podle klíče atributu. |  |
 | [`ResolvedEntity`](#resolvedentity) | type | Entita se zjištěnými vlastními poli (z administrace) připravená k dotazům. |  |
 | [`SearchHit`](#searchhit) | type |  |  |
@@ -85,6 +93,17 @@ sečíst ani změnou definice widgetu.
 
 ```ts
 async function aggregateRecords(ctx: Ctx, registry: EntityRegistry, entity: ResolvedEntity, spec: AggregateSpec): Promise<AggregateResult>
+```
+
+### applyEntityExtensions
+
+function · `packages/core/src/entities/extend.ts`
+
+Z položek `entities` všech modulů (definice i rozšíření) složí definice: háčky rozšíření se zřetězí za háčky entity
+v pořadí, v jakém moduly přicházejí. Rozšíření entity, která není v sestavě, se přeskočí.
+
+```ts
+function applyEntityExtensions(items: readonly (EntityDef | EntityExtension)[]): EntityDef[]
 ```
 
 ### assertEntityAccess
@@ -179,6 +198,18 @@ Popis entity pro prohlížeč: atributy (včetně vlastních polí), stavy pipel
 async function describeEntity(ctx: Ctx, db: Executor, e: ResolvedEntity, registry?: EntityRegistry): Promise<EntityDescriptor>
 ```
 
+### extendEntity
+
+function · `packages/core/src/entities/extend.ts`
+
+Doplní k entitě jiného modulu háčky (např. `klienti` hlídá změnu `name` a `services` u `company`) bez zásahu do
+jejího modulu. Použití: `entities: [extendEntity("company", { afterUpdate })]` v `server.ts`. Háček rozšíření běží
+až po háčku entity samotné; chybí-li cílová entita (modul není zapnutý), rozšíření se tiše přeskočí.
+
+```ts
+function extendEntity(key: string, hooks: EntityHooks): EntityExtension
+```
+
 ### getEntityPolicy
 
 function · `packages/core/src/entities/policy.ts`
@@ -218,6 +249,16 @@ Zapíše záznam do indexu pro hledání (ve stejné transakci jako změna zázn
 
 ```ts
 async function indexRecord(db: Executor, e: Indexed, raw: Record<string, unknown>): Promise<void>
+```
+
+### isEntityExtension
+
+function · `packages/core/src/entities/extend.ts`
+
+Je položka seznamu `entities` rozšířením (`extendEntity`), ne definicí entity?
+
+```ts
+function isEntityExtension(x: EntityDef | EntityExtension): x is EntityExtension
 ```
 
 ### phaseHooksFor
@@ -415,6 +456,21 @@ neexistují: nejsou v řádcích, součtech, filtrech ani řazení a nejdou zaps
 
 ```ts
 function visibleTo(ctx: Ctx, e: ResolvedEntity): ResolvedEntity
+```
+
+### writeSystemFields
+
+function · `packages/core/src/entities/system-fields.ts`
+
+Zapíše systémová pole záznamu: sloupce, které nepíše uživatel, ale jiný modul nebo úloha (`drive_folder_id`,
+`next_activity_at`, `marketing_stage`…). Povolené jsou jen sloupce deklarované v `EntityDef.systemFields`; názvy
+lze zadat jako vlastnost tabulky (`driveFolderId`) i jako sloupec (`drive_folder_id`). Změna se zapíše do auditu
+(`actorLabel` = kdo ji způsobil: „n8n“, „Google“, „Systém“…) a záznam se znovu zaindexuje. Volat v transakci
+(`inTx`). Chybí-li entita v registru (modul není zapnutý), nic se neděje a vrátí `false`; jinak vrací, zda se
+hodnota změnila.
+
+```ts
+async function writeSystemFields(ctx: Ctx, registry: EntityRegistry, entityKey: string, id: string, patch: Record<string, unknown>, opts: { actorLabel?: string } = {}): Promise<boolean>
 ```
 
 ### AGGREGATABLE_TYPES
@@ -717,6 +773,39 @@ type EntityDef = {
 // … (zkráceno, celá deklarace je ve zdroji)
 ```
 
+### EntityExtension
+
+type · `packages/core/src/entities/extend.ts`
+
+Rozšíření cizí entity o háčky; vyrábí `extendEntity`, skládá `applyEntityExtensions` (`collectServers`).
+
+```ts
+type EntityExtension = { extends: string; hooks: EntityHooks };
+```
+
+### EntityHooks
+
+type · `packages/core/src/entities/extend.ts`
+
+Háčky, které modul doplní k cizí entitě (`extendEntity`). Stejné významy jako u `EntityDef`.
+
+```ts
+type EntityHooks = Pick<
+  EntityDef,
+  "beforeCreate" | "beforeUpdate" | "afterCreate" | "afterUpdate" | "beforeDelete"
+>;
+```
+
+### EntityLink
+
+type · `packages/core/src/entities/types.ts`
+
+Vazba záznamu na jiný typ záznamu přes sloupec (rodič pro dědění zámku, dítě pro kaskádu koše).
+
+```ts
+type EntityLink = { entityType: string; column: string };
+```
+
 ### EntityPolicy
 
 type · `packages/core/src/entities/policy.ts`
@@ -865,6 +954,21 @@ _Bez popisu._
 
 ```ts
 type QueryInput = z.input<typeof queryInput>;
+```
+
+### QuickFilterDef
+
+type · `packages/core/src/entities/types.ts`
+
+Rychlá předvolba filtru nad seznamem (Moje, Dnes, Po termínu…); zobrazuje C3.
+
+```ts
+type QuickFilterDef = {
+  key: string;
+  label: string;
+  /** Filtr, nebo funkce, která ho složí pro aktéra (např. „Moje“ = `owner = já`). */
+  filter: FilterGroup | ((ctx: Ctx) => FilterGroup);
+};
 ```
 
 ### RecordRow

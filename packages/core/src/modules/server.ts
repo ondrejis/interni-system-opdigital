@@ -1,6 +1,15 @@
 import type { ZodType, z } from "zod";
 import "../zod-locale";
-import type { DeleteBlocker, EntityDef, EntityRegistry, PhaseTransitionHook } from "../entities";
+import type { ContributionMap, ServiceMap } from "../contracts/services";
+import type {
+  DeleteBlocker,
+  EntityDef,
+  EntityExtension,
+  EntityRegistry,
+  PhaseTransitionHook,
+} from "../entities";
+import type { DomainEventHandler } from "../events";
+import type { DomainEventName } from "../contracts/events";
 import type { StorageDriver } from "../files";
 import type { QueueClient, JobDef } from "../jobs";
 import type { Ctx } from "../rbac/types";
@@ -30,7 +39,58 @@ export type ModuleDeps = {
   emit: <K extends EventName>(name: K, payload: EventMap[K]) => Promise<void>;
   /** Poskytovatelé zapnutých modulů (kalendářní vrstvy). */
   calendarLayers: readonly CalendarLayerProvider[];
+  /** Služby a příspěvky ostatních modulů (D §2.3, §2.5). */
+  services: ServiceRegistry;
 };
+
+/**
+ * Přístup ke službám a příspěvkům ostatních modulů. Modul nikdy neimportuje cizí modul kvůli službě: vypnutý nebo
+ * zatím nehotový modul službu nemá, proto `optional`.
+ */
+export type ServiceRegistry = {
+  /** Služba zapnutého modulu; vyhodí, když ji žádný zapnutý modul nenabízí. */
+  get<K extends keyof ServiceMap>(key: K): ServiceMap[K];
+  /** Služba, nebo `undefined`, když modul není zapnutý. */
+  optional<K extends keyof ServiceMap>(key: K): ServiceMap[K] | undefined;
+  /** Příspěvky všech zapnutých modulů daného druhu (v pořadí modulů). */
+  all<K extends keyof ContributionMap>(key: K): readonly ContributionMap[K][];
+};
+
+/** Co modul nabízí ostatním (`ModuleServer.services` + `contributions`) v podobě, ze které se skládá `ServiceRegistry`. */
+export type ServiceSources = {
+  services: { [K in keyof ServiceMap]?: (deps: ModuleDeps) => ServiceMap[K] };
+  contributions: { [K in keyof ContributionMap]?: readonly ContributionMap[K][] };
+};
+
+/**
+ * Doplní `ModuleDeps` o `services`. Služby se vyrábí líně při prvním použití (továrna dostane hotové `deps`),
+ * takže nevadí, že služba sama volá další služby.
+ */
+export function createModuleDeps(
+  base: Omit<ModuleDeps, "services">,
+  sources: ServiceSources,
+): ModuleDeps {
+  const cache = new Map<string, unknown>();
+  const deps = { ...base } as ModuleDeps;
+  const optional = <K extends keyof ServiceMap>(key: K): ServiceMap[K] | undefined => {
+    if (cache.has(key)) return cache.get(key) as ServiceMap[K];
+    const factory = sources.services[key] as ((d: ModuleDeps) => ServiceMap[K]) | undefined;
+    if (!factory) return undefined;
+    const service = factory(deps);
+    cache.set(key, service);
+    return service;
+  };
+  deps.services = {
+    optional,
+    get(key) {
+      const service = optional(key);
+      if (!service) throw new Error(`Služba „${key}“ není k dispozici (modul není zapnutý).`);
+      return service;
+    },
+    all: (key) => sources.contributions[key] ?? [],
+  };
+  return deps;
+}
 
 /**
  * Příkaz modulu: pojmenovaná akce nebo dotaz volaný z UI (`api.command(name, input)`).
@@ -159,6 +219,8 @@ export type CalendarLayerProvider = {
 
 /** Úloha modulu na pozadí (připomínky, uzávěrky…); běží ve workeru s právy systému. */
 export type ModuleJobDeps = {
+  /** Služby ostatních modulů (úlohy volají služby a vysílají události stejně jako příkazy). */
+  services?: ServiceRegistry;
   db: Db;
   registry: EntityRegistry;
   queue: Pick<QueueClient, "send">;
@@ -173,9 +235,44 @@ export function defineModuleJob<S extends ZodType>(def: JobDef<S, ModuleJobDeps>
   return def as unknown as ModuleJob;
 }
 
+/** Položka „odznaku“ u položky navigace (počet záznamů po termínu apod.); bez soukromých záznamů cizích aktérů. */
+export type NavBadgeDef = {
+  /** Adresa položky navigace, ke které se odznak přidá. */
+  href: string;
+  tone: "warning" | "danger";
+  count: (ctx: Ctx, deps: ModuleDeps) => Promise<number>;
+};
+
+/** Pojmenovaná ruční čtecí cesta modulu pro test soukromí (D §5.4): widget, metrika, vrstva, služba, příspěvek karty. */
+export type PrivatePathDef = {
+  name: string;
+  run: (ctx: Ctx, deps: ModuleDeps) => Promise<unknown>;
+};
+
+/**
+ * Příchozí požadavek od n8n a dalších (`POST /api/ingest/<source>`, podepsaný). Duplicita (`source`, `externalId`)
+ * se vyřídí bez zpracování. Trasu a zápis do `inbound_event` doplní C2.
+ */
+export type IngestDef<S extends ZodType = ZodType> = {
+  source: string;
+  schema: S;
+  externalId: (body: z.output<S>) => string;
+  handle: (
+    ctx: Ctx,
+    body: z.output<S>,
+    deps: ModuleDeps,
+  ) => Promise<{ entity?: { type: string; id: string } } | void>;
+};
+
+/** Pomocník pro typově bezpečnou definici příchozího zdroje (`ModuleServer.ingests`). */
+export function defineIngest<S extends ZodType>(def: IngestDef<S>): IngestDef<S> {
+  return def;
+}
+
 /** Co modul nabízí běžícímu systému na serveru. Žádný modul tohle nečte z jiného modulu přímo — jen přes registry v aplikaci. */
 export type ModuleServer = {
-  entities?: readonly EntityDef[];
+  /** Definice entit, případně rozšíření cizích entit (`extendEntity`). */
+  entities?: readonly (EntityDef | EntityExtension)[];
   commands?: readonly CommandDef[];
   attention?: readonly AttentionProvider[];
   widgets?: readonly WidgetProvider[];
@@ -192,6 +289,18 @@ export type ModuleServer = {
    * úprava dat po změně výchozí sady. Běží po `runSeed`; nesmí přepisovat to, co správce změnil v administraci.
    */
   ensure?: readonly ((db: Executor) => Promise<unknown>)[];
+  /** Služby pro ostatní moduly (`deps.services.get/optional`). */
+  services?: ServiceSources["services"];
+  /** Příspěvky pro ostatní moduly (karta klienta, proměnné e-mailů). Čtou se `deps.services.all`. */
+  contributions?: ServiceSources["contributions"];
+  /** Reakce na doménové události jiných modulů; běží v transakci emitenta (chyba = vrácení). */
+  eventHandlers?: { [K in DomainEventName]?: DomainEventHandler<K> };
+  /** Příchozí požadavky (`/api/ingest/<source>`). */
+  ingests?: readonly IngestDef[];
+  /** Odznaky u položek navigace. */
+  navBadges?: readonly NavBadgeDef[];
+  /** Ruční čtecí cesty pro canary test soukromí. */
+  privatePaths?: readonly PrivatePathDef[];
 };
 
 export function defineModuleServer<const M extends ModuleServer>(m: M): M {
@@ -200,10 +309,11 @@ export function defineModuleServer<const M extends ModuleServer>(m: M): M {
 
 /**
  * Složí serverovou část modulu z oblastí (každá oblast je samostatná složka s vlastním vlastníkem, ADR 015):
- * seznamy se spojí v daném pořadí.
+ * seznamy se spojí v daném pořadí; `services` a `contributions` se spojí podle klíče (stejná služba ve dvou oblastech
+ * je chyba), `eventHandlers` téže události se zřetězí.
  */
 export function mergeServers(...parts: readonly ModuleServer[]): ModuleServer {
-  const keys = [
+  const listKeys = [
     "entities",
     "commands",
     "attention",
@@ -214,8 +324,40 @@ export function mergeServers(...parts: readonly ModuleServer[]): ModuleServer {
     "phaseHooks",
     "deleteBlockers",
     "ensure",
+    "ingests",
+    "navBadges",
+    "privatePaths",
   ] as const;
-  const out: Record<string, unknown[]> = {};
-  for (const k of keys) out[k] = parts.flatMap((p) => [...(p[k] ?? [])]);
+  const out: Record<string, unknown> = {};
+  for (const k of listKeys) out[k] = parts.flatMap((p) => [...(p[k] ?? [])]);
+
+  const services: Record<string, unknown> = {};
+  for (const p of parts)
+    for (const [k, f] of Object.entries(p.services ?? {})) {
+      if (k in services) throw new Error(`Služba „${k}“ je ve dvou oblastech modulu.`);
+      services[k] = f;
+    }
+  out.services = services;
+
+  const contributions: Record<string, unknown[]> = {};
+  for (const p of parts)
+    for (const [k, list] of Object.entries(p.contributions ?? {}))
+      (contributions[k] ??= []).push(...(list as unknown[]));
+  out.contributions = contributions;
+
+  const handlers: Record<string, DomainEventHandler<never>[]> = {};
+  for (const p of parts)
+    for (const [k, h] of Object.entries(p.eventHandlers ?? {}))
+      if (h) (handlers[k] ??= []).push(h as DomainEventHandler<never>);
+  out.eventHandlers = Object.fromEntries(
+    Object.entries(handlers).map(([k, list]) => [
+      k,
+      list.length === 1
+        ? list[0]
+        : async (ctx: Ctx, e: never, deps: ModuleDeps) => {
+            for (const h of list) await h(ctx, e, deps);
+          },
+    ]),
+  );
   return out as ModuleServer;
 }

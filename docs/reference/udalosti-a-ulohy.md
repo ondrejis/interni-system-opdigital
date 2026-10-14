@@ -11,12 +11,6 @@
 
 | Úloha | Vlastník | Plán (cron) | Opakování po chybě | Uchování dokončených (s) | Data úlohy | Popis |
 | --- | --- | --- | --- | --- | --- | --- |
-| `crm.activities.digest` | poptavky | `10 7 * * 1-5` | 2 | 600 |  | Pracovní dny v 7:10: přehled aktivit na dnešek a po termínu. |
-| `crm.deals.attention` | poptavky | `15 7 * * 1-5` | 2 | 600 |  | Pracovní dny v 7:15: obchody bez další aktivity. |
-| `crm.rotting.refresh` | poptavky | `30 5 * * *` | 2 | 600 |  | Denně v 5:30: přepočet hnití všech zakázek (`crmApi.recomputeAllJobsCrm`) a upozornění na nově zhnilé. |
-| `dochazka.forgot_clock_out` | dochazka | `*/30 6-21 * * *` | 1 | výchozí |  |  |
-| `dochazka.missing_clock_in` | dochazka | `30 8 * * 1-5` | 1 | výchozí |  |  |
-| `dochazka.reminder` | dochazka | `30 17 * * 1-5` | 1 | výchozí |  |  |
 | `export.cleanup` | jádro | `50 3 * * *` | 1 | 600 |  |  |
 | `export.schedule.tick` | jádro | `*/5 * * * *` | 0 | 300 |  |  |
 | `files.purge` | jádro | `30 3 * * *` | 2 | výchozí |  | Denně v noci: úklid souborů, které nikdo nepřipojil k záznamu. |
@@ -51,7 +45,7 @@ Rozšíření v `clients/<slug>/extensions/` reagují jen na tyto události ([CU
 | Událost | Data | Popis | Oznamuje se v |
 | --- | --- | --- | --- |
 | `zakazky.created` | `{ id: string }` |  | `packages/modules/zakazky/src/lifecycle/transitions.ts` |
-| `poptavky.converted` | `{ id: string; jobId: string }` | Poptávka byla převedena na zakázku. | `packages/modules/poptavky/src/server.ts` |
+| `poptavky.converted` | `{ id: string; jobId: string }` | Poptávka byla převedena na zakázku. | `packages/_donor/poptavky/src/server.ts` |
 
 ## Další katalogy nalezené v kódu
 

@@ -1,5 +1,6 @@
 "use client";
 
+import type { SlotMap, SlotName } from "@rebar/core/contracts";
 import type {
   AttributeDescriptor,
   EntityDescriptor,
@@ -201,6 +202,23 @@ export type KanbanColumnContext = {
   labels: Labels;
 };
 
+/**
+ * Příkaz do palety (Cmd+K), který modul nabízí („Nový obchod“, „Zapsat hodiny“…). Buď `href` (přejít), nebo `run`.
+ * Vykresluje paletu C3; typ je tady, aby moduly mohly akce deklarovat hned.
+ */
+export type PaletteAction = {
+  id: string;
+  label: string;
+  /** Slova navíc, podle kterých jde akci najít. */
+  keywords?: string;
+  /** Název ikony z `Icon`. */
+  icon?: string;
+  /** Akce se nabízí jen s některým z oprávnění (UI pohodlí; server kontroluje vždy). */
+  permission?: string | readonly string[];
+  href?: string;
+  run?: (p: { push: (href: string) => void }) => void | Promise<void>;
+};
+
 /** Dlaždice přehledu, kterou kreslí modul sám (data dodává `widgets` na serveru). */
 export type ModuleUi = {
   /** Podle klíče entity. */
@@ -226,6 +244,10 @@ export type ModuleUi = {
   /** Základní záložky, které se u entity nezobrazují (`activity`, `tasks`, `files`). */
   hiddenCoreTabs?: Record<string, readonly ("activity" | "tasks" | "files")[]>;
   pages?: readonly ModulePage[];
+  /** Komponenty do slotů hostitele (`<Slot name="…" />`); kontrakt props je v `SlotMap` (`@rebar/core/contracts`). */
+  slots?: { [K in SlotName]?: ComponentType<SlotMap[K]> };
+  /** Příkazy do palety Cmd+K. */
+  paletteActions?: readonly PaletteAction[];
 };
 
 export function defineModuleUi<const U extends ModuleUi>(ui: U): U {
@@ -412,6 +434,68 @@ export function useKanbanExtensions(entityKey: string): {
     }
     return { card, columnHeader };
   }, [modules, entityKey]);
+}
+
+/**
+ * Složí UI oblastí modulu do jednoho `ModuleUi`. Mapy podle klíče entity se spojují (pole se zřetězí; u hlaviček
+ * a hlaviček sloupců platí první oblast, která je dodá; karta kanbanu se skládá pole po poli), stránky a příkazy
+ * palety se přidají za sebe.
+ */
+export function mergeModuleUi(...parts: ModuleUi[]): ModuleUi {
+  const out: Record<string, unknown> = {};
+  for (const part of parts) {
+    for (const [key, value] of Object.entries(part)) {
+      if (value === undefined) continue;
+      const current = out[key];
+      if (current === undefined) {
+        out[key] = Array.isArray(value) ? [...value] : { ...(value as object) };
+      } else if (Array.isArray(value)) {
+        out[key] = [...(current as unknown[]), ...value];
+      } else {
+        const merged = { ...(current as Record<string, unknown>) };
+        for (const [entity, item] of Object.entries(value as Record<string, unknown>)) {
+          const existing = merged[entity];
+          merged[entity] =
+            Array.isArray(item) && Array.isArray(existing)
+              ? [...existing, ...item]
+              : key === "kanbanCard" && existing
+                ? { ...(item as object), ...(existing as object) } // karta: pole po poli, první oblast má přednost
+                : (existing ?? item);
+        }
+        out[key] = merged;
+      }
+    }
+  }
+  return out as ModuleUi;
+}
+
+/**
+ * Komponenty všech zapnutých modulů pro slot hostitele (v pořadí modulů). Hostitel o přispěvatelích neví; bez
+ * přispěvatele je výsledek prázdný.
+ */
+export function useSlotComponents<K extends SlotName>(name: K): ComponentType<SlotMap[K]>[] {
+  const modules = useModuleUi();
+  return useMemo(
+    () =>
+      [...modules.values()].flatMap((ui) => {
+        const c = ui.slots?.[name];
+        return c ? [c as ComponentType<SlotMap[K]>] : [];
+      }),
+    [modules, name],
+  );
+}
+
+/** Vykreslí komponenty, které moduly přispěly do slotu `name`, se stejnými props: `<Slot name="task.dialog.extras" taskId={id} />`. */
+export function Slot<K extends SlotName>({ name, ...props }: { name: K } & SlotMap[K]): ReactNode {
+  const parts = useSlotComponents(name);
+  return (
+    <>
+      {parts.map((C, i) => {
+        const Part = C as ComponentType<Record<string, unknown>>;
+        return <Part key={i} {...(props as Record<string, unknown>)} />;
+      })}
+    </>
+  );
 }
 
 export function findModulePage(

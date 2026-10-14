@@ -12,3 +12,6 @@ docs/reference
 # pracovní dokumenty OPSYS (zadání, rozbory, specifikace od zadavatele) se neformátují
 docs/opsys/
 docs/specifikace/
+
+# kód odstraněných modulů jako zdroj pro nové agenty (packages/_donor, mimo workspace)
+packages/_donor/

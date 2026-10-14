@@ -8,7 +8,6 @@ const CONFIG = [
   "/nastaveni/ciselniky",
   "/nastaveni/vlastni-pole",
   "/nastaveni/rady",
-  "/nastaveni/dph",
   "/nastaveni/moduly",
 ];
 
@@ -31,13 +30,13 @@ describe("sekce Nastavení podle oprávnění", () => {
       expect(SETTINGS_SECTIONS.find((s) => s.href === href)?.permission).toBe("settings.manage");
   });
 
-  it("majitel (settings.manage) vidí všech šest konfiguračních stránek", () => {
+  it("majitel (settings.manage) vidí všech pět konfiguračních stránek", () => {
     const seen = hrefs(ctxFor({ "settings.manage": "all" }));
     for (const href of CONFIG) expect(seen).toContain(href);
   });
 
   it("partner a externista konfiguraci nevidí, jen vlastní účet", () => {
-    for (const key of ["partner", "externista"]) {
+    for (const key of ["partner", "external"]) {
       const role = (opsysSeed.roles ?? []).find((r) => r.key === key)!;
       const seen = hrefs(ctxFor((role.permissions ?? {}) as Record<string, Scope>));
       for (const href of CONFIG) expect(seen, `${key} nesmí vidět ${href}`).not.toContain(href);
@@ -63,6 +62,26 @@ describe("sekce Nastavení podle oprávnění", () => {
     expect(hrefs(ctxFor({}))).toContain("/nastaveni/exporty");
     expect(hrefs(ctxFor({}))).not.toContain("/nastaveni/nastenky");
     expect(hrefs(ctxFor({ "dashboards.manage": "all" }))).toContain("/nastaveni/nastenky");
+  });
+
+  it("OPSYS nemá upozornění ani DPH: jejich sekce se v nabídce nenabízejí", () => {
+    const seen = hrefs(ctxFor({ "settings.manage": "all" }));
+    for (const href of [
+      "/nastaveni/upozorneni",
+      "/nastaveni/pravidla-upozorneni",
+      "/nastaveni/dph",
+    ])
+      expect(seen).not.toContain(href);
+  });
+
+  it("sekce modulů se nabízejí jen při zapnutém modulu", () => {
+    const ctx = ctxFor({ "disk.manage": "all", "finance.settings": "all" });
+    expect(allowedSections(ctx, new Set(["disk"])).map((s) => s.href)).toEqual(
+      expect.arrayContaining(["/nastaveni/google-disk"]),
+    );
+    expect(allowedSections(ctx, new Set(["disk"])).map((s) => s.href)).not.toContain(
+      "/nastaveni/finance",
+    );
   });
 
   it("funkce vypnuté v konfiguraci klienta se v nabídce nenabízejí", () => {

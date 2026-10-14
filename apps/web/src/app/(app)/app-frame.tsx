@@ -38,7 +38,6 @@ const SHORTCUTS: ShortcutGroup[] = [
     items: [
       { keys: ["Ctrl/⌘", "K"], label: "Hledání a příkazy" },
       { keys: ["?"], label: "Přehled zkratek" },
-      { keys: ["g", "i"], label: "Přejít do Inboxu" },
       { keys: ["g", "u"], label: "Přejít na Moje úkoly" },
     ],
   },
@@ -104,7 +103,6 @@ function AppFrameInner({
   useHotkeys({
     "mod+k": () => setPalette((p) => !p),
     "?": () => setHelp(true),
-    "g i": () => nav.push("/inbox"),
     "g u": () => nav.push("/ukoly"),
   });
 
@@ -186,6 +184,7 @@ function AppFrameInner({
           user={{ name: user.name, roleName: user.roleName }}
           top={shell.top}
           sections={shell.sections}
+          footer={shell.footer}
           pathname={pathname}
           onSearch={() => setPalette(true)}
           onLogout={async () => {
@@ -197,7 +196,12 @@ function AppFrameInner({
           securityHref="/nastaveni/zabezpeceni"
           accountHref="/nastaveni/ucet"
           bottomNav={(openMenu) => (
-            <MobileBottomNav shell={shell} pathname={pathname} openMenu={openMenu} />
+            <MobileBottomNav
+              shell={shell}
+              pathname={pathname}
+              openMenu={openMenu}
+              openSearch={() => setPalette(true)}
+            />
           )}
         >
           {children}

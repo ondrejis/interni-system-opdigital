@@ -27,7 +27,7 @@ import { aggregateRecords, resolveEntity } from "@rebar/core/entities";
 import { defineDashboardMetric } from "@rebar/core/module-server";
 import { PermissionError, UserError } from "@rebar/core/rbac";
 import { connectAppDb, makeUser } from "@rebar/core/testing";
-import { buildFixture, isolatedDb, MONEY, type Fixture } from "./support/security-fixture";
+import { buildFixture, isolatedDb, MONEY, type Fixture } from "./support/legacy/fixture";
 
 /**
  * Nástěnky: agregace nad entitami, bezpečnost dotazů (oprávnění a rozsah řádků na úrovni dat, ani úpravou definice widgetu),

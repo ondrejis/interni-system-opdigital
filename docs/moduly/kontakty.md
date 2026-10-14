@@ -19,7 +19,7 @@ Jak psát (podrobně v docs/DOCS-PROCES.md):
 
 _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprávění píš pod ním._
 
-- **Popis z manifestu:** Firmy a osoby: typ, hierarchie, štítky, více telefonů a e-mailů, doplnění z ARES, kontrola duplicit a jejich sloučení.
+- **Popis z manifestu:** Organizace a kontaktní osoby: více telefonů a e-mailů, doplnění z ARES, kontrola duplicit a jejich sloučení.
 - **Závisí na:** žádném modulu
 - **Entity:** [`company`](../reference/entity/kontakty.md#company), [`person`](../reference/entity/kontakty.md#person)
 - **Příkazy:** [7 příkazů](../reference/prikazy/kontakty.md)
@@ -27,11 +27,15 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 
-| Oprávnění        | Název                       | Výchozí: owner |
-| ---------------- | --------------------------- | -------------- |
-| `kontakty.read`  | Vidí kontakty               | vše            |
-| `kontakty.write` | Upravuje kontakty           | vše            |
-| `kontakty.merge` | Slučuje duplicitní kontakty | vše            |
+| Oprávnění         | Název                           | Výchozí: owner |
+| ----------------- | ------------------------------- | -------------- |
+| `kontakty.read`   | Vidí organizace a kontakty      | vše            |
+| `kontakty.create` | Zakládá organizace a kontakty   | vše            |
+| `kontakty.write`  | Upravuje organizace a kontakty  | vše            |
+| `kontakty.delete` | Maže organizace a kontakty      | vše            |
+| `kontakty.export` | Exportuje organizace a kontakty | vše            |
+| `kontakty.merge`  | Slučuje duplicitní kontakty     | vše            |
+| `kontakty.ares`   | Doplňuje údaje z ARES           | vše            |
 
 <!-- docs:generated:end -->
 

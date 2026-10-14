@@ -10,7 +10,8 @@ import {
   registerWorkers,
   type CoreJobDeps,
 } from "@rebar/core/jobs";
-import type { ModuleJobDeps } from "@rebar/core/module-server";
+import { setDomainEvents } from "@rebar/core/events";
+import { createModuleDeps, type ModuleJobDeps } from "@rebar/core/module-server";
 import { queueNotificationMail, smtpTransport, type MailTransport } from "@rebar/core/mail";
 import {
   EmailNotConfiguredError,
@@ -131,13 +132,30 @@ const listener = await pg.listen(NOTIFY_CHANNEL, wake, wake);
 
 // úlohy zapnutých modulů (připomínky, uzávěrky…) běží s právy systému a mají k dispozici registr entit
 const collected = collectServers(modules);
+const registry = buildRegistry(collected.entities);
+// služby a doménové události stejně jako ve webu (úlohy volají služby ostatních modulů a vysílají události)
+const fullDeps = createModuleDeps(
+  {
+    registry,
+    queue,
+    storage: deps.storage,
+    settings,
+    cipher,
+    baseURL: env.APP_URL,
+    emit: async () => {},
+    calendarLayers: collected.calendarLayers,
+  },
+  collected,
+);
+setDomainEvents(collected.eventHandlers, () => fullDeps);
 const moduleDeps: ModuleJobDeps = {
   db,
-  registry: buildRegistry(collected.entities),
+  registry,
   queue,
   settings,
   cipher,
   baseURL: env.APP_URL,
+  services: fullDeps.services,
 };
 await registerWorkers(queue, collected.jobs, moduleDeps);
 // exporty (na pozadí, plány, úklid souborů) běží s právy uživatele, který export zadal (ne systému); úlohy čtou `deps.exports`

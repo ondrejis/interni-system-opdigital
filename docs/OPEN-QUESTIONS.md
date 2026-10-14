@@ -125,17 +125,6 @@ Otázky z analýzy konkurence. Výchozí chování je doporučení z analýzy; z
 | Q65 | Automatické upomínky         | Nedělají se. Upomínku posílá člověk po splatnosti (jednotlivě nebo hromadně), počet a datum poslední jsou u faktury. Stupňované upomínky podle dnů přidáme na požádání                 |
 | Q66 | Doručenka a otevření e-mailu | Evidujeme jen předání SMTP serveru (odesláno / selhalo s důvodem). Doručení a přečtení se nesleduje (vyžadovalo by sledovací pixel a externí službu)                                   |
 
-## Nové (demo data, `clients/demo`)
-
-| #   | Otázka                             | Výchozí chování                                                                                                                                                                                                                            |
-| --- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| D1  | 2FA u demo uživatelů               | `pnpm demo:seed` vypne povinné 2FA u rolí demo uživatelů (owner, office, foreman, worker), aby šlo klienta předvést bez telefonu. Jen pro demo; `--keep-2fa` ho ponechá. Produkční klienti mají 2FA u vedení povinné                       |
-| D2  | Hesla demo uživatelů               | Jedno společné testovací heslo v `clients/demo/seed/users.ts` a v README (ne tajemství, v přihlašovací obrazovce se nezobrazuje). Seed v produkci odmítne (`NODE_ENV=production`)                                                          |
-| D3  | Mazání demo dat                    | `--reset` smaže jen demo data (odmítne, pokud jsou v databázi neoznačené záznamy); `--wipe` smaže všechna obchodní data a jde jen proti lokální databázi. Uživatelé, role, nastavení a číselné řady zůstávají, řada zakázek tedy pokračuje |
-| D4  | Čísla faktur v demo datech         | Zakázky se nasazují jedna po druhé, takže čísla vydaných faktur nejsou striktně chronologická (jsou jedinečná a bez děr). Číselná řada je po letech, doklady jsou datované v běžném roce                                                   |
-| D5  | Údaje vystavovatele v demo datech  | Doplní se jen když jsou v Nastavení → Údaje o firmě prázdné (název, IČO, DIČ, adresa, účet); co správce vyplnil, seed nepřepisuje                                                                                                          |
-| D6  | Role v dříve založených databázích | Seed doplní rolím office, foreman a worker nově přidaná oprávnění z výchozích rolí (jen přidává, nic neubírá); u upravených rolí v demo databázi to může změnit zamýšlené nastavení                                                        |
-
 ## Nové (dotažení po QA a UX)
 
 | #   | Otázka                             | Výchozí chování                                                                                                                                                                                                                                                                                             |

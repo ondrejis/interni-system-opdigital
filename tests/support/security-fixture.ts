@@ -7,31 +7,25 @@ import {
   createEntityRegistry,
   registerEntityPolicies,
 } from "@rebar/core/entities";
-import type { ModuleDeps } from "@rebar/core/module-server";
-import { createCtx, loadActor } from "@rebar/core/rbac";
+import { createModuleDeps, type ModuleDeps } from "@rebar/core/module-server";
+import { createCtx, loadActor, type Ctx } from "@rebar/core/rbac";
 import { runSeed } from "@rebar/core/seed";
 import { createCipher, parseKeyRing } from "@rebar/core/security";
 import { createSettings } from "@rebar/core/settings";
 import opsysSeed from "../../clients/opsys/seed/index";
 import { ALL_MODULES } from "../../apps/web/src/modules";
 import { buildRegistry, collectServers } from "../../apps/web/src/server/modules-server";
-import { dochazkaPart } from "./fixture/dochazka";
-import { ROLE_KEYS, type FixtureEnv, type Person, type RoleKey } from "./fixture/env";
-import { kalendarPart } from "./fixture/kalendar";
-import { kontaktyPart } from "./fixture/kontakty";
-import { poptavkyPart } from "./fixture/poptavky";
-import { zakazkyPart } from "./fixture/zakazky";
 
-/** Částky ve fixtuře jsou „podpisové“ (7 777 700), aby je testy v odpovědích spolehlivě našly. */
-export const MONEY = { value: 7_777_700 };
+/** Role OPSYS (`clients/opsys/seed/roles.ts`): vlastník, partner (Patrik) a externí spolupracovník. */
+export const ROLE_KEYS = ["owner", "partner", "external"] as const;
+export type RoleKey = (typeof ROLE_KEYS)[number];
 
-export { ROLE_KEYS };
-export type { RoleKey };
+export type Person = { id: string; ctx: Ctx; role: RoleKey; name: string };
 
 /**
- * Pevná sestava pro matici oprávnění: role OPSYS (`clients/opsys/seed`: owner, partner, externista) a dvě zakázky.
- * Zakázka A patří externistovi A, zakázka B externistovi B (cizí zakázka z pohledu A). Sestava je složená po modulech
- * (`tests/support/fixture/<modul>.ts`): odstranění nebo přepracování modulu = úprava jeho souboru a jednoho řádku níže.
+ * Základ pro testy napříč moduly: uživatelé `owner`, `partner` a `external` s oprávněními ze seedu klienta a hotová
+ * `ModuleDeps`. Data modulů (klienti, obchody, zakázky, soukromé záznamy…) si staví testy sami, popř. je doplní
+ * QA-SEC do `tests/support/fixture.ts` (D §3.1). Dřívější sestava stavebních modulů je v `packages/_donor/tests/security`.
  */
 export type Fixture = Awaited<ReturnType<typeof buildFixture>>;
 
@@ -56,24 +50,25 @@ export async function buildFixture(db: Db) {
   const cipher = createCipher(
     parseKeyRing({ APP_ENCRYPTION_KEY: randomBytes(32).toString("base64") }),
   );
-  const deps: ModuleDeps = {
-    registry,
-    queue: { send: async () => null },
-    storage: {
-      put: async () => {},
-      get: async () => null,
-      delete: async () => {},
-    } as never,
-    settings: createSettings(cipher),
-    cipher,
-    baseURL: "http://localhost:3100",
-    emit: async () => {},
-    calendarLayers: collected.calendarLayers,
-  };
+  const deps: ModuleDeps = createModuleDeps(
+    {
+      registry,
+      queue: { send: async () => null },
+      storage: {
+        put: async () => {},
+        get: async () => null,
+        delete: async () => {},
+      } as never,
+      settings: createSettings(cipher),
+      cipher,
+      baseURL: "http://localhost:3100",
+      emit: async () => {},
+      calendarLayers: collected.calendarLayers,
+    },
+    // služby ostatních modulů nejsou zapnuté, dokud je modul neimplementuje; testy si je doplní z `createStubServices`
+    { services: {}, contributions: {} },
+  );
 
-  const entityDef = (key: string) => collected.entities.find((e) => e.key === key)!;
-
-  /* ---------- lidé ---------- */
   async function addUser(key: string, role: RoleKey): Promise<Person> {
     const [r] = await db
       .select()
@@ -93,17 +88,10 @@ export async function buildFixture(db: Db) {
   const people = {
     owner: await addUser("owner", "owner"),
     partner: await addUser("partner", "partner"),
-    externistaA: await addUser("externistaA", "externista"),
-    externistaB: await addUser("externistaB", "externista"),
+    external: await addUser("external", "external"),
   };
-  const env: FixtureEnv = { db, collected, entityDef, people };
-
-  /* ---------- data po modulech ---------- */
-  const kontakty = await kontaktyPart(env);
-  const zakazky = await zakazkyPart(env, kontakty.client);
-  const poptavky = await poptavkyPart(env, zakazky.jobB);
-  const dochazka = await dochazkaPart(env, zakazky.jobA, zakazky.jobB);
-  const kalendar = await kalendarPart(env, zakazky.jobA, zakazky.jobB);
+  /** Kontext člověka, volitelně nad jinou databází (transakcí). */
+  const ctxOf = (person: Person, tx?: Db): Ctx => (tx ? { ...person.ctx, db: tx } : person.ctx);
 
   return {
     deps,
@@ -111,25 +99,17 @@ export async function buildFixture(db: Db) {
     collected,
     catalog,
     people,
-    jobA: zakazky.jobA,
-    jobB: zakazky.jobB,
-    ids: {
-      client: kontakty.client,
-      supplier: kontakty.supplier,
-      contact: kontakty.contact,
-      template: zakazky.template,
-      ...poptavky,
-      ...dochazka,
-      ...kalendar,
-    },
+    ctxOf,
+    /** Id záznamů sestavy podle jména (zatím prázdné; doplní QA-SEC). Probes se jen kontrolují na úplnost. */
+    ids: {} as Record<string, string>,
   };
 }
 
 class Discard extends Error {}
 
 /**
- * Celý soubor testů běží v jedné transakci, která se na konci vždy vrátí: sestava (zakázky, faktury, lidé) není vidět
- * ostatním souborům testů (např. kontrola čistoty databáze v testu demo dat) a po testu nezůstane nic.
+ * Celý soubor testů běží v jedné transakci, která se na konci vždy vrátí: sestava (lidé, data) není vidět ostatním
+ * souborům testů a po testu nezůstane nic.
  */
 export async function isolatedDb(open: Db): Promise<{ db: Db; discard: () => Promise<void> }> {
   let release!: () => void;

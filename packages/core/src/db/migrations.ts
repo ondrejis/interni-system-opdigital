@@ -11,7 +11,9 @@ import { CORE_MIGRATIONS } from "./migrate";
 
 /**
  * Zdroje migrací: jádro první, pak zapnuté moduly v pořadí závislostí (pořadí `MODULE_IDS` je k tomu
- * záměrně sestavené a hlídá ho test). Každý modul má vlastní tabulku záznamu o migracích.
+ * záměrně sestavené a hlídá ho test). Každý modul má vlastní tabulku záznamu o migracích
+ * (`__drizzle_migrations_<id>`; pomlčka v id modulu, např. `muj-prostor`, se v názvu tabulky nahradí podtržítkem,
+ * aby se název nikdy nemusel uvozovat).
  */
 export function migrationSources(
   repoRoot: string,
@@ -21,7 +23,7 @@ export function migrationSources(
   for (const id of moduleIds) {
     const folder = path.join(repoRoot, "packages", "modules", id, "drizzle");
     if (fs.existsSync(path.join(folder, "meta", "_journal.json")))
-      sources.push({ folder, table: `__drizzle_migrations_${id}` });
+      sources.push({ folder, table: `__drizzle_migrations_${id.replaceAll("-", "_")}` });
   }
   return sources;
 }

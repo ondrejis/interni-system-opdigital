@@ -1,4 +1,13 @@
-import { bigint, timestamp, uuid, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  bigint,
+  boolean,
+  index,
+  text,
+  timestamp,
+  uuid,
+  type AnyPgColumn,
+} from "drizzle-orm/pg-core";
 import { newId } from "./ids";
 
 /** Primární klíč: UUID v7 generované aplikací. */
@@ -30,4 +39,25 @@ export function auditColumnsWith(userId: () => AnyPgColumn) {
     updatedBy: uuid("updated_by").references(userId),
     deletedAt: ts("deleted_at"),
   };
+}
+
+/**
+ * Sloupce viditelnosti shared/private (zámek) pro každou entitu s `EntityDef.visibility` (D §5.1). `is_private` je
+ * efektivní (denormalizovaná) hodnota, `visibility_source` říká, zda ji zvolil uživatel (`own`), nebo se zdědila od
+ * rodiče (`inherited`). Použití: `...visibilityColumns()` v tabulce a `visibilityIndex("deal_private_idx", t)` mezi indexy.
+ */
+export function visibilityColumns() {
+  return {
+    isPrivate: boolean("is_private").notNull().default(false),
+    visibilitySource: text("visibility_source", { enum: ["own", "inherited"] })
+      .notNull()
+      .default("own"),
+  };
+}
+
+/** Částečný index nad soukromými záznamy tabulky (`where is_private`); rychlá filtrace i anti-join. */
+export function visibilityIndex(name: string, table: { isPrivate: AnyPgColumn }) {
+  return index(name)
+    .on(table.isPrivate)
+    .where(sql`${table.isPrivate}`);
 }

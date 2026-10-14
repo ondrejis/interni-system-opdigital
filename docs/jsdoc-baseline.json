@@ -267,13 +267,6 @@
       "weekStartIso"
     ],
     "packages/core/src/views/views.ts": ["createView", "deleteView", "updateView"],
-    "packages/modules/dochazka/src/rules.ts": [
-      "TimeKind",
-      "TimeRuleError",
-      "TimeStatus",
-      "isAbsence"
-    ],
-    "packages/modules/dochazka/src/settings.ts": ["DochazkaSettings"],
     "packages/modules/kalendar/src/commands.ts": ["CalendarItemOut"],
     "packages/modules/kalendar/src/ics.ts": ["IcsEvent", "IcsExportEvent", "icsText"],
     "packages/modules/kalendar/src/recurrence.ts": ["EventTimes", "Occurrence", "Recurrence"],
@@ -282,7 +275,6 @@
       "Transport",
       "TransportResult"
     ],
-    "packages/modules/poptavky/src/server.ts": ["IntakeAuthError"],
     "packages/modules/zakazky/src/detail/visibility.ts": ["fromExecution", "fromPreparation"],
     "packages/modules/zakazky/src/lifecycle/phases.ts": [
       "HealthKey",

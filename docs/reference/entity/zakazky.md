@@ -43,7 +43,7 @@ Entity modulu [Zakázky](../moduly/zakazky.md). Typy atributů vysvětluje [ARCH
 | `wonAt` | Vyhráno | date | ne |  |  |  | jen pro čtení | `won_at` |
 | `handoverAt` | Předáno | date | ne |  |  |  | jen pro čtení | `handover_at` |
 | `closedAt` | Uzavřeno | date | ne |  |  |  | jen pro čtení | `closed_at` |
-| `sourceInquiry` | Vzniklo z poptávky | record | ne | vazba na [`inquiry`](poptavky.md#inquiry) |  |  |  | `source_inquiry_id` |
+| `sourceInquiry` | Vzniklo z poptávky | record | ne | vazba na `inquiry` |  |  |  | `source_inquiry_id` |
 | `description` | Popis | longtext | ne |  |  |  |  | `description` |
 | `expectedCloseDate` | Očekávané uzavření | date | ne |  |  |  |  | `expected_close_date` |
 | `crmWeighted` | Vážená hodnota | currency | ne |  | `zakazky.finance` |  | jen pro čtení, součet | `crm_weighted_minor` |

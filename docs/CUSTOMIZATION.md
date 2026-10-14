@@ -55,7 +55,7 @@ export default defineClientConfig({
   },
 
   // Zapnuté moduly (závislosti se kontrolují při startu).
-  modules: ["kontakty", "zakazky", "poptavky", "dochazka", "kalendar"],
+  modules: ["kontakty", "zakazky", "kalendar"],
 
   // notifications: { quietHours: { enabled: true, start: "20:00", end: "06:00" }, events: { "task.assigned": { mandatory: true } } }, // upozornění, viz NOTIFICATIONS.md
   // security: { idleTimeoutMinutes: 480, require2faRoles: ["owner", "admin"] },
@@ -174,9 +174,9 @@ expect(info).toHaveBeenCalledWith(`[example] vznikla zakázka ${String(row.id)}`
 ### Jak přidat novou událost (úroveň 4, malá změna jádra)
 
 1. Přidej ji do `EventMap` (`packages/core/src/extensions/types.ts`) s jejím tvarem dat.
-2. Oznam ji tam, kde se děj stane: v příkazu modulu `await deps.emit("modul.udalost", { … })` (viz `poptavky.converted` v `packages/modules/poptavky/src/server.ts`),
+2. Oznam ji tam, kde se děj stane: v příkazu modulu `await deps.emit("modul.udalost", { … })`,
    v hooku entity (`afterCreate`, `afterUpdate`) `await emitEvent("modul.udalost", { … })` z `@rebar/core/module-server` (viz `zakazky.created` v `packages/modules/zakazky/src/lifecycle/transitions.ts`).
-3. Přidej test, že se událost oznámí (vzor: `tests/extensions.int.test.ts`, `tests/poptavky-zakazky.int.test.ts`).
+3. Přidej test, že se událost oznámí (vzor: `tests/extensions.int.test.ts`).
 4. Zapiš do tabulky výše a do `CHANGELOG.md`.
 
 ## 3. Jak přidat modul

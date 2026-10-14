@@ -52,33 +52,17 @@ Katalog zapnutých modulů se skládá při startu (`collectNotificationEvents`)
 
 <!-- katalog:start -->
 
-| Klíč                             | Název                          | Komu (výchozí)                           | Kudy           | Příznaky                     |
-| -------------------------------- | ------------------------------ | ---------------------------------------- | -------------- | ---------------------------- |
-| `task.assigned`                  | Přidělen úkol                  | Ten, komu je úkol přidělen               | push, zvoneček |                              |
-| `task.due_changed`               | Změna termínu úkolu            | Ten, komu je úkol přidělen               | push, zvoneček | slučuje                      |
-| `task.done`                      | Úkol splněn                    | Ten, kdo úkol zadal                      | zvoneček       |                              |
-| `task.due_today`                 | Úkoly na dnešek                | Ten, komu jsou úkoly přiděleny           | push, zvoneček | plánované, odložit           |
-| `comment.mention`                | Zmínka v komentáři             | Označený uživatel                        | push, zvoneček |                              |
-| `inquiry.new`                    | Nová poptávka                  | `perm:poptavky.write`                    | push, zvoneček |                              |
-| `inquiry.assigned`               | Přidělena poptávka             | Obchodník, kterému je poptávka přidělena | push, zvoneček |                              |
-| `crm.activity_assigned`          | Přidělena aktivita             | Ten, komu je aktivita přidělena          | push, zvoneček |                              |
-| `crm.activities_today`           | Aktivity na dnešek             | Ten, komu jsou aktivity přiděleny        | push, zvoneček | plánované, odložit           |
-| `crm.deals_without_activity`     | Zakázky bez další aktivity     | Vedoucí zakázky (obchodník)              | zvoneček       | plánované, odložit           |
-| `crm.deals_rotting`              | Zakázky, které hnijí           | Vedoucí zakázky (obchodník)              | push, zvoneček | plánované                    |
-| `crm.deal_stage`                 | Sledovaná zakázka: změna stavu | Ti, kdo zakázku sledují                  | zvoneček       |                              |
-| `crm.deal_won`                   | Sledovaná zakázka: vyhráno     | Ti, kdo zakázku sledují                  | push, zvoneček |                              |
-| `crm.deal_lost`                  | Sledovaná zakázka: prohráno    | Ti, kdo zakázku sledují                  | push, zvoneček |                              |
-| `time.submitted`                 | Docházka ke schválení          | `perm:dochazka.approve`                  | push, zvoneček |                              |
-| `time.approved`                  | Docházka schválena             | Zaměstnanec, jehož výkaz byl schválen    | push, zvoneček |                              |
-| `time.returned`                  | Docházka vrácena k opravě      | Zaměstnanec, jehož výkaz byl vrácen      | push, zvoneček |                              |
-| `time.reminder`                  | Připomínka docházky            | Zaměstnanec bez dnešního záznamu         | push, zvoneček | plánované, odložit           |
-| `dochazka.missing_clock_in`      | Chybějící příchod              | Zaměstnanec bez dnešního záznamu         | push, zvoneček | plánované, odložit           |
-| `dochazka.forgot_clock_out`      | Zapomenutý odchod              | Zaměstnanec s běžící píchačkou           | push, zvoneček | naléhavé, plánované, odložit |
-| `dochazka.forgot_clock_out_team` | Zapomenutý odchod (vedoucí)    | Schvalovatelé s rozsahem „vše“           | zvoneček       | plánované                    |
-| `kalendar.invite`                | Pozvánka na událost            | Nově pozvaný účastník                    | push, zvoneček |                              |
-| `kalendar.changed`               | Změna termínu události         | Účastník, který byl pozvaný už dřív      | push, zvoneček | slučuje                      |
-| `kalendar.cancelled`             | Zrušená událost                | Pozvaný účastník                         | push, zvoneček |                              |
-| `kalendar.reminder`              | Připomenutí události           | Organizátor a pozvaní účastníci          | push, zvoneček | plánované, odložit           |
+| Klíč                 | Název                  | Komu (výchozí)                      | Kudy           | Příznaky           |
+| -------------------- | ---------------------- | ----------------------------------- | -------------- | ------------------ |
+| `task.assigned`      | Přidělen úkol          | Ten, komu je úkol přidělen          | push, zvoneček |                    |
+| `task.due_changed`   | Změna termínu úkolu    | Ten, komu je úkol přidělen          | push, zvoneček | slučuje            |
+| `task.done`          | Úkol splněn            | Ten, kdo úkol zadal                 | zvoneček       |                    |
+| `task.due_today`     | Úkoly na dnešek        | Ten, komu jsou úkoly přiděleny      | push, zvoneček | plánované, odložit |
+| `comment.mention`    | Zmínka v komentáři     | Označený uživatel                   | push, zvoneček |                    |
+| `kalendar.invite`    | Pozvánka na událost    | Nově pozvaný účastník               | push, zvoneček |                    |
+| `kalendar.changed`   | Změna termínu události | Účastník, který byl pozvaný už dřív | push, zvoneček | slučuje            |
+| `kalendar.cancelled` | Zrušená událost        | Pozvaný účastník                    | push, zvoneček |                    |
+| `kalendar.reminder`  | Připomenutí události   | Organizátor a pozvaní účastníci     | push, zvoneček | plánované, odložit |
 
 <!-- katalog:end -->
 
@@ -203,15 +187,13 @@ Stavy a důvody přeskočení: `user_off` (vypnuto uživatelem), `event_off` (ka
 
 ## 7. Plánované události
 
-| Úloha (worker)                                                                   | Kdy (Europe/Prague)                  | Co                                                                                                                    |
-| -------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `notification.taskDigest`                                                        | pracovní dny 7:00                    | `task.due_today`: úkoly na dnes a po termínu                                                                          |
-| `zakazky.starts_today`, `realizace.today`, `realizace.phases`, `realizace.diary` | ráno a odpoledne pracovních dnů      | zakázka a fáze dnes začíná, ranní přehled „Dnes na stavbě“, blížící se a zmeškané termíny, chybějící zápis do deníku  |
-| `dochazka.missing_clock_in`, `dochazka.forgot_clock_out`                         | pracovní dny                         | chybějící příchod, zapomenutý odchod                                                                                  |
-| `fakturace.overdue`, `fakturace.due_soon`, `fakturace.received.overdue`          | denně                                | faktura po splatnosti a blížící se splatnost                                                                          |
-| `stroje.deadlines`, `stroje.reservations`                                        | denně                                | revize, STK a servis; zítřejší rezervace                                                                              |
-| `kalendar.reminders`                                                             | každých 5 minut                      | událost za X minut                                                                                                    |
-| `crm.activities.digest`, `crm.deals.attention`, `crm.rotting.refresh`            | pracovní dny 7:10 a 7:15, denně 5:30 | aktivity na dnešek a po termínu, zakázky bez další aktivity, přepočet hnití všech zakázek a upozornění na nově zhnilé |
+| Úloha (worker)                                                                   | Kdy (Europe/Prague)             | Co                                                                                                                   |
+| -------------------------------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `notification.taskDigest`                                                        | pracovní dny 7:00               | `task.due_today`: úkoly na dnes a po termínu                                                                         |
+| `zakazky.starts_today`, `realizace.today`, `realizace.phases`, `realizace.diary` | ráno a odpoledne pracovních dnů | zakázka a fáze dnes začíná, ranní přehled „Dnes na stavbě“, blížící se a zmeškané termíny, chybějící zápis do deníku |
+| `fakturace.overdue`, `fakturace.due_soon`, `fakturace.received.overdue`          | denně                           | faktura po splatnosti a blížící se splatnost                                                                         |
+| `stroje.deadlines`, `stroje.reservations`                                        | denně                           | revize, STK a servis; zítřejší rezervace                                                                             |
+| `kalendar.reminders`                                                             | každých 5 minut                 | událost za X minut                                                                                                   |
 
 Přesné časy jsou v kódu úloh (`reference/udalosti-a-ulohy.md`). Všechny jsou **idempotentní** (`dedupe` pro příjemce a den nebo token fáze) a **časové pásmo a změna času** řeší dvě vrstvy: cron běží v Europe/Prague (pg-boss),
 „dnes“ a hranice dne se počítají místním datem (`localParts`, `zonedToUtc`), takže v den změny času (poslední neděle v březnu a v říjnu) nic nevypadne ani se nezdvojí. Konec tichých hodin a časy shrnutí

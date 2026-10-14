@@ -648,7 +648,7 @@ function · `packages/core/src/dashboards/evaluate.ts`
 Katalog zdrojů, které aktér smí použít ve widgetech: čitelné entity a dostupné metriky.
 
 ```ts
-function sourceCatalog(ctx: Ctx, env: DashboardEnv): { entities: { key: string; label: string; module: "kontakty" | "zakazky" | "poptavky" | "dochazka" | "kalendar"; }[]; metrics: MetricInfo[]; }
+function sourceCatalog(ctx: Ctx, env: DashboardEnv): { entities: { key: string; label: string; module: "kontakty" | "klienti" | "disk" | "zakazky" | "obchody" | "ukoly" | "kalendar" | "hodiny" | "finance" | "reklama" | "sablony-emailu" | "muj-prostor" | "prehled"; }[]; metrics: MetricInfo[];…
 ```
 
 ### tableToCsv

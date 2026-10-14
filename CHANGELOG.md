@@ -8,6 +8,14 @@ Verzování: `0.x` až do prvního ostrého nasazení, pak [semver](https://semv
 
 ## [Unreleased]
 
+### OPSYS: kostra S0 (2026-10-14)
+
+Skeleton podle [docs/opsys/D-plan-a-kontrakty.md](docs/opsys/D-plan-a-kontrakty.md) §3.2; podrobnosti a odchylky v [docs/opsys/E-rozbehovy-log.md](docs/opsys/E-rozbehovy-log.md), sekce S0.
+
+- **Moduly:** 13 modulů v pořadí z plánu (`MODULE_IDS`), 10 nových kostra balíčků (`klienti`, `disk`, `obchody`, `ukoly`, `hodiny`, `finance`, `reklama`, `sablony-emailu`, `muj-prostor`, `prehled`) s úplným manifestem; `poptavky` a `dochazka` přesunuty do `packages/_donor` (zdroj kódu, mimo workspace).
+- **Platforma:** `@rebar/core/contracts` (typy, katalog událostí, služby, karta klienta, sloty, `toE164`, `phoneSearchKeys`, `renderEmailTemplate`) a `@rebar/core/events` (`emitDomain`); `ModuleServer` má `services`, `contributions`, `eventHandlers`, `ingests`, `navBadges`, `privatePaths`; `extendEntity`, `writeSystemFields`, `visibilityColumns()`, `createStubServices`, `<Slot>`, `mergeModuleUi`.
+- **Aplikace:** navigace podle sekcí a `order`, patička Historie, Koš a Nastavení, odznaky z modulů, mobilní lišta (Hledat, Klienti, Obchody, Úkoly, Více), `/` přesměruje na `/prehled`, sekce Nastavení podle modulů (bez Upozornění, Pravidel upozornění a DPH).
+
 ### OPSYS: rozběh ze stavebního jádra (2026-10-14)
 
 Z jádra vznikl interní systém agentury OP Digital (OPSYS, klient `clients/opsys`; log a odchylky v [docs/opsys/E-rozbehovy-log.md](docs/opsys/E-rozbehovy-log.md)).

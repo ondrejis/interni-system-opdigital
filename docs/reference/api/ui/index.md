@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 225, z toho s popisem 140.
+Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z toho s popisem 145.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
@@ -75,6 +75,7 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 225, z t
 | [`PasswordStrength`](#passwordstrength) | function | Indikátor síly hesla s kontrolním seznamem požadavků. |  |
 | [`PhotoDialog`](#photodialog) | function | Fotky z terénu: vybrat zakázku (naposledy použitá je předvyplněná), vyfotit nebo vybrat z galerie, zmenšit a odeslat na pozadí. Fotka se nejdřív uloží do zařízení, takže se neztratí ani bez signálu. |  |
 | [`PipelineStepper`](#pipelinestepper) | function | Pás fází jako šipky (chevrony) přes celou dostupnou šířku: šířka se dělí úměrně délce názvu (v mini pásu stejně), hotové fáze jsou zeleně, aktuální v barvě akcentu, budoucí šedě. V detailu (`md`) je v segmentu název a pod ním dny ve fázi; dlouhý název se zkrátí a celý je v tooltipu. Klik přesune záznam do fáze, zamčený přechod ukáže důvod v tooltipu. Na úzkém displeji se pás posouvá do stran uvnitř sebe (stránka se nerozšíří) a aktuální fáze se sama vystředí. |  |
+| [`Placeholder`](#placeholder) | function | Zástupná stránka pro část systému, která se teprve staví (kostra S0). Modul ji vrací z `ui.pages`, dokud nemá skutečný obsah; plný obsah ji nahradí. |  |
 | [`PopoverContent`](#popovercontent) | function |  |  |
 | [`RecordDialog`](#recorddialog) | function | Detail záznamu v pop-upu, široký až 1280 px (pod ~1300 px obrazovky téměř celou šířku, na telefonu celou obrazovku). Obsah je `RecordView` v režimu `dialog`: hlavička, pás od modulu (`recordHeader`), záložky i akce modulu fungují jako na stránce záznamu. Seznam pod pop-upem se nepřekresluje, takže filtr, hledání i pozice v nástěnce zůstanou. |  |
 | [`RecordView`](#recordview) | function |  |  |
@@ -86,6 +87,7 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 225, z t
 | [`ShortcutsDialog`](#shortcutsdialog) | function | Přehled zkratek (klávesa `?`). |  |
 | [`SignaturePad`](#signaturepad) | function | Plocha pro podpis prstem nebo myší. `onChange` dostane PNG s průhledným pozadím, nebo `null`, když je plocha prázdná. Funguje s dotykem i myší (pointer events); `touch-action: none` brání posouvání stránky při kreslení. |  |
 | [`Skeleton`](#skeleton) | function |  |  |
+| [`Slot`](#slot) | function | Vykreslí komponenty, které moduly přispěly do slotu `name`, se stejnými props: `<Slot name="task.dialog.extras" taskId={id} />`. |  |
 | [`Sparkline`](#sparkline) | function | Drobná čára pro KPI: tlumená, jen poslední bod v barvě grafu. Přeruší se u `null`. |  |
 | [`TabsList`](#tabslist) | function |  |  |
 | [`TabsTrigger`](#tabstrigger) | function |  |  |
@@ -112,6 +114,7 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 225, z t
 | [`findModulePage`](#findmodulepage) | function |  |  |
 | [`initials`](#initials) | function |  |  |
 | [`isMac`](#ismac) | function |  |  |
+| [`mergeModuleUi`](#mergemoduleui) | function | Složí UI oblastí modulu do jednoho `ModuleUi`. Mapy podle klíče entity se spojují (pole se zřetězí; u hlaviček a hlaviček sloupců platí první oblast, která je dodá; karta kanbanu se skládá pole po poli), stránky a příkazy palety se přidají za sebe. |  |
 | [`modKey`](#modkey) | function |  |  |
 | [`niceScale`](#nicescale) | function | Osa s „hezkými“ hodnotami. Zvládá samé nuly, jedinou hodnotu, záporné hodnoty i velké částky v haléřích. |  |
 | [`niceStep`](#nicestep) | function | Nejbližší „hezký“ krok (1, 2, 5 × 10^k) nad `raw`; u minut navíc časové kroky. |  |
@@ -142,6 +145,7 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 225, z t
 | [`useRecordDialogExt`](#userecorddialogext) | function | Vlastní podoba pop-upu od zapnutých modulů pro entitu (první nalezená vyhrává). |  |
 | [`useRecordExtensions`](#userecordextensions) | function |  |  |
 | [`useRecordParam`](#userecordparam) | function | Otevřený záznam v adrese (`?record=<id>`). Otevření přidá položku do historie, zavření se vrátí (`history.back()`), takže tlačítko Zpět zavře pop-up a filtr i pozice v seznamu zůstanou, protože stránka se nepřekresluje. Odkaz s `?record=` otevře pop-up rovnou (`initial` z adresy ze serveru brání probliknutí). Router aplikace (`history.pushState` je v Next.js propojený s routerem) se nevolá, stránka se nenačítá znovu. |  |
+| [`useSlotComponents`](#useslotcomponents) | function | Komponenty všech zapnutých modulů pro slot hostitele (v pořadí modulů). Hostitel o přispěvatelích neví; bez přispěvatele je výsledek prázdný. |  |
 | [`useUpdateAttribute`](#useupdateattribute) | function | Inline úprava jednoho atributu. Změna se hned ukáže (optimisticky); když ji server odmítne, vrátí se původní stav a chyba se předá volajícímu (buňka ji ukáže). |  |
 | [`useVatRates`](#usevatrates) | function |  |  |
 | [`vatBpChoices`](#vatbpchoices) | function | Sazby (v setinách procenta) k nabídnutí ve výběru, od nejvyšší. K nabízeným se přidají `extra` (sazby, které už doklad obsahuje, i když dnes neplatí), aby se hodnota řádku neztratila. |  |
@@ -203,6 +207,7 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 225, z t
 | [`NavItem`](#navitem) | type |  |  |
 | [`NavSection`](#navsection) | type |  |  |
 | [`NiceScale`](#nicescale) | type |  |  |
+| [`PaletteAction`](#paletteaction) | type | Příkaz do palety (Cmd+K), který modul nabízí („Nový obchod“, „Zapsat hodiny“…). Buď `href` (přejít), nebo `run`. Vykresluje paletu C3; typ je tady, aby moduly mohly akce deklarovat hned. |  |
 | [`PaletteGroup`](#palettegroup) | type |  |  |
 | [`PaletteItem`](#paletteitem) | type |  |  |
 | [`PipelineStage`](#pipelinestage) | type | Čistá logika pásu fází (bez Reactu), aby šla testovat samostatně. |  |
@@ -244,7 +249,7 @@ function · `packages/ui/src/shell/app-shell.tsx`
 _Bez popisu._
 
 ```ts
-function AppShell({ brand, user, top, sections, pathname, onSearch, onLogout, settingsHref, securityHref, accountHref, bottomNav, children, }: ShellProps): import("react").JSX.Element
+function AppShell({ brand, user, top, sections, footer, pathname, onSearch, onLogout, settingsHref, securityHref, accountHref, bottomNav, children, }: ShellProps): import("react").JSX.Element
 ```
 
 ### AuthShell
@@ -928,6 +933,17 @@ se pás posouvá do stran uvnitř sebe (stránka se nerozšíří) a aktuální 
 function PipelineStepper({ stages, currentId, onSelect, disabledReason, size = "md", disabled, label = "Fáze", className, }: PipelineStepperProps): import("react").JSX.Element
 ```
 
+### Placeholder
+
+function · `packages/ui/src/components/placeholder.tsx`
+
+Zástupná stránka pro část systému, která se teprve staví (kostra S0). Modul ji vrací z `ui.pages`, dokud nemá
+skutečný obsah; plný obsah ji nahradí.
+
+```ts
+function Placeholder({ title, description = "Tato část OPSYS se právě staví.", icon = "list", }: { title: string; description?: string; /** Název ikony z `Icon`. */ icon?: string; }): import("react").JSX.Element
+```
+
 ### PopoverContent
 
 function · `packages/ui/src/components/overlay.tsx`
@@ -1042,6 +1058,16 @@ _Bez popisu._
 
 ```ts
 function Skeleton({ className }: { className?: string }): import("react").JSX.Element
+```
+
+### Slot
+
+function · `packages/ui/src/data/module-ui.tsx`
+
+Vykreslí komponenty, které moduly přispěly do slotu `name`, se stejnými props: `<Slot name="task.dialog.extras" taskId={id} />`.
+
+```ts
+function Slot<K extends SlotName>({ name, ...props }: { name: K } & SlotMap[K]): ReactNode
 ```
 
 ### Sparkline
@@ -1304,6 +1330,18 @@ _Bez popisu._
 
 ```ts
 function isMac(): boolean
+```
+
+### mergeModuleUi
+
+function · `packages/ui/src/data/module-ui.tsx`
+
+Složí UI oblastí modulu do jednoho `ModuleUi`. Mapy podle klíče entity se spojují (pole se zřetězí; u hlaviček
+a hlaviček sloupců platí první oblast, která je dodá; karta kanbanu se skládá pole po poli), stránky a příkazy
+palety se přidají za sebe.
+
+```ts
+function mergeModuleUi(...parts: ModuleUi[]): ModuleUi
 ```
 
 ### modKey
@@ -1609,6 +1647,17 @@ Odkaz s `?record=` otevře pop-up rovnou (`initial` z adresy ze serveru brání 
 
 ```ts
 function useRecordParam(enabled: boolean, initial?: string | null): { id: string | null; open: (next: string) => void; close: () => void; }
+```
+
+### useSlotComponents
+
+function · `packages/ui/src/data/module-ui.tsx`
+
+Komponenty všech zapnutých modulů pro slot hostitele (v pořadí modulů). Hostitel o přispěvatelích neví; bez
+přispěvatele je výsledek prázdný.
+
+```ts
+function useSlotComponents<K extends SlotName>(name: K): ComponentType<SlotMap[K]>[]
 ```
 
 ### useUpdateAttribute
@@ -2486,6 +2535,10 @@ type ModuleUi = {
   /** Základní záložky, které se u entity nezobrazují (`activity`, `tasks`, `files`). */
   hiddenCoreTabs?: Record<string, readonly ("activity" | "tasks" | "files")[]>;
   pages?: readonly ModulePage[];
+  /** Komponenty do slotů hostitele (`<Slot name="…" />`); kontrakt props je v `SlotMap` (`@rebar/core/contracts`). */
+  slots?: { [K in SlotName]?: ComponentType<SlotMap[K]> };
+  /** Příkazy do palety Cmd+K. */
+  paletteActions?: readonly PaletteAction[];
 };
 ```
 
@@ -2518,6 +2571,8 @@ type NavItem = {
   label: string;
   icon: string;
   count?: number;
+  /** Barva odznaku s počtem (výchozí akcentová). */
+  tone?: "warning" | "danger";
   /** Vedlejší stránky modulu, rozbalují se pod položkou. */
   children?: NavItem[];
 };
@@ -2547,6 +2602,28 @@ type NiceScale = {
   step: number;
   /** Hodnoty „hezkých“ značek od min po max včetně. */
   ticks: number[];
+};
+```
+
+### PaletteAction
+
+type · `packages/ui/src/data/module-ui.tsx`
+
+Příkaz do palety (Cmd+K), který modul nabízí („Nový obchod“, „Zapsat hodiny“…). Buď `href` (přejít), nebo `run`.
+Vykresluje paletu C3; typ je tady, aby moduly mohly akce deklarovat hned.
+
+```ts
+type PaletteAction = {
+  id: string;
+  label: string;
+  /** Slova navíc, podle kterých jde akci najít. */
+  keywords?: string;
+  /** Název ikony z `Icon`. */
+  icon?: string;
+  /** Akce se nabízí jen s některým z oprávnění (UI pohodlí; server kontroluje vždy). */
+  permission?: string | readonly string[];
+  href?: string;
+  run?: (p: { push: (href: string) => void }) => void | Promise<void>;
 };
 ```
 
@@ -2857,6 +2934,8 @@ type ShellProps = {
   top: NavItem[];
   /** Sekce Záznamy a Pohledy. */
   sections: NavSection[];
+  /** Položky patičky nad Nastavením (Historie, Koš). */
+  footer?: NavItem[];
   pathname: string;
   onSearch: () => void;
   onLogout: () => void;

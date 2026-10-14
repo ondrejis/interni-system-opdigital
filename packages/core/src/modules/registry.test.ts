@@ -18,24 +18,24 @@ const mod = (
 
 const kontakty = mod("kontakty");
 const zakazky = mod("zakazky", ["kontakty"]);
-const poptavky = mod("poptavky", ["zakazky", "kontakty"]);
+const obchody = mod("obchody", ["zakazky", "kontakty"]);
 const kalendar = mod("kalendar");
-const all = [kontakty, zakazky, poptavky, kalendar];
+const all = [kontakty, zakazky, obchody, kalendar];
 
 describe("resolveModules", () => {
   it("řadí závislosti před moduly, které je potřebují", () => {
-    const ids = resolveModules(["poptavky", "zakazky", "kontakty"], all).map((m) => m.id);
+    const ids = resolveModules(["obchody", "zakazky", "kontakty"], all).map((m) => m.id);
     expect(ids.indexOf("kontakty")).toBeLessThan(ids.indexOf("zakazky"));
-    expect(ids.indexOf("zakazky")).toBeLessThan(ids.indexOf("poptavky"));
+    expect(ids.indexOf("zakazky")).toBeLessThan(ids.indexOf("obchody"));
   });
 
   it("odmítne zapnutý modul bez zapnuté závislosti", () => {
-    expect(() => resolveModules(["poptavky"], all)).toThrow(ModuleResolutionError);
+    expect(() => resolveModules(["obchody"], all)).toThrow(ModuleResolutionError);
     expect(() => resolveModules(["zakazky"], all)).toThrow(/vyžaduje zapnutý modul „kontakty“/);
   });
 
   it("odmítne modul, který v sestavení neexistuje", () => {
-    expect(() => resolveModules(["dochazka"], all)).toThrow(/není v tomto sestavení/);
+    expect(() => resolveModules(["hodiny"], all)).toThrow(/není v tomto sestavení/);
   });
 
   it("zachytí cyklus", () => {
@@ -49,7 +49,7 @@ describe("resolveModules", () => {
     expect(collectNav(enabled).map((n) => n.href)).toEqual(["/kontakty", "/zakazky"]);
     const keys = collectPermissions(enabled).map((p) => p.key);
     expect(keys).toContain("zakazky.read");
-    expect(keys).not.toContain("poptavky.read");
+    expect(keys).not.toContain("obchody.read");
     expect(keys).not.toContain("kalendar.read");
   });
 });

@@ -1,17 +1,17 @@
-# Entity modulu Kontakty
+# Entity modulu Organizace a kontakty
 
 <!-- GENERATED: tento soubor vzniká z kódu příkazem `pnpm docs:generate`. Neupravuj ho ručně, změna se přepíše. -->
 
 > **Generovaný dokument.** Vzniká přímo z kódu (registr entit modulu (`ModuleServer.entities`), manifest a schéma tabulek). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Entity modulu [Kontakty](../moduly/kontakty.md). Typy atributů vysvětluje [ARCHITECTURE](../../ARCHITECTURE.md); každý atribut dává tabulce, filtrům, řazení, detailu, hledání a exportu typ a omezení bez dalšího kódu.
+Entity modulu [Organizace a kontakty](../moduly/kontakty.md). Typy atributů vysvětluje [ARCHITECTURE](../../ARCHITECTURE.md); každý atribut dává tabulce, filtrům, řazení, detailu, hledání a exportu typ a omezení bez dalšího kódu.
 
 ## company
 
 **Firma** (množné číslo: Firmy). Firmy: klienti, dodavatelé a subdodavatelé v jedné evidenci.
 
-- **Modul:** [Kontakty](../moduly/kontakty.md)
+- **Modul:** [Organizace a kontakty](../moduly/kontakty.md)
 - **Tabulka:** `company` ([databáze](../databaze/kontakty.md))
 - **Seznam:** `/kontakty/firmy`, detail `/kontakty/firmy/<id>`
 - **Oprávnění:** read: `kontakty.read`, write: `kontakty.write`
@@ -44,7 +44,7 @@ Entity modulu [Kontakty](../moduly/kontakty.md). Typy atributů vysvětluje [ARC
 
 **Osoba** (množné číslo: Osoby). Kontaktní osoby, volitelně u firmy.
 
-- **Modul:** [Kontakty](../moduly/kontakty.md)
+- **Modul:** [Organizace a kontakty](../moduly/kontakty.md)
 - **Tabulka:** `person` ([databáze](../databaze/kontakty.md))
 - **Seznam:** `/kontakty/osoby`, detail `/kontakty/osoby/<id>`
 - **Oprávnění:** read: `kontakty.read`, write: `kontakty.write`

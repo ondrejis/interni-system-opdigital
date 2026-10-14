@@ -32,7 +32,7 @@ export const searchCommand = defineCommand({
  */
 export const aresCommand = defineCommand({
   name: "kontakty.ares",
-  permission: ["kontakty.write", "poptavky.write", "zakazky.write"],
+  permission: ["kontakty.ares", "kontakty.write", "obchody.write", "zakazky.write"],
   input: z.object({ ico: z.string().trim().min(1, "Vyplňte IČO.").max(20) }),
   handler: async (ctx, i) => {
     const key = `ares:${ctx.actor.userId ?? "system"}`;

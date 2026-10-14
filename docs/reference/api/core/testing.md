@@ -5,13 +5,14 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core/testing` (soubor `packages/core/src/testing/index.ts`). Exportů: 13, z toho s popisem 8.
+Vstupní bod `@rebar/core/testing` (soubor `packages/core/src/testing/index.ts`). Exportů: 16, z toho s popisem 11.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
 | [`connectAppDb`](#connectappdb) | function | Připojení k testovací DB pod aplikační rolí (minimální práva) — stejně jako v produkci. |  |
 | [`connectMigratorDb`](#connectmigratordb) | function | Připojení pod uživatelem migrací; jen pro přípravu dat, kterou aplikační role nesmí. |  |
 | [`cookieHeader`](#cookieheader) | function | Z hlaviček `Set-Cookie` odpovědi složí hlavičku `Cookie` pro další požadavek. |  |
+| [`createStubServices`](#createstubservices) | function | Zaznamenávající fake služeb ostatních modulů pro unit a integrační testy modulu bez druhého modulu (`deps.services`). Zapnuté jsou jen uvedené služby (`optional` ostatních vrací `undefined`); každé volání se zapíše do `calls`. Použití: `const { services, calls } = createStubServices({ tasks: true })`. |  |
 | [`createTestAuth`](#createtestauth) | function |  |  |
 | [`expectPgError`](#expectpgerror) | function | Drizzle obaluje chyby PostgreSQL do „Failed query“; skutečná příčina je v `cause`. |  |
 | [`fakeMailer`](#fakemailer) | function |  |  |
@@ -21,6 +22,8 @@ Vstupní bod `@rebar/core/testing` (soubor `packages/core/src/testing/index.ts`)
 | [`totpCode`](#totpcode) | function | TOTP podle RFC 6238 (SHA-1, 6 číslic, 30 s) z tajemství v base32 — nezávisle na Better Auth. |  |
 | [`uniqueEmail`](#uniqueemail) | function |  |  |
 | [`waitFor`](#waitfor) | function | Čeká, až podmínka platí (např. až worker zpracuje úlohu). |  |
+| [`StubCall`](#stubcall) | type | Jedno volání zaznamenané stub službou. |  |
+| [`StubServicesInput`](#stubservicesinput) | type | Které služby jsou „zapnuté“: `true` = výchozí stub, objekt = výchozí stub s přepsanými metodami. |  |
 | [`TestDbUrls`](#testdburls) | type |  |  |
 
 ### connectAppDb
@@ -51,6 +54,18 @@ Z hlaviček `Set-Cookie` odpovědi složí hlavičku `Cookie` pro další požad
 
 ```ts
 function cookieHeader(responseHeaders: Headers, previous = ""): Headers
+```
+
+### createStubServices
+
+function · `packages/core/src/testing/stub-services.ts`
+
+Zaznamenávající fake služeb ostatních modulů pro unit a integrační testy modulu bez druhého modulu
+(`deps.services`). Zapnuté jsou jen uvedené služby (`optional` ostatních vrací `undefined`); každé volání se
+zapíše do `calls`. Použití: `const { services, calls } = createStubServices({ tasks: true })`.
+
+```ts
+function createStubServices(input: StubServicesInput = {}): { services: ServiceRegistry; calls: StubCall[]; }
 ```
 
 ### createTestAuth
@@ -143,6 +158,29 @@ function · `packages/core/src/testing/index.ts`
 
 ```ts
 async function waitFor<T>(fn: () => Promise<T | false | null | undefined>, timeoutMs = 15_000, intervalMs = 100): Promise<T>
+```
+
+### StubCall
+
+type · `packages/core/src/testing/stub-services.ts`
+
+Jedno volání zaznamenané stub službou.
+
+```ts
+type StubCall = { service: keyof ServiceMap; method: string; args: unknown[] };
+```
+
+### StubServicesInput
+
+type · `packages/core/src/testing/stub-services.ts`
+
+Které služby jsou „zapnuté“: `true` = výchozí stub, objekt = výchozí stub s přepsanými metodami.
+
+```ts
+type StubServicesInput = { [K in keyof ServiceMap]?: true | Partial<ServiceMap[K]> } & {
+  /** Příspěvky pro `services.all(...)` (např. `clientCard`). */
+  contributions?: { [K in keyof ContributionMap]?: readonly ContributionMap[K][] };
+};
 ```
 
 ### TestDbUrls

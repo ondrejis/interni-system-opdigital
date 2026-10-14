@@ -10,12 +10,20 @@ Jedna databáze PostgreSQL. Každý balíček (jádro, každý modul) vlastní s
 | Balíček | Tabulek | Migrací | Dokument |
 | --- | --- | --- | --- |
 | Jádro | 39 | 13 | [jadro.md](jadro.md) |
-| Modul Kontakty | 3 | 3 | [kontakty.md](kontakty.md) |
+| Modul Organizace a kontakty | 3 | 3 | [kontakty.md](kontakty.md) |
+| Modul Klienti | 0 | 0 | [klienti.md](klienti.md) |
+| Modul Google Disk | 0 | 0 | [disk.md](disk.md) |
 | Modul Zakázky | 5 | 1 | [zakazky.md](zakazky.md) |
-| Modul CRM | 7 | 3 | [poptavky.md](poptavky.md) |
-| Modul Docházka | 2 | 2 | [dochazka.md](dochazka.md) |
+| Modul Obchody | 0 | 0 | [obchody.md](obchody.md) |
+| Modul Úkoly a poznámky | 0 | 0 | [ukoly.md](ukoly.md) |
 | Modul Kalendář | 6 | 1 | [kalendar.md](kalendar.md) |
+| Modul Hodiny | 0 | 0 | [hodiny.md](hodiny.md) |
+| Modul Finance | 0 | 0 | [finance.md](finance.md) |
+| Modul Reklama | 0 | 0 | [reklama.md](reklama.md) |
+| Modul Šablony e-mailů | 0 | 0 | [sablony-emailu.md](sablony-emailu.md) |
+| Modul Můj prostor | 0 | 0 | [muj-prostor.md](muj-prostor.md) |
+| Modul Přehled | 0 | 0 | [prehled.md](prehled.md) |
 
-Celkem tabulek: 62, 23 migrací.
+Celkem tabulek: 53, 18 migrací.
 
 Tabulky fronty úloh (pg-boss) zakládá krok migrací (`installQueues`) ve schématu knihovny; v tomto přehledu nejsou.

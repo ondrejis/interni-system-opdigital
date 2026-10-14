@@ -18,11 +18,24 @@ export type SectionIcon =
   | "receipt"
   | "phone"
   | "dashboard"
-  | "download";
+  | "download"
+  | "plug"
+  | "drive"
+  | "server"
+  | "template"
+  | "tag"
+  | "wallet"
+  | "calendar"
+  | "palette";
 
 /** Funkce, které klient může v konfiguraci vypnout (`dashboards.enabled`, `exports.enabled`). */
 export type SettingsFeature = "dashboards" | "exports";
 
+/**
+ * Sekce Nastavení. Řádek s `module` se nabízí jen při zapnutém modulu, s `feature` jen při zapnuté funkci klienta.
+ * OPSYS nemá upozornění ani sazby DPH: jejich stránky (`upozorneni`, `pravidla-upozorneni`, `dph`) tu nejsou
+ * a v nabídce se neukazují.
+ */
 export const SETTINGS_SECTIONS = [
   {
     href: "/nastaveni/firma",
@@ -46,19 +59,27 @@ export const SETTINGS_SECTIONS = [
     permission: "roles.manage",
   },
   {
-    href: "/nastaveni/pravidla-upozorneni",
-    label: "Pravidla upozornění",
-    icon: "bell",
-    group: "Správa systému",
-    permission: "settings.manage",
-  },
-  {
     href: "/nastaveni/nastenky",
     label: "Nástěnky",
     icon: "dashboard",
     group: "Správa systému",
     permission: "dashboards.manage",
     feature: "dashboards",
+  },
+  {
+    href: "/nastaveni/integrace",
+    label: "Integrace",
+    icon: "plug",
+    group: "Správa systému",
+    permission: "settings.integrations",
+  },
+  {
+    href: "/nastaveni/google-disk",
+    label: "Google Disk",
+    icon: "drive",
+    group: "Správa systému",
+    permission: "disk.manage",
+    module: "disk",
   },
   {
     href: "/nastaveni/email",
@@ -68,31 +89,53 @@ export const SETTINGS_SECTIONS = [
     permission: "settings.manage",
   },
   {
+    href: "/nastaveni/system",
+    label: "Systém",
+    icon: "server",
+    group: "Správa systému",
+    permission: "settings.manage",
+  },
+  {
     href: "/nastaveni/stavy",
-    label: "Stavy a pipeline",
+    label: "Pipeline a stavy",
     icon: "workflow",
     group: "Konfigurace",
     permission: "settings.manage",
   },
   {
-    href: "/crm/typy-aktivit",
+    href: "/ukoly/typy",
     label: "Typy aktivit",
     icon: "workflow",
     group: "Konfigurace",
-    permission: "settings.manage",
-    module: "poptavky",
+    permission: "ukoly.types",
+    module: "ukoly",
   },
   {
-    href: "/nastaveni/ciselniky",
-    label: "Číselníky",
-    icon: "lists",
+    href: "/zakazky/sablony",
+    label: "Šablony zakázek",
+    icon: "template",
     group: "Konfigurace",
-    permission: "settings.manage",
+    permission: "zakazky.templates",
+    module: "zakazky",
+  },
+  {
+    href: "/nastaveni/stitky",
+    label: "Štítky",
+    icon: "tag",
+    group: "Konfigurace",
+    permission: "settings.tags",
   },
   {
     href: "/nastaveni/vlastni-pole",
     label: "Vlastní pole",
     icon: "fields",
+    group: "Konfigurace",
+    permission: "settings.manage",
+  },
+  {
+    href: "/nastaveni/ciselniky",
+    label: "Číselníky",
+    icon: "lists",
     group: "Konfigurace",
     permission: "settings.manage",
   },
@@ -104,11 +147,12 @@ export const SETTINGS_SECTIONS = [
     permission: "settings.manage",
   },
   {
-    href: "/nastaveni/dph",
-    label: "Sazby DPH",
-    icon: "percent",
+    href: "/nastaveni/finance",
+    label: "Finance",
+    icon: "wallet",
     group: "Konfigurace",
-    permission: "settings.manage",
+    permission: "finance.settings",
+    module: "finance",
   },
   {
     href: "/nastaveni/moduly",
@@ -125,9 +169,17 @@ export const SETTINGS_SECTIONS = [
     permission: null,
   },
   {
-    href: "/nastaveni/upozorneni",
-    label: "Upozornění",
-    icon: "bell",
+    href: "/nastaveni/google-kalendar",
+    label: "Google Kalendář",
+    icon: "calendar",
+    group: "Můj účet",
+    permission: "kalendar.read",
+    module: "kalendar",
+  },
+  {
+    href: "/nastaveni/vzhled",
+    label: "Vzhled",
+    icon: "palette",
     group: "Můj účet",
     permission: null,
   },

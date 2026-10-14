@@ -258,9 +258,7 @@ describe("sloučení duplicit", () => {
   it("odkazy: objevené sloupce zahrnují cizí klíče, měkké vazby i polymorfní tabulky", async () => {
     const refs = await discoverReferences(app.db, "company");
     const cols = refs.columns.map((c) => `${c.table}.${c.column}`);
-    expect(cols).toEqual(
-      expect.arrayContaining(["job.company_id", "person.company_id", "inquiry.company_id"]),
-    );
+    expect(cols).toEqual(expect.arrayContaining(["job.company_id", "person.company_id"]));
     expect(refs.poly.map((p) => p.table)).toEqual(
       expect.arrayContaining(["comment", "task", "attachment"]),
     );

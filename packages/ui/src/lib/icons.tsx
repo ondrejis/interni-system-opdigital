@@ -6,6 +6,13 @@ import {
   Bell,
   Boxes,
   Briefcase,
+  Building,
+  HardDrive,
+  MailPlus,
+  Megaphone,
+  Scale,
+  Vault,
+  Wallet,
   CalendarDays,
   ChartGantt,
   ClipboardList,
@@ -78,6 +85,7 @@ import {
   ChevronRight,
   ExternalLink,
   Flame,
+  FolderOpen,
   Globe,
   KanbanSquare,
   Link2,
@@ -175,6 +183,16 @@ const ICONS: Record<string, LucideIcon> = {
   globe: Globe,
   "circle-alert": CircleAlert,
   "calendar-plus": CalendarPlus,
+  // OPSYS (navigace z manifestů modulů a patička)
+  building: Building,
+  folder: FolderOpen,
+  wallet: Wallet,
+  scale: Scale,
+  megaphone: Megaphone,
+  "mail-template": MailPlus,
+  vault: Vault,
+  "layout-dashboard": LayoutDashboard,
+  "google-drive": HardDrive,
 };
 
 /** Ikona podle názvu z manifestu modulu (neznámý název = obecná ikona seznamu). */

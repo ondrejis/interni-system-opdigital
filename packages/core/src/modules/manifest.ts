@@ -17,6 +17,8 @@ export type NavItem = {
   parent?: string;
   /** Položka je kandidátem na spodní lištu mobilní navigace (zobrazí se první tři, které uživatel smí vidět). */
   bottom?: boolean;
+  /** Pořadí v sekci (nižší dřív); bez něj 100. Při shodě rozhoduje pořadí modulů v `MODULE_IDS`. */
+  order?: number;
 };
 
 /** Stránka modulu mimo seznamy entit; adresa i oprávnění jsou v manifestu, vykreslení v UI modulu. */
@@ -72,6 +74,32 @@ export function defineModule<const M extends ModuleManifest>(manifest: M): M {
 
 /** Oprávnění, která patří platformě, ne modulu. */
 export const CORE_PERMISSIONS: readonly PermissionDef[] = [
+  {
+    key: "private.read",
+    label: "Vidí soukromé záznamy",
+    description:
+      "Soukromé záznamy (zámek) vidí a nastavuje jen vlastník; ostatním neexistují v seznamech, hledání, přehledech ani součtech",
+  },
+  { key: "activity.read", label: "Vidí historii změn" },
+  {
+    key: "activity.export",
+    label: "Exportuje historii změn",
+    description: "Stažení historie změn do CSV",
+  },
+  {
+    key: "trash.read",
+    label: "Vidí koš",
+    description: "Smazané záznamy 30 dní; obnovit smí každý své",
+  },
+  { key: "trash.purge", label: "Maže z koše natrvalo" },
+  { key: "settings.pipelines", label: "Spravuje pipeline a stavy" },
+  { key: "settings.custom_fields", label: "Spravuje vlastní pole" },
+  { key: "settings.tags", label: "Spravuje štítky" },
+  {
+    key: "settings.integrations",
+    label: "Spravuje integrace",
+    description: "Webhooky, Google, Meta, Fakturoid",
+  },
   { key: "users.manage", label: "Spravuje uživatele", description: "Pozvánky, role, deaktivace" },
   { key: "roles.manage", label: "Spravuje role a oprávnění" },
   {

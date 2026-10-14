@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core/db` (soubor `packages/core/src/db/index.ts`). Exportů: 13, z toho s popisem 7.
+Vstupní bod `@rebar/core/db` (soubor `packages/core/src/db/index.ts`). Exportů: 15, z toho s popisem 9.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
@@ -16,6 +16,8 @@ Vstupní bod `@rebar/core/db` (soubor `packages/core/src/db/index.ts`). Exportů
 | [`newId`](#newid) | function | Nové ID záznamu: UUID v7 (časově řazené). PostgreSQL 17 `uuidv7()` nemá, generuje aplikace (ADR 002). |  |
 | [`pk`](#pk) | function | Primární klíč: UUID v7 generované aplikací. |  |
 | [`ts`](#ts) | function |  |  |
+| [`visibilityColumns`](#visibilitycolumns) | function | Sloupce viditelnosti shared/private (zámek) pro každou entitu s `EntityDef.visibility` (D §5.1). `is_private` je efektivní (denormalizovaná) hodnota, `visibility_source` říká, zda ji zvolil uživatel (`own`), nebo se zdědila od rodiče (`inherited`). Použití: `...visibilityColumns()` v tabulce a `visibilityIndex("deal_private_idx", t)` mezi indexy. |  |
+| [`visibilityIndex`](#visibilityindex) | function | Částečný index nad soukromými záznamy tabulky (`where is_private`); rychlá filtrace i anti-join. |  |
 | [`AuditChange`](#auditchange) | type |  |  |
 | [`CreateDbOptions`](#createdboptions) | type |  |  |
 | [`Db`](#db) | type |  |  |
@@ -92,6 +94,28 @@ _Bez popisu._
 
 ```ts
 function ts(name: string): import("drizzle-orm/pg-core").PgTimestampBuilderInitial<string>
+```
+
+### visibilityColumns
+
+function · `packages/core/src/db/columns.ts`
+
+Sloupce viditelnosti shared/private (zámek) pro každou entitu s `EntityDef.visibility` (D §5.1). `is_private` je
+efektivní (denormalizovaná) hodnota, `visibility_source` říká, zda ji zvolil uživatel (`own`), nebo se zdědila od
+rodiče (`inherited`). Použití: `...visibilityColumns()` v tabulce a `visibilityIndex("deal_private_idx", t)` mezi indexy.
+
+```ts
+function visibilityColumns(): { isPrivate: import("drizzle-orm").HasDefault<import("drizzle-orm").NotNull<import("drizzle-orm/pg-core").PgBooleanBuilderInitial<"is_private">>>; visibilitySource: import("drizzle-orm").HasDefault<import("drizzle-orm").NotNull<import("dri…
+```
+
+### visibilityIndex
+
+function · `packages/core/src/db/columns.ts`
+
+Částečný index nad soukromými záznamy tabulky (`where is_private`); rychlá filtrace i anti-join.
+
+```ts
+function visibilityIndex(name: string, table: { isPrivate: AnyPgColumn }): import("drizzle-orm/pg-core").IndexBuilder
 ```
 
 ### AuditChange

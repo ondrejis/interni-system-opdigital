@@ -6,7 +6,19 @@ export {
 } from "./policy";
 export type { EntityPolicy } from "./policy";
 export { defineEntity, ATTRIBUTE_TYPES } from "./types";
-export type { AttributeDef, AttributeType, EntityDef, Choice, RecordRow, Labels } from "./types";
+export type {
+  AttributeDef,
+  AttributeType,
+  EntityDef,
+  EntityLink,
+  QuickFilterDef,
+  Choice,
+  RecordRow,
+  Labels,
+} from "./types";
+export { extendEntity, applyEntityExtensions, isEntityExtension } from "./extend";
+export type { EntityExtension, EntityHooks } from "./extend";
+export { writeSystemFields } from "./system-fields";
 export {
   createEntityRegistry,
   resolveEntity,

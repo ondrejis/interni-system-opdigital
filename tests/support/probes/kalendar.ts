@@ -1,5 +1,4 @@
-import type { Probe } from "../security-probes";
-import { F, P } from "./shared";
+import { F, P, type Probe } from "./shared";
 
 /** Vstupy příkazů: Kalendář. */
 export const kalendarProbes: Record<string, Probe> = {

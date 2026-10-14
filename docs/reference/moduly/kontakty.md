@@ -1,11 +1,11 @@
-# Modul Kontakty (kontakty)
+# Modul Organizace a kontakty (kontakty)
 
 <!-- GENERATED: tento soubor vzniká z kódu příkazem `pnpm docs:generate`. Neupravuj ho ručně, změna se přepíše. -->
 
 > **Generovaný dokument.** Vzniká přímo z kódu (manifest modulu (`defineModule`), serverová část (`defineModuleServer`), UI modulu a zdrojové soubory). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Firmy a osoby: typ, hierarchie, štítky, více telefonů a e-mailů, doplnění z ARES, kontrola duplicit a jejich sloučení.
+Organizace a kontaktní osoby: více telefonů a e-mailů, doplnění z ARES, kontrola duplicit a jejich sloučení.
 
 - **Identifikátor:** `kontakty`, ikona `contact`
 - **Závisí na:** žádném modulu
@@ -19,8 +19,8 @@ Firmy a osoby: typ, hierarchie, štítky, více telefonů a e-mailů, doplnění
 
 | Položka | Adresa | Ikona | Oprávnění | Sekce panelu | Nadřazená položka |
 | --- | --- | --- | --- | --- | --- |
-| Firmy | `/kontakty/firmy` | `building-2` | `kontakty.read` | Obchod |  |
-| Osoby | `/kontakty/osoby` | `users` | `kontakty.read` | Obchod |  |
+| Organizace | `/kontakty/firmy` | `building-2` | `kontakty.read` | CRM |  |
+| Kontakty | `/kontakty/osoby` | `users` | `kontakty.read` | CRM |  |
 
 ## Oprávnění
 
@@ -28,9 +28,13 @@ Výchozí přidělení rolím je v [opravneni.md](../opravneni.md).
 
 | Klíč | Název | Popis |
 | --- | --- | --- |
-| `kontakty.read` | Vidí kontakty |  |
-| `kontakty.write` | Upravuje kontakty |  |
-| `kontakty.merge` | Slučuje duplicitní kontakty | Sloučení firmy nebo osoby přepojí zakázky, poptávky, faktury a další záznamy na jiný kontakt; nejde vrátit |
+| `kontakty.read` | Vidí organizace a kontakty |  |
+| `kontakty.create` | Zakládá organizace a kontakty |  |
+| `kontakty.write` | Upravuje organizace a kontakty |  |
+| `kontakty.delete` | Maže organizace a kontakty | Do koše; obnovit smí každý své |
+| `kontakty.export` | Exportuje organizace a kontakty |  |
+| `kontakty.merge` | Slučuje duplicitní kontakty | Sloučení firmy nebo osoby přepojí zakázky, obchody a další záznamy na jiný kontakt; nejde vrátit |
+| `kontakty.ares` | Doplňuje údaje z ARES |  |
 
 ## Výchozí data (seed)
 

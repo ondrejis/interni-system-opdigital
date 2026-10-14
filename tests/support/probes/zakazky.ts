@@ -1,5 +1,4 @@
-import type { Probe } from "../security-probes";
-import { P, job } from "./shared";
+import { P, job, type Probe } from "./shared";
 
 /** Vstupy příkazů: Zakázky. */
 export const zakazkyProbes: Record<string, Probe> = {

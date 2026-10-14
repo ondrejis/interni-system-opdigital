@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDb, type Db } from "@rebar/core/db";
 import { queryGroups, queryRecords, resolveEntity, searchAll } from "@rebar/core/entities";
 import { createCtx, loadActor, type Ctx } from "@rebar/core/rbac";
-import { buildFixture, isolatedDb, type Fixture } from "./support/security-fixture";
+import { buildFixture, isolatedDb, type Fixture } from "./support/legacy/fixture";
 
 /*
   Žádné N+1: počet dotazů nesmí záviset na množství dat. Každá operace se změří nad malým a pak nad velkým počtem

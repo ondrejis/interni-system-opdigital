@@ -28,7 +28,6 @@
     "db:generate": "pnpm --filter @rebar/core db:generate",
     "test:unit": "vitest run --project unit",
     "db:seed": "tsx --env-file-if-exists=.env.local scripts/db-seed.ts",
-    "demo:seed": "tsx --env-file-if-exists=.env.local scripts/demo-seed.ts",
     "worker": "tsx --env-file-if-exists=.env.local scripts/worker.ts",
     "db:reset": "sh scripts/dev-db.sh reset",
     "perf:check": "tsx --env-file-if-exists=.env.local scripts/perf-check.ts",

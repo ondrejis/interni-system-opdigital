@@ -110,7 +110,9 @@ describe("route handlery v apps/web/src/app/api", () => {
     "auth/[...all]": { guard: /getServices\(\)\.auth\.handler/, limit: null }, // limity a CSRF řeší Better Auth (testováno v jádru)
     "health/live": { guard: /select 1/, limit: null }, // bez podrobností a bez dat
     health: { guard: /HEALTH_TOKEN/, limit: null },
-    "intake/poptavky": { guard: /Bearer|authorization/i, limit: /consumeRateLimit/ },
+    // příchozí požadavky od n8n a Googlu: podpis (HMAC) nebo token kanálu, omezení počtu požadavků (doplní C2 a KAL-A)
+    "ingest/[source]": { guard: /signature|podpis|hmac/i, limit: /consumeRateLimit/ },
+    "kalendar/google/webhook": { guard: /channel|token/i, limit: /consumeRateLimit/ },
     "kalendar/feed/[token]": { guard: /feedForToken/, limit: /consumeRateLimit/ },
     "invitations/accept": { guard: /acceptInvitation/, limit: /consumeRateLimit/ },
   };
@@ -135,7 +137,8 @@ describe("route handlery v apps/web/src/app/api", () => {
   });
 
   it("každá mutace (POST/PUT/PATCH/DELETE) kontroluje původ požadavku (CSRF), kromě klíčem chráněných vstupů", () => {
-    const EXEMPT = new Set(["auth/[...all]", "intake/poptavky"]); // Better Auth má vlastní kontrolu původu; příjem poptávek je serverové volání s klíčem
+    // Better Auth má vlastní kontrolu původu; příchozí požadavky jsou serverová volání s podpisem
+    const EXEMPT = new Set(["auth/[...all]", "ingest/[source]", "kalendar/google/webhook"]);
     for (const f of routes) {
       const key = rel(f)
         .replace("apps/web/src/app/api/", "")

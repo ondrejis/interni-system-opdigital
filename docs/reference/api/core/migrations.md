@@ -10,7 +10,7 @@ Vstupní bod `@rebar/core/migrations` (soubor `packages/core/src/db/migrations.t
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
 | [`applyGrants`](#applygrants) | function | Přidělí aplikační roli minimální práva: čtení a zápis dat, žádné DDL, u append-only tabulek (audit) jen INSERT a SELECT. Spouští se po každé migraci pod uživatelem migrací, takže je idempotentní. |  |
-| [`migrationSources`](#migrationsources) | function | Zdroje migrací: jádro první, pak zapnuté moduly v pořadí závislostí (pořadí `MODULE_IDS` je k tomu záměrně sestavené a hlídá ho test). Každý modul má vlastní tabulku záznamu o migracích. |  |
+| [`migrationSources`](#migrationsources) | function | Zdroje migrací: jádro první, pak zapnuté moduly v pořadí závislostí (pořadí `MODULE_IDS` je k tomu záměrně sestavené a hlídá ho test). Každý modul má vlastní tabulku záznamu o migracích (`__drizzle_migrations_<id>`; pomlčka v id modulu, např. `muj-prostor`, se v názvu tabulky nahradí podtržítkem, aby se název nikdy nemusel uvozovat). |  |
 | [`runMigrations`](#runmigrations) | function | Spustí migrace a přidělí práva aplikační roli. Pouští se jako samostatný krok (nasazení, `pnpm db:migrate`), nikdy ne za běhu aplikace. Migrace jsou jen dopředné a zpětně kompatibilní (expand → contract), aby rollback aplikace nerozbil data. |  |
 | [`APPEND_ONLY_TABLES`](#append_only_tables) | const | Tabulky, které smí aplikace jen číst a přidávat do nich. |  |
 | [`CORE_MIGRATIONS`](#core_migrations) | const | Složka s SQL migracemi jádra (verzované v repu). |  |
@@ -34,7 +34,9 @@ async function applyGrants(sql: postgres.Sql, appRole: string, schemas: string[]
 function · `packages/core/src/db/migrations.ts`
 
 Zdroje migrací: jádro první, pak zapnuté moduly v pořadí závislostí (pořadí `MODULE_IDS` je k tomu
-záměrně sestavené a hlídá ho test). Každý modul má vlastní tabulku záznamu o migracích.
+záměrně sestavené a hlídá ho test). Každý modul má vlastní tabulku záznamu o migracích
+(`__drizzle_migrations_<id>`; pomlčka v id modulu, např. `muj-prostor`, se v názvu tabulky nahradí podtržítkem,
+aby se název nikdy nemusel uvozovat).
 
 ```ts
 function migrationSources(repoRoot: string, moduleIds: readonly string[]): MigrationSource[]

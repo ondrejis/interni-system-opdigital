@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTopTabs, type RecordTab, type RecordTabGroup } from "./module-ui";
+import { buildTopTabs, mergeModuleUi, type RecordTab, type RecordTabGroup } from "./module-ui";
 
 const tab = (id: string, extra: Partial<RecordTab> = {}): RecordTab => ({
   id,
@@ -37,5 +37,47 @@ describe("buildTopTabs", () => {
   it("záložka s neznámou skupinou je samostatná", () => {
     const top = buildTopTabs([tab("x", { group: "neexistuje" })], groups, allow);
     expect(top.map((t) => t.id)).toEqual(["x"]);
+  });
+});
+
+describe("mergeModuleUi", () => {
+  const page = (path: string) => ({ path, render: () => null });
+  const action = (id: string) => ({ id, label: id });
+
+  it("stránky a příkazy palety se přidají za sebe, mapy podle entity se zřetězí", () => {
+    const merged = mergeModuleUi(
+      {
+        pages: [page("/a")],
+        paletteActions: [action("x")],
+        recordActions: { company: [action("a1")] },
+      },
+      {
+        pages: [page("/b")],
+        paletteActions: [action("y")],
+        recordActions: { company: [action("a2")], job: [action("j1")] },
+      },
+    );
+    expect(merged.pages?.map((p) => p.path)).toEqual(["/a", "/b"]);
+    expect(merged.paletteActions?.map((a) => a.id)).toEqual(["x", "y"]);
+    expect(merged.recordActions?.company?.map((a) => a.id)).toEqual(["a1", "a2"]);
+    expect(merged.recordActions?.job?.map((a) => a.id)).toEqual(["j1"]);
+  });
+
+  it("sloty různých oblastí se spojí, stejný slot drží první oblast", () => {
+    const first = () => null;
+    const second = () => null;
+    const third = () => null;
+    const merged = mergeModuleUi(
+      { slots: { "task.dialog.extras": first } },
+      { slots: { "task.dialog.extras": second, "job.header.extra": third } },
+    );
+    expect(merged.slots?.["task.dialog.extras"]).toBe(first);
+    expect(merged.slots?.["job.header.extra"]).toBe(third);
+  });
+
+  it("vstupní objekty se nemění", () => {
+    const a = { pages: [page("/a")] };
+    mergeModuleUi(a, { pages: [page("/b")] });
+    expect(a.pages).toHaveLength(1);
   });
 });

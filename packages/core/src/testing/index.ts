@@ -98,3 +98,6 @@ export async function makeUser(
   const actor = (await loadActor(db, user!.id))!;
   return { id: user!.id, name: user!.name, email: user!.email, ctx: createCtx(db, actor) };
 }
+
+export { createStubServices } from "./stub-services";
+export type { StubCall, StubServicesInput } from "./stub-services";

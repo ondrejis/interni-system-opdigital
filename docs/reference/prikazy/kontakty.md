@@ -1,17 +1,17 @@
-# Příkazy modulu Kontakty
+# Příkazy modulu Organizace a kontakty
 
 <!-- GENERATED: tento soubor vzniká z kódu příkazem `pnpm docs:generate`. Neupravuj ho ručně, změna se přepíše. -->
 
 > **Generovaný dokument.** Vzniká přímo z kódu (registr příkazů (`ModuleServer.commands`) a jejich Zod schémata). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Příkaz je pojmenovaná akce nebo dotaz volaný z UI (`api.command(name, input)`). Vstup se validuje Zodem, oprávnění hlídá jednotný vstupní bod ([ADR 012](../../adr/012-moduly-prikazy-a-poskytovatele.md)). Modul: [Kontakty](../moduly/kontakty.md). Počet příkazů: 7.
+Příkaz je pojmenovaná akce nebo dotaz volaný z UI (`api.command(name, input)`). Vstup se validuje Zodem, oprávnění hlídá jednotný vstupní bod ([ADR 012](../../adr/012-moduly-prikazy-a-poskytovatele.md)). Modul: [Organizace a kontakty](../moduly/kontakty.md). Počet příkazů: 7.
 
 ### kontakty.ares
 
 Doplnění firmy z ARES podle IČO. Nikdy nevyhodí chybu kvůli síti: výsledek `ok: false` nese větu pro uživatele. Počet dotazů na uživatele je omezený (ochrana veřejného API i aplikace).
 
-- **Oprávnění:** `kontakty.write` nebo `poptavky.write` nebo `zakazky.write` (stačí kterékoli)
+- **Oprávnění:** `kontakty.ares` nebo `kontakty.write` nebo `obchody.write` nebo `zakazky.write` (stačí kterékoli)
 - **Definice:** `packages/modules/kontakty/src/commands.ts`
 
 | Pole | Typ | Povinné | Hodnoty | Omezení | Popis |

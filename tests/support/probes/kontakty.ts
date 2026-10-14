@@ -1,5 +1,4 @@
-import type { Probe } from "../security-probes";
-import { NONE, P } from "./shared";
+import { NONE, P, type Probe } from "./shared";
 
 /** Vstupy příkazů: Kontakty. */
 export const kontaktyProbes: Record<string, Probe> = {

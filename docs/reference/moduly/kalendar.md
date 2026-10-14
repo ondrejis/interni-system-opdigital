@@ -19,9 +19,7 @@ Události s účastníky, opakováním a připomenutím, zdroje (zasedačky, vyb
 
 | Položka | Adresa | Ikona | Oprávnění | Sekce panelu | Nadřazená položka |
 | --- | --- | --- | --- | --- | --- |
-| Kalendář | `/kalendar` | `calendar` | `kalendar.read` | Provoz |  |
-| Události | `/kalendar/udalosti` | `calendar-days` | `kalendar.read` |  | `/kalendar` |
-| Zdroje kalendáře | `/kalendar/zdroje` | `boxes` | `kalendar.read` |  | `/kalendar` |
+| Kalendář | `/kalendar` | `calendar` | `kalendar.read` | Práce |  |
 
 ## Stránky modulu
 

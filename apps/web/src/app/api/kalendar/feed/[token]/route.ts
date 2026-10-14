@@ -1,6 +1,5 @@
 import { consumeRateLimit } from "@rebar/core/http";
 import { feedForToken } from "@rebar/kalendar/server";
-import { crmApi } from "@rebar/poptavky/server";
 import { clientKey, errorResponse } from "@/server/http";
 import { getServices } from "@/server/services";
 
@@ -20,15 +19,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
     const { token: raw } = await params;
     const token = raw.replace(/\.ics$/i, "");
     const host = new URL(s.env.APP_URL).hostname;
-    // aktivity CRM se do odběru přidávají, jen když je modul CRM zapnutý
-    const crm = s.runtime.modules.some((m) => m.id === "poptavky");
-    const body = await feedForToken(
-      s.db,
-      token,
-      host,
-      "Kalendář",
-      crm ? (userId) => crmApi.activityIcsEvents(s.db, userId, host) : undefined,
-    );
+    const body = await feedForToken(s.db, token, host, "Kalendář");
     if (!body) return notFound();
     return new Response(body, {
       headers: {

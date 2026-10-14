@@ -10,7 +10,13 @@ import { brandingSetting, createSettings, resolveBranding } from "@rebar/core/se
 import type { ExportRuntime } from "@rebar/core/export";
 import { collectNotificationEvents, configureNotifications } from "@rebar/core/notifications";
 import { createCipher, parseKeyRing } from "@rebar/core/security";
-import { createEventEmitter, setEventEmitter, type ModuleDeps } from "@rebar/core/module-server";
+import { setDomainEvents } from "@rebar/core/events";
+import {
+  createEventEmitter,
+  createModuleDeps,
+  setEventEmitter,
+  type ModuleDeps,
+} from "@rebar/core/module-server";
 import { getRuntime } from "./bootstrap";
 import { buildRegistry, collectServers } from "./modules-server";
 import { loadEnv } from "./env";
@@ -64,16 +70,20 @@ function build() {
     captureError(err, { where }),
   );
   setEventEmitter(emit);
-  const moduleDeps: ModuleDeps = {
-    registry,
-    queue: readyQueue,
-    storage,
-    settings,
-    cipher,
-    baseURL: env.APP_URL,
-    emit,
-    calendarLayers: collected.calendarLayers,
-  };
+  const moduleDeps: ModuleDeps = createModuleDeps(
+    {
+      registry,
+      queue: readyQueue,
+      storage,
+      settings,
+      cipher,
+      baseURL: env.APP_URL,
+      emit,
+      calendarLayers: collected.calendarLayers,
+    },
+    collected,
+  );
+  setDomainEvents(collected.eventHandlers, () => moduleDeps);
 
   const exportRuntime: ExportRuntime = {
     db: dbh.db,

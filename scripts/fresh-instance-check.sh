@@ -59,7 +59,6 @@ fi
 
 echo "== migrace a demo data"
 pnpm db:migrate
-pnpm demo:seed --quiet
 
 echo "== server na portu $PORT (VAPID=$FRESH_VAPID)"
 LOG="$(mktemp)"

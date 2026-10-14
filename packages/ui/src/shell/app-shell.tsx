@@ -32,6 +32,8 @@ export type NavItem = {
   label: string;
   icon: string;
   count?: number;
+  /** Barva odznaku s počtem (výchozí akcentová). */
+  tone?: "warning" | "danger";
   /** Vedlejší stránky modulu, rozbalují se pod položkou. */
   children?: NavItem[];
 };
@@ -44,6 +46,8 @@ export type ShellProps = {
   top: NavItem[];
   /** Sekce Záznamy a Pohledy. */
   sections: NavSection[];
+  /** Položky patičky nad Nastavením (Historie, Koš). */
+  footer?: NavItem[];
   pathname: string;
   onSearch: () => void;
   onLogout: () => void;
@@ -63,6 +67,7 @@ export function AppShell({
   user,
   top,
   sections,
+  footer,
   pathname,
   onSearch,
   onLogout,
@@ -144,6 +149,7 @@ export function AppShell({
         user,
         top,
         sections,
+        footer,
         onSearch,
         onLogout,
         settingsHref,
@@ -252,7 +258,16 @@ function NavLink({
       />
       {!compact && <span className="flex-1 truncate">{item.label}</span>}
       {!compact && item.count ? (
-        <span className="rounded-full bg-accent px-1.5 text-xs font-semibold leading-5 text-accent-fg">
+        <span
+          className={cn(
+            "rounded-full px-1.5 text-xs font-semibold leading-5",
+            item.tone === "danger"
+              ? "bg-danger text-white"
+              : item.tone === "warning"
+                ? "bg-warning-soft text-warning"
+                : "bg-accent text-accent-fg",
+          )}
+        >
           {item.count}
         </span>
       ) : null}
@@ -324,6 +339,7 @@ function Sidebar({
   user,
   top,
   sections,
+  footer,
   pathname,
   onSearch,
   onLogout,
@@ -412,6 +428,15 @@ function Sidebar({
       </nav>
 
       <div className="space-y-0.5 border-t border-line p-2">
+        {footer?.map((i) => (
+          <NavLink
+            key={i.href}
+            item={i}
+            active={isActive(i.href)}
+            compact={compact}
+            onNavigate={onNavigate}
+          />
+        ))}
         {settingsHref && (
           <NavLink
             item={{ href: settingsHref, label: "Nastavení", icon: "settings" }}

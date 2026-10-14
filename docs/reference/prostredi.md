@@ -38,16 +38,13 @@ Proměnné mimo validační schéma aplikace (migrace, seed, testy, výkonové a
 | --- | --- | --- |
 | `BUNDLE_BUDGET_KB` |  | `scripts/bundle-report.mjs` |
 | `CI` |  | `apps/web/playwright.config.ts` |
-| `CLIENT` | Vyber klienta: složka v clients/ (při buildu i za běhu). Image se staví per klient. | `apps/web/next.config.ts`, `apps/web/src/server/bootstrap.ts`, `scripts/db-migrate.ts`, `scripts/db-seed.ts` a dalších 3 |
+| `CLIENT` | Vyber klienta: složka v clients/ (při buildu i za běhu). Image se staví per klient. | `apps/web/next.config.ts`, `apps/web/src/server/bootstrap.ts`, `scripts/db-migrate.ts`, `scripts/db-seed.ts` a dalších 2 |
 | `CRAWL_BASE_URL` |  | `apps/web/e2e-crawl/platforma-prihlaseni.crawl.spec.ts`, `apps/web/e2e-crawl/ucet-heslo.crawl.spec.ts`, `apps/web/playwright.crawl.config.ts` |
 | `CRAWL_EMAIL` |  | `apps/web/e2e-crawl/login.setup.ts` |
 | `CRAWL_OUTPUT_DIR` |  | `apps/web/playwright.crawl.config.ts` |
 | `CRAWL_PASSWORD` |  | `apps/web/e2e-crawl/login.setup.ts` |
 | `DATABASE_APP_ROLE` |  | `scripts/db-migrate.ts` |
-| `DATABASE_MIGRATE_URL` | Migrace běží jako samostatný krok pod vlastníkem schématu (pnpm db:migrate), nikdy za běhu aplikace | `scripts/db-migrate.ts`, `scripts/demo-seed.ts` |
-| `DEMO_SEED_ALLOW_PRODUCTION` |  | `scripts/demo-seed.ts` |
-| `DEMO_SEED_ALLOW_REMOTE_WIPE` |  | `scripts/demo-seed.ts` |
-| `DEMO_SEED_DEBUG` |  | `scripts/demo-seed.ts` |
+| `DATABASE_MIGRATE_URL` | Migrace běží jako samostatný krok pod vlastníkem schématu (pnpm db:migrate), nikdy za běhu aplikace | `scripts/db-migrate.ts` |
 | `E2E_APP_EMAIL` |  | `apps/web/e2e/auth.setup.ts`, `apps/web/e2e/global-setup.ts` |
 | `E2E_APP_PASSWORD` |  | `apps/web/e2e/auth.setup.ts`, `apps/web/e2e/global-setup.ts` |
 | `E2E_EMAIL` |  | `apps/web/e2e/auth.spec.ts`, `apps/web/e2e/global-setup.ts` |
@@ -87,7 +84,7 @@ Typovaná a validovaná Zodem při startu (`clientConfigSchema`, `defineClientCo
 | `locale.locale` | text | ne |  | výchozí `"cs-CZ"` |  |
 | `locale.timezone` | text | ne |  | výchozí `"Europe/Prague"` |  |
 | `locale.currency` | text | ne |  | délka 3; výchozí `"CZK"` |  |
-| `modules` | pole (enum) | ano | `kontakty`, `zakazky`, `poptavky`, `dochazka`, `kalendar` | počet ≥ 1 | Zapnuté moduly. Závislosti kontroluje `resolveModules`. |
+| `modules` | pole (enum) | ano | `kontakty`, `klienti`, `disk`, `zakazky`, `obchody`, `ukoly`, `kalendar`, `hodiny`, `finance`, `reklama`, `sablony-emailu`, `muj-prostor`, `prehled` | počet ≥ 1 | Zapnuté moduly. Závislosti kontroluje `resolveModules`. |
 | `security` | objekt | ne |  | výchozí `{}` |  |
 | `security.idleTimeoutMinutes` | celé číslo | ne |  | hodnota 5–1440; výchozí `480` | Odhlášení po neaktivitě (minuty). |
 | `security.require2faRoles` | pole (text) | ne |  | výchozí `["owner","admin"]` | Klíče rolí, pro které je 2FA povinné. |

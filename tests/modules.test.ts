@@ -39,33 +39,28 @@ describe("moduly jsou zapojené do aplikace", () => {
     }
   });
 
-  it("CRM: modul poptavky se zobrazuje jako CRM, závisí na zakázkách a dodává příkazy crm.deal.*", () => {
-    const crm = ALL_MODULES.find((m) => m.id === "poptavky")!;
-    expect(crm.name).toBe("CRM");
-    expect(crm.nav.map((n) => n.label)).toEqual([
-      "CRM",
-      "Moje dnešní práce",
-      "Schránka poptávek",
-      "Import poptávek",
-    ]);
-    expect(crm.dependsOn).toEqual(expect.arrayContaining(["kontakty", "zakazky"]));
-    for (const name of ["win", "lose", "reopen", "archive", "unarchive"])
-      expect(collected.commands.has(`crm.deal.${name}`), name).toBe(true);
-    // přechody obchodu smí jen ten, kdo smí upravovat zakázky; pravidla kvality polí jen správce nastavení
-    expect(collected.commands.get("crm.deal.win")?.permission).toBe("zakazky.write");
-    expect(collected.commands.get("crm.fieldRules.set")?.permission).toBe("settings.manage");
-    // hooky CRM hlídají změnu stavu zakázky (pravidla polí, přepočet vážené hodnoty)
-    expect(
-      collected.phaseHooks.some((h) => h.id === "crm.deal" && h.checkStage && h.afterChange),
-    ).toBe(true);
+  it("každý modul z MODULE_IDS má balíček s exporty ., ./schema, ./server, ./ui a ./api a sdílená místa v apps/web", () => {
+    const root = path.resolve(import.meta.dirname, "..");
+    for (const id of MODULE_IDS) {
+      const pkg = JSON.parse(
+        fs.readFileSync(path.join(root, "packages/modules", id, "package.json"), "utf8"),
+      ) as { name: string; exports: Record<string, string> };
+      expect(pkg.name).toBe(`@rebar/${id}`);
+      for (const key of [".", "./schema", "./server", "./ui", "./api"])
+        expect(pkg.exports[key], `${id}: export ${key}`).toBeTruthy();
+      expect(MODULE_UI[id], `${id}: UI v MODULE_UI`).toBeTruthy();
+      expect(
+        ALL_MODULES.some((m) => m.id === id),
+        `${id}: manifest v ALL_MODULES`,
+      ).toBe(true);
+    }
   });
 
   it("příkazy mají předponu modulu a oprávnění z katalogu", () => {
     const permissions = new Set(ALL_MODULES.flatMap((m) => m.permissions.map((p) => p.key)));
     for (const [name, cmd] of collected.commands) {
       const prefix = name.split(".")[0];
-      // `core.*` jsou příkazy platformy (úkoly v terminálu řemeslníka), ne modulu; přidává je `collectServers`;
-      // `crm.*` jsou příkazy modulu CRM (id `poptavky`), další předpony modulů jsou v `COMMAND_PREFIXES`
+      // další předpony modulů jsou v `COMMAND_PREFIXES`; `core.*` jsou příkazy platformy, ne modulu
       expect([
         ...MODULE_IDS,
         "core",

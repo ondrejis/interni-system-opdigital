@@ -1,6 +1,7 @@
 import { defineConfig } from "vitest/config";
 
-const exclude = ["**/node_modules/**", "**/.next/**", "**/e2e/**"];
+// `_donor` = kód odstraněných a přepracovaných modulů jako zdroj pro nové agenty; mimo workspace, netestuje se
+const exclude = ["**/node_modules/**", "**/.next/**", "**/e2e/**", "**/_donor/**"];
 
 export default defineConfig({
   test: {

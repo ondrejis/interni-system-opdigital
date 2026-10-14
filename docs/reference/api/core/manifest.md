@@ -12,7 +12,7 @@ Vstupní bod `@rebar/core/manifest` (soubor `packages/core/src/modules/public.ts
 | [`defineModule`](#definemodule) | function |  |  |
 | [`defineNotificationEvent`](#definenotificationevent) | function |  |  |
 | [`CORE_PERMISSIONS`](#core_permissions) | const | Oprávnění, která patří platformě, ne modulu. |  |
-| [`MODULE_IDS`](#module_ids) | const | Identifikátory modulů. Jediný zdroj pravdy — konfigurace klienta se validuje proti tomuto seznamu. |  |
+| [`MODULE_IDS`](#module_ids) | const | Identifikátory modulů. Jediný zdroj pravdy — konfigurace klienta se validuje proti tomuto seznamu. Pořadí = pořadí závislostí = pořadí migrací (hard závislost vždy dřív než její konzument); hlídá ho test. |  |
 | [`AnyEventDef`](#anyeventdef) | type | Zkratka pro libovolnou definici (pole, mapy). |  |
 | [`ModuleId`](#moduleid) | type |  |  |
 | [`ModuleManifest`](#modulemanifest) | type |  |  |
@@ -57,9 +57,10 @@ const CORE_PERMISSIONS: readonly PermissionDef[]
 const · `packages/core/src/modules/ids.ts`
 
 Identifikátory modulů. Jediný zdroj pravdy — konfigurace klienta se validuje proti tomuto seznamu.
+Pořadí = pořadí závislostí = pořadí migrací (hard závislost vždy dřív než její konzument); hlídá ho test.
 
 ```ts
-const MODULE_IDS: readonly ["kontakty", "zakazky", "poptavky", "dochazka", "kalendar"]
+const MODULE_IDS: readonly ["kontakty", "klienti", "disk", "zakazky", "obchody", "ukoly", "kalendar", "hodiny", "finance", "reklama", "sablony-emailu", "muj-prostor", "prehled"]
 ```
 
 ### AnyEventDef
@@ -144,6 +145,8 @@ type NavItem = {
   parent?: string;
   /** Položka je kandidátem na spodní lištu mobilní navigace (zobrazí se první tři, které uživatel smí vidět). */
   bottom?: boolean;
+  /** Pořadí v sekci (nižší dřív); bez něj 100. Při shodě rozhoduje pořadí modulů v `MODULE_IDS`. */
+  order?: number;
 };
 ```
 

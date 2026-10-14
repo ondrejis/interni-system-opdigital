@@ -2,7 +2,21 @@ import { defineClientConfig } from "@rebar/core";
 import { opsysDashboards } from "./dashboards";
 
 /** Interní systém agentury OP Digital (vlastník Ondřej Dvořák, partner Patrik Šilhánek). */
-const MODULES = ["kontakty", "zakazky", "poptavky", "dochazka", "kalendar"] as const;
+const MODULES = [
+  "kontakty",
+  "klienti",
+  "disk",
+  "zakazky",
+  "obchody",
+  "ukoly",
+  "kalendar",
+  "hodiny",
+  "finance",
+  "reklama",
+  "sablony-emailu",
+  "muj-prostor",
+  "prehled",
+] as const;
 
 export default defineClientConfig({
   slug: "opsys",
@@ -19,7 +33,9 @@ export default defineClientConfig({
   // Pořadí sekcí postranního panelu (sekce, které tu nejsou, jdou za nimi).
   navigation: { groupOrder: ["Práce", "CRM", "Realizace", "Finance", "Marketing", "Můj prostor"] },
 
-  // OPSYS nepoužívá upozornění (e-mail, push, zvonek): moduly neregistrují události; platformní kód zůstává v jádru.
+  // OPSYS nepoužívá upozornění (e-mail, push, zvonek) ani terminál: moduly neregistrují události upozornění,
+  // `notifications` zůstává prázdné; platformní kód zůstává v jádru.
+  notifications: {},
 
   security: { require2faRoles: ["owner", "partner"] },
 

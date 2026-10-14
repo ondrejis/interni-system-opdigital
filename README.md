@@ -50,7 +50,7 @@ pnpm worker                                  # v druhém terminálu: e-maily, n�
 
 Přihlášení: e-mail a heslo z `OWNER_EMAIL` / `OWNER_PASSWORD` v `.env.local`. Majitel má povinné 2FA (QR kód do autentikační aplikace při prvním přihlášení).
 Bez nastaveného SMTP se e-maily (pozvánky, reset hesla) vypisují v konzoli workeru včetně odkazu.
-Klient `clients/opsys` je výchozí (`CLIENT=opsys`). Minimální demo data (tři uživatelé podle rolí a ukázkové firmy) nasype `pnpm demo:seed` do prázdné databáze; popis je v [clients/opsys/README.md](clients/opsys/README.md).
+Klient `clients/opsys` je výchozí (`CLIENT=opsys`). Vývojová data (testovací uživatelé, klienti, obchody) doplní později samostatný skript; popis klienta je v [clients/opsys/README.md](clients/opsys/README.md).
 
 ## Příkazy
 
@@ -62,7 +62,6 @@ Klient `clients/opsys` je výchozí (`CLIENT=opsys`). Minimální demo data (tř
 | `pnpm db:seed`                                 | výchozí data klienta a první uživatel z `OWNER_*`                                                                  |
 | `pnpm db:generate`                             | nová migrace jádra z úprav schématu (moduly: `pnpm --filter @rebar/<id> db:generate`)                              |
 | `pnpm db:reset`                                | smaže celý lokální cluster (všechny vývojové a testovací databáze) a vytvoří ho znovu                              |
-| `pnpm demo:seed`                               | minimální demo data OPSYS: demo uživatelé podle rolí a ukázkové firmy (jen klient `opsys`; `--help`)               |
 | `pnpm dev`                                     | vývojový server (`CLIENT=opsys` výchozí)                                                                           |
 | `pnpm worker`                                  | úlohy na pozadí (e-maily, náhledy, úklid, heartbeat)                                                               |
 | `pnpm build`                                   | produkční build (standalone) pro klienta `CLIENT`                                                                  |

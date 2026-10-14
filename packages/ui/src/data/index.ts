@@ -40,6 +40,9 @@ export {
   useRecordExtensions,
   useKanbanExtensions,
   useRecordDialogExt,
+  useSlotComponents,
+  mergeModuleUi,
+  Slot,
   findModulePage,
 } from "./module-ui";
 export { buildTopTabs } from "./module-ui";
@@ -54,6 +57,7 @@ export type {
   RecordAction,
   BulkAction,
   ModulePage,
+  PaletteAction,
   TopTab,
   KanbanCardContext,
   KanbanCardExtension,

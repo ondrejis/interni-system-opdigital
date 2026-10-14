@@ -11,6 +11,15 @@ Jádro není modul: nemá manifest ani vypnutí. Poskytuje databázi, přihláš
 
 | Klíč | Název | Popis |
 | --- | --- | --- |
+| `private.read` | Vidí soukromé záznamy | Soukromé záznamy (zámek) vidí a nastavuje jen vlastník; ostatním neexistují v seznamech, hledání, přehledech ani součtech |
+| `activity.read` | Vidí historii změn |  |
+| `activity.export` | Exportuje historii změn | Stažení historie změn do CSV |
+| `trash.read` | Vidí koš | Smazané záznamy 30 dní; obnovit smí každý své |
+| `trash.purge` | Maže z koše natrvalo |  |
+| `settings.pipelines` | Spravuje pipeline a stavy |  |
+| `settings.custom_fields` | Spravuje vlastní pole |  |
+| `settings.tags` | Spravuje štítky |  |
+| `settings.integrations` | Spravuje integrace | Webhooky, Google, Meta, Fakturoid |
 | `users.manage` | Spravuje uživatele | Pozvánky, role, deaktivace |
 | `roles.manage` | Spravuje role a oprávnění |  |
 | `settings.manage` | Mění nastavení systému | Moduly, pipeline, číselníky, číselné řady, branding |
@@ -126,4 +135,4 @@ Odesílání e-mailů (SMTP). Heslo je v DB zašifrované. Definice: `packages/c
 | `export_failed` | `packages/core/src/export/runs.ts` |
 | `export_ready` | `packages/core/src/export/runs.ts` |
 
-Databázové tabulky jádra: [databaze/jadro.md](../databaze/jadro.md). Příkazy platformy: [prikazy/jadro.md](../prikazy/jadro.md) (41).
+Databázové tabulky jádra: [databaze/jadro.md](../databaze/jadro.md). Příkazy platformy: žádné.

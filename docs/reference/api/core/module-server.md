@@ -5,17 +5,19 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core/module-server` (soubor `packages/core/src/modules/server.ts`). Exportů: 23, z toho s popisem 14.
+Vstupní bod `@rebar/core/module-server` (soubor `packages/core/src/modules/server.ts`). Exportů: 30, z toho s popisem 21.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
 | [`createEventEmitter`](#createeventemitter) | function | Vyrobí oznamovač událostí pro rozšíření klienta. Rozšíření se volají postupně v pořadí, v jakém jsou v `extensions/index.ts`; chyba rozšíření se zachytí (`onError`) a akci, která událost vyvolala, nikdy nezruší. |  |
+| [`createModuleDeps`](#createmoduledeps) | function | Doplní `ModuleDeps` o `services`. Služby se vyrábí líně při prvním použití (továrna dostane hotové `deps`), takže nevadí, že služba sama volá další služby. |  |
 | [`defineCommand`](#definecommand) | function |  |  |
 | [`defineDashboardMetric`](#definedashboardmetric) | function |  |  |
+| [`defineIngest`](#defineingest) | function | Pomocník pro typově bezpečnou definici příchozího zdroje (`ModuleServer.ingests`). |  |
 | [`defineModuleJob`](#definemodulejob) | function | Úloha modulu na pozadí: stejná jako `defineJob`, jen s typovanými službami workeru. |  |
 | [`defineModuleServer`](#definemoduleserver) | function |  |  |
 | [`emitEvent`](#emitevent) | function | Oznámí událost rozšířením klienta. Pro kód, který nemá `ModuleDeps` (hooky entit, např. `afterCreate`); příkazy modulů používají `deps.emit`. Běží v transakci akce, která událost vyvolala. |  |
-| [`mergeServers`](#mergeservers) | function | Složí serverovou část modulu z oblastí (každá oblast je samostatná složka s vlastním vlastníkem, ADR 015): seznamy se spojí v daném pořadí. |  |
+| [`mergeServers`](#mergeservers) | function | Složí serverovou část modulu z oblastí (každá oblast je samostatná složka s vlastním vlastníkem, ADR 015): seznamy se spojí v daném pořadí; `services` a `contributions` se spojí podle klíče (stejná služba ve dvou oblastech je chyba), `eventHandlers` téže události se zřetězí. |  |
 | [`setEventEmitter`](#seteventemitter) | function | Aplikace tu při startu zaregistruje oznamovač rozšíření klienta (web). Bez něj (worker, testy) se události zahazují. |  |
 | [`AttentionItem`](#attentionitem) | type | Položka „Vyžaduje pozornost“ na přehledu. |  |
 | [`AttentionProvider`](#attentionprovider) | type |  |  |
@@ -26,10 +28,15 @@ Vstupní bod `@rebar/core/module-server` (soubor `packages/core/src/modules/serv
 | [`DashboardMetricInput`](#dashboardmetricinput) | type | Vstup výpočtu pojmenované metriky nástěnky (období a filtry z hlavičky nástěnky, parametry z widgetu). |  |
 | [`DashboardMetricResult`](#dashboardmetricresult) | type |  |  |
 | [`EventEmitter`](#eventemitter) | type |  |  |
+| [`IngestDef`](#ingestdef) | type | Příchozí požadavek od n8n a dalších (`POST /api/ingest/<source>`, podepsaný). Duplicita (`source`, `externalId`) se vyřídí bez zpracování. Trasu a zápis do `inbound_event` doplní C2. |  |
 | [`ModuleDeps`](#moduledeps) | type | Služby, které aplikace předává modulům (příkazy, poskytovatelé, úlohy). Moduly je dostávají jako parametr; nikdy neimportují jeden druhého kvůli službám (vypnutý modul nesmí zanechat stopu). |  |
 | [`ModuleJob`](#modulejob) | type |  |  |
 | [`ModuleJobDeps`](#modulejobdeps) | type | Úloha modulu na pozadí (připomínky, uzávěrky…); běží ve workeru s právy systému. |  |
 | [`ModuleServer`](#moduleserver) | type | Co modul nabízí běžícímu systému na serveru. Žádný modul tohle nečte z jiného modulu přímo — jen přes registry v aplikaci. |  |
+| [`NavBadgeDef`](#navbadgedef) | type | Položka „odznaku“ u položky navigace (počet záznamů po termínu apod.); bez soukromých záznamů cizích aktérů. |  |
+| [`PrivatePathDef`](#privatepathdef) | type | Pojmenovaná ruční čtecí cesta modulu pro test soukromí (D §5.4): widget, metrika, vrstva, služba, příspěvek karty. |  |
+| [`ServiceRegistry`](#serviceregistry) | type | Přístup ke službám a příspěvkům ostatních modulů. Modul nikdy neimportuje cizí modul kvůli službě: vypnutý nebo zatím nehotový modul službu nemá, proto `optional`. |  |
+| [`ServiceSources`](#servicesources) | type | Co modul nabízí ostatním (`ModuleServer.services` + `contributions`) v podobě, ze které se skládá `ServiceRegistry`. |  |
 | [`WidgetData`](#widgetdata) | type | Dlaždice přehledu: modul dodá data, UI dlaždici vykreslí podle `kind`. |  |
 | [`WidgetProvider`](#widgetprovider) | type |  |  |
 
@@ -42,6 +49,17 @@ chyba rozšíření se zachytí (`onError`) a akci, která událost vyvolala, ni
 
 ```ts
 function createEventEmitter(extensions: readonly ClientExtension[], onError: (err: unknown, where: string) => void): EventEmitter
+```
+
+### createModuleDeps
+
+function · `packages/core/src/modules/server.ts`
+
+Doplní `ModuleDeps` o `services`. Služby se vyrábí líně při prvním použití (továrna dostane hotové `deps`),
+takže nevadí, že služba sama volá další služby.
+
+```ts
+function createModuleDeps(base: Omit<ModuleDeps, "services">, sources: ServiceSources): ModuleDeps
 ```
 
 ### defineCommand
@@ -62,6 +80,16 @@ _Bez popisu._
 
 ```ts
 function defineDashboardMetric(def: DashboardMetricDef): DashboardMetricDef
+```
+
+### defineIngest
+
+function · `packages/core/src/modules/server.ts`
+
+Pomocník pro typově bezpečnou definici příchozího zdroje (`ModuleServer.ingests`).
+
+```ts
+function defineIngest<S extends ZodType>(def: IngestDef<S>): IngestDef<S>
 ```
 
 ### defineModuleJob
@@ -100,7 +128,8 @@ async function emitEvent(name, payload): Promise<void>
 function · `packages/core/src/modules/server.ts`
 
 Složí serverovou část modulu z oblastí (každá oblast je samostatná složka s vlastním vlastníkem, ADR 015):
-seznamy se spojí v daném pořadí.
+seznamy se spojí v daném pořadí; `services` a `contributions` se spojí podle klíče (stejná služba ve dvou oblastech
+je chyba), `eventHandlers` téže události se zřetězí.
 
 ```ts
 function mergeServers(...parts: readonly ModuleServer[]): ModuleServer
@@ -284,6 +313,26 @@ _Bez popisu._
 type EventEmitter = <K extends EventName>(name: K, payload: EventMap[K]) => Promise<void>;
 ```
 
+### IngestDef
+
+type · `packages/core/src/modules/server.ts`
+
+Příchozí požadavek od n8n a dalších (`POST /api/ingest/<source>`, podepsaný). Duplicita (`source`, `externalId`)
+se vyřídí bez zpracování. Trasu a zápis do `inbound_event` doplní C2.
+
+```ts
+type IngestDef<S extends ZodType = ZodType> = {
+  source: string;
+  schema: S;
+  externalId: (body: z.output<S>) => string;
+  handle: (
+    ctx: Ctx,
+    body: z.output<S>,
+    deps: ModuleDeps,
+  ) => Promise<{ entity?: { type: string; id: string } } | void>;
+};
+```
+
 ### ModuleDeps
 
 type · `packages/core/src/modules/server.ts`
@@ -305,6 +354,8 @@ type ModuleDeps = {
   emit: <K extends EventName>(name: K, payload: EventMap[K]) => Promise<void>;
   /** Poskytovatelé zapnutých modulů (kalendářní vrstvy). */
   calendarLayers: readonly CalendarLayerProvider[];
+  /** Služby a příspěvky ostatních modulů (D §2.3, §2.5). */
+  services: ServiceRegistry;
 };
 ```
 
@@ -326,6 +377,8 @@ type · `packages/core/src/modules/server.ts`
 
 ```ts
 type ModuleJobDeps = {
+  /** Služby ostatních modulů (úlohy volají služby a vysílají události stejně jako příkazy). */
+  services?: ServiceRegistry;
   db: Db;
   registry: EntityRegistry;
   queue: Pick<QueueClient, "send">;
@@ -343,7 +396,8 @@ Co modul nabízí běžícímu systému na serveru. Žádný modul tohle nečte 
 
 ```ts
 type ModuleServer = {
-  entities?: readonly EntityDef[];
+  /** Definice entit, případně rozšíření cizích entit (`extendEntity`). */
+  entities?: readonly (EntityDef | EntityExtension)[];
   commands?: readonly CommandDef[];
   attention?: readonly AttentionProvider[];
   widgets?: readonly WidgetProvider[];
@@ -360,6 +414,77 @@ type ModuleServer = {
    * úprava dat po změně výchozí sady. Běží po `runSeed`; nesmí přepisovat to, co správce změnil v administraci.
    */
   ensure?: readonly ((db: Executor) => Promise<unknown>)[];
+  /** Služby pro ostatní moduly (`deps.services.get/optional`). */
+  services?: ServiceSources["services"];
+  /** Příspěvky pro ostatní moduly (karta klienta, proměnné e-mailů). Čtou se `deps.services.all`. */
+  contributions?: ServiceSources["contributions"];
+  /** Reakce na doménové události jiných modulů; běží v transakci emitenta (chyba = vrácení). */
+  eventHandlers?: { [K in DomainEventName]?: DomainEventHandler<K> };
+  /** Příchozí požadavky (`/api/ingest/<source>`). */
+  ingests?: readonly IngestDef[];
+  /** Odznaky u položek navigace. */
+  navBadges?: readonly NavBadgeDef[];
+  /** Ruční čtecí cesty pro canary test soukromí. */
+  privatePaths?: readonly PrivatePathDef[];
+};
+```
+
+### NavBadgeDef
+
+type · `packages/core/src/modules/server.ts`
+
+Položka „odznaku“ u položky navigace (počet záznamů po termínu apod.); bez soukromých záznamů cizích aktérů.
+
+```ts
+type NavBadgeDef = {
+  /** Adresa položky navigace, ke které se odznak přidá. */
+  href: string;
+  tone: "warning" | "danger";
+  count: (ctx: Ctx, deps: ModuleDeps) => Promise<number>;
+};
+```
+
+### PrivatePathDef
+
+type · `packages/core/src/modules/server.ts`
+
+Pojmenovaná ruční čtecí cesta modulu pro test soukromí (D §5.4): widget, metrika, vrstva, služba, příspěvek karty.
+
+```ts
+type PrivatePathDef = {
+  name: string;
+  run: (ctx: Ctx, deps: ModuleDeps) => Promise<unknown>;
+};
+```
+
+### ServiceRegistry
+
+type · `packages/core/src/modules/server.ts`
+
+Přístup ke službám a příspěvkům ostatních modulů. Modul nikdy neimportuje cizí modul kvůli službě: vypnutý nebo
+zatím nehotový modul službu nemá, proto `optional`.
+
+```ts
+type ServiceRegistry = {
+  /** Služba zapnutého modulu; vyhodí, když ji žádný zapnutý modul nenabízí. */
+  get<K extends keyof ServiceMap>(key: K): ServiceMap[K];
+  /** Služba, nebo `undefined`, když modul není zapnutý. */
+  optional<K extends keyof ServiceMap>(key: K): ServiceMap[K] | undefined;
+  /** Příspěvky všech zapnutých modulů daného druhu (v pořadí modulů). */
+  all<K extends keyof ContributionMap>(key: K): readonly ContributionMap[K][];
+};
+```
+
+### ServiceSources
+
+type · `packages/core/src/modules/server.ts`
+
+Co modul nabízí ostatním (`ModuleServer.services` + `contributions`) v podobě, ze které se skládá `ServiceRegistry`.
+
+```ts
+type ServiceSources = {
+  services: { [K in keyof ServiceMap]?: (deps: ModuleDeps) => ServiceMap[K] };
+  contributions: { [K in keyof ContributionMap]?: readonly ContributionMap[K][] };
 };
 ```
 

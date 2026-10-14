@@ -39,6 +39,7 @@ const layer = (files, allowed, message) => ({
 export default defineConfig(
   globalIgnores([
     "**/node_modules/**",
+    "packages/_donor/**",
     "**/.next/**",
     "apps/web/public/**",
     "**/dist/**",
