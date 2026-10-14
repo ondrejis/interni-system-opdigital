@@ -3,55 +3,46 @@ CREATE TABLE "job" (
 	"number" text NOT NULL,
 	"title" text NOT NULL,
 	"company_id" uuid NOT NULL,
-	"person_id" uuid,
-	"stage_id" uuid NOT NULL,
-	"value_minor" bigint DEFAULT 0 NOT NULL,
-	"currency" text DEFAULT 'CZK' NOT NULL,
-	"address" text,
+	"type" text NOT NULL,
+	"status" text DEFAULT 'planned' NOT NULL,
+	"current_phase_id" uuid,
+	"billing_model" text DEFAULT 'one_off' NOT NULL,
+	"marketing_stage" text,
+	"owner_id" uuid,
 	"start_date" date,
-	"end_date" date,
-	"manager_id" uuid,
+	"due_date" date,
+	"completed_at" timestamp with time zone,
+	"price_minor" bigint,
 	"description" text,
-	"phase" text DEFAULT 'preparation' NOT NULL,
-	"phase_changed_at" timestamp with time zone,
-	"paused_from" text,
-	"lost_reason" text,
-	"won_at" date,
-	"handover_at" date,
-	"closed_at" date,
-	"warranty_months" integer,
-	"warranty_until" date,
-	"color" text,
-	"source_inquiry_id" uuid,
+	"deal_id" uuid,
 	"template_id" uuid,
-	"expected_close_date" date,
-	"crm_probability_pct" smallint,
-	"crm_source" text,
-	"crm_source_channel" text,
-	"crm_campaign" text,
-	"site_city" text,
-	"crm_stage_entered_at" timestamp with time zone,
-	"crm_next_activity_at" timestamp with time zone,
-	"crm_last_activity_at" timestamp with time zone,
-	"crm_open_activities" integer DEFAULT 0 NOT NULL,
-	"crm_overdue_activities" integer DEFAULT 0 NOT NULL,
-	"crm_rotting" boolean DEFAULT false NOT NULL,
-	"crm_weighted_minor" bigint DEFAULT 0 NOT NULL,
-	"crm_archived_at" timestamp with time zone,
-	"crm_lost_note" text,
+	"drive_folder_id" text,
+	"drive_status" text DEFAULT 'none' NOT NULL,
+	"is_private" boolean DEFAULT false NOT NULL,
+	"visibility_source" text DEFAULT 'own' NOT NULL,
+	"tags" text[] DEFAULT '{}'::text[] NOT NULL,
 	"custom" jsonb DEFAULT '{}'::jsonb NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_by" uuid,
 	"updated_by" uuid,
-	"deleted_at" timestamp with time zone
+	"deleted_at" timestamp with time zone,
+	"deleted_by" uuid,
+	"deleted_batch" uuid
 );
 --> statement-breakpoint
 CREATE TABLE "job_member" (
+	"id" uuid PRIMARY KEY NOT NULL,
 	"job_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
-	"role" text,
-	CONSTRAINT "job_member_job_id_user_id_pk" PRIMARY KEY("job_id","user_id")
+	"role" text DEFAULT 'member' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"created_by" uuid,
+	"updated_by" uuid,
+	"deleted_at" timestamp with time zone,
+	"deleted_by" uuid,
+	"deleted_batch" uuid
 );
 --> statement-breakpoint
 CREATE TABLE "job_participant" (
@@ -63,61 +54,89 @@ CREATE TABLE "job_participant" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_by" uuid,
 	"updated_by" uuid,
-	"deleted_at" timestamp with time zone
+	"deleted_at" timestamp with time zone,
+	"deleted_by" uuid,
+	"deleted_batch" uuid
 );
 --> statement-breakpoint
-CREATE TABLE "job_stage_history" (
+CREATE TABLE "job_phase" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"job_id" uuid NOT NULL,
-	"stage_id" uuid NOT NULL,
-	"phase" text,
-	"entered_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"left_at" timestamp with time zone,
-	"changed_by" uuid
+	"name" text NOT NULL,
+	"position" integer NOT NULL,
+	"role" text,
+	"status" text DEFAULT 'not_started' NOT NULL,
+	"planned_start" date,
+	"planned_end" date,
+	"completed_at" timestamp with time zone,
+	"is_private" boolean DEFAULT false NOT NULL,
+	"visibility_source" text DEFAULT 'own' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"created_by" uuid,
+	"updated_by" uuid,
+	"deleted_at" timestamp with time zone,
+	"deleted_by" uuid,
+	"deleted_batch" uuid
 );
 --> statement-breakpoint
 CREATE TABLE "job_template" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
+	"type" text NOT NULL,
 	"description" text,
-	"payload" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"default_billing_model" text DEFAULT 'one_off' NOT NULL,
+	"is_default" boolean DEFAULT false NOT NULL,
+	"archived_at" timestamp with time zone,
+	"payload" jsonb DEFAULT '{"v":1,"phases":[],"tasks":[],"payments":[]}'::jsonb NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_by" uuid,
 	"updated_by" uuid,
-	"deleted_at" timestamp with time zone
+	"deleted_at" timestamp with time zone,
+	"deleted_by" uuid,
+	"deleted_batch" uuid
 );
 --> statement-breakpoint
-ALTER TABLE "job" ADD CONSTRAINT "job_company_id_company_id_fk" FOREIGN KEY ("company_id") REFERENCES "public"."company"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "job" ADD CONSTRAINT "job_person_id_person_id_fk" FOREIGN KEY ("person_id") REFERENCES "public"."person"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "job" ADD CONSTRAINT "job_stage_id_pipeline_stage_id_fk" FOREIGN KEY ("stage_id") REFERENCES "public"."pipeline_stage"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "job" ADD CONSTRAINT "job_manager_id_user_id_fk" FOREIGN KEY ("manager_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job" ADD CONSTRAINT "job_owner_id_user_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job" ADD CONSTRAINT "job_template_id_job_template_id_fk" FOREIGN KEY ("template_id") REFERENCES "public"."job_template"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "job" ADD CONSTRAINT "job_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "job" ADD CONSTRAINT "job_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "job_member" ADD CONSTRAINT "job_member_job_id_job_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."job"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job" ADD CONSTRAINT "job_deleted_by_user_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job_member" ADD CONSTRAINT "job_member_job_id_job_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."job"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "job_member" ADD CONSTRAINT "job_member_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "job_participant" ADD CONSTRAINT "job_participant_job_id_job_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."job"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "job_participant" ADD CONSTRAINT "job_participant_person_id_person_id_fk" FOREIGN KEY ("person_id") REFERENCES "public"."person"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job_member" ADD CONSTRAINT "job_member_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job_member" ADD CONSTRAINT "job_member_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job_member" ADD CONSTRAINT "job_member_deleted_by_user_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job_participant" ADD CONSTRAINT "job_participant_job_id_job_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."job"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "job_participant" ADD CONSTRAINT "job_participant_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "job_participant" ADD CONSTRAINT "job_participant_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "job_stage_history" ADD CONSTRAINT "job_stage_history_job_id_job_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."job"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "job_stage_history" ADD CONSTRAINT "job_stage_history_stage_id_pipeline_stage_id_fk" FOREIGN KEY ("stage_id") REFERENCES "public"."pipeline_stage"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "job_stage_history" ADD CONSTRAINT "job_stage_history_changed_by_user_id_fk" FOREIGN KEY ("changed_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job_participant" ADD CONSTRAINT "job_participant_deleted_by_user_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job_phase" ADD CONSTRAINT "job_phase_job_id_job_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."job"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job_phase" ADD CONSTRAINT "job_phase_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job_phase" ADD CONSTRAINT "job_phase_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job_phase" ADD CONSTRAINT "job_phase_deleted_by_user_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "job_template" ADD CONSTRAINT "job_template_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "job_template" ADD CONSTRAINT "job_template_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job_template" ADD CONSTRAINT "job_template_deleted_by_user_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "job_number_uq" ON "job" USING btree ("number");--> statement-breakpoint
-CREATE INDEX "job_phase_idx" ON "job" USING btree ("phase");--> statement-breakpoint
 CREATE INDEX "job_company_idx" ON "job" USING btree ("company_id");--> statement-breakpoint
-CREATE INDEX "job_stage_idx" ON "job" USING btree ("stage_id");--> statement-breakpoint
-CREATE INDEX "job_manager_idx" ON "job" USING btree ("manager_id");--> statement-breakpoint
-CREATE INDEX "job_crm_close_idx" ON "job" USING btree ("expected_close_date");--> statement-breakpoint
-CREATE INDEX "job_crm_next_activity_idx" ON "job" USING btree ("crm_next_activity_at");--> statement-breakpoint
+CREATE INDEX "job_owner_idx" ON "job" USING btree ("owner_id");--> statement-breakpoint
+CREATE INDEX "job_status_idx" ON "job" USING btree ("status","type");--> statement-breakpoint
+CREATE INDEX "job_deal_idx" ON "job" USING btree ("deal_id") WHERE "job"."deal_id" is not null;--> statement-breakpoint
+CREATE INDEX "job_due_idx" ON "job" USING btree ("due_date") WHERE "job"."status" in ('planned', 'active', 'paused');--> statement-breakpoint
+CREATE INDEX "job_template_idx" ON "job" USING btree ("template_id");--> statement-breakpoint
 CREATE INDEX "job_title_trgm_idx" ON "job" USING gin (lower(f_unaccent("title")) gin_trgm_ops);--> statement-breakpoint
 CREATE INDEX "job_number_trgm_idx" ON "job" USING gin (lower(f_unaccent("number")) gin_trgm_ops);--> statement-breakpoint
-CREATE INDEX "job_address_trgm_idx" ON "job" USING gin (lower(f_unaccent("address")) gin_trgm_ops);--> statement-breakpoint
+CREATE INDEX "job_tags_idx" ON "job" USING gin ("tags");--> statement-breakpoint
 CREATE INDEX "job_custom_idx" ON "job" USING gin ("custom");--> statement-breakpoint
+CREATE INDEX "job_private_idx" ON "job" USING btree ("is_private") WHERE "job"."is_private";--> statement-breakpoint
+CREATE UNIQUE INDEX "job_member_uq" ON "job_member" USING btree ("job_id","user_id") WHERE "job_member"."deleted_at" is null;--> statement-breakpoint
 CREATE INDEX "job_member_user_idx" ON "job_member" USING btree ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "job_participant_uq" ON "job_participant" USING btree ("job_id","person_id") WHERE "job_participant"."deleted_at" is null;--> statement-breakpoint
 CREATE INDEX "job_participant_person_idx" ON "job_participant" USING btree ("person_id");--> statement-breakpoint
-CREATE INDEX "job_stage_history_job_idx" ON "job_stage_history" USING btree ("job_id","entered_at");--> statement-breakpoint
-CREATE INDEX "job_stage_history_stage_idx" ON "job_stage_history" USING btree ("stage_id");
+CREATE INDEX "job_phase_job_idx" ON "job_phase" USING btree ("job_id","position");--> statement-breakpoint
+CREATE INDEX "job_phase_status_idx" ON "job_phase" USING btree ("status");--> statement-breakpoint
+CREATE INDEX "job_phase_private_idx" ON "job_phase" USING btree ("is_private") WHERE "job_phase"."is_private";--> statement-breakpoint
+CREATE INDEX "job_template_type_idx" ON "job_template" USING btree ("type");--> statement-breakpoint
+CREATE UNIQUE INDEX "job_template_default_uq" ON "job_template" USING btree ("type") WHERE "job_template"."is_default" and "job_template"."archived_at" is null and "job_template"."deleted_at" is null;

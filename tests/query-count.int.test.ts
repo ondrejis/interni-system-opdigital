@@ -51,9 +51,9 @@ async function count(fn: () => Promise<unknown>) {
 async function grow(rows: number) {
   const tag = Math.random().toString(36).slice(2, 8);
   await db.execute(sql`
-    insert into job (id, number, title, company_id, stage_id, manager_id)
-    select gen_random_uuid(), 'N1-' || ${tag} || '-' || g, 'Zakázka N+1 ' || g, j.company_id, j.stage_id, j.manager_id
-    from generate_series(1, ${rows}) g, (select company_id, stage_id, manager_id from job where id = ${f.jobA.id}) j`);
+    insert into job (id, number, title, company_id, type, owner_id)
+    select gen_random_uuid(), 'N1-' || ${tag} || '-' || g, 'Zakázka N+1 ' || g, j.company_id, j.type, j.owner_id
+    from generate_series(1, ${rows}) g, (select company_id, type, owner_id from job where id = ${f.jobA.id}) j`);
 }
 
 describe("počet dotazů nezávisí na množství dat", () => {
@@ -67,7 +67,7 @@ describe("počet dotazů nezávisí na množství dat", () => {
       await count(() => queryRecords(owner, f.registry, job, { limit: 50 })),
       await count(() => queryRecords(foreman, f.registry, job, { limit: 50 })),
       await count(() => queryRecords(owner, f.registry, job, { limit: 50, q: "zakazka" })),
-      await count(() => queryGroups(owner, job, "stage", {})),
+      await count(() => queryGroups(owner, job, "status", {})),
       await count(() => searchAll(owner, f.registry.all(), "zakazka")),
     ];
     const before = await run();

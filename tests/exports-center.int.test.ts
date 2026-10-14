@@ -105,13 +105,13 @@ describe("export seznamu: oprávnění, obsah, audit", () => {
       startExport(P().externistaA.ctx, rt, {
         entity: "job",
         format: "csv",
-        columns: ["title", "value"],
+        columns: ["title", "price"],
       }),
     ).rejects.toThrow(/neznámý nebo nedostupný sloupec/);
     const ok = await startExport(P().owner.ctx, rt, {
       entity: "job",
       format: "csv",
-      columns: ["title", "value"],
+      columns: ["title", "price"],
     });
     expect(ok.mode).toBe("stream");
     if (ok.mode === "stream") expect(await text(ok.prepared.chunks)).toContain("77");
@@ -168,6 +168,7 @@ describe("export seznamu: oprávnění, obsah, audit", () => {
     const admin = await makeUser(db, [
       ["settings.manage", "all"],
       ["kontakty.read", "all"],
+      ["kontakty.export", "all"],
     ]);
     const { exportSetting } = await import("@rebar/core/export");
     await rt.settings.set(admin.ctx, exportSetting, { csvDelimiter: "," });
@@ -234,7 +235,10 @@ describe("velké exporty na pozadí a Moje exporty", () => {
   });
 
   it("export na pozadí běží s aktuálními právy: kdo mezitím o právo přišel, dostane chybu", async () => {
-    const u = await makeUser(db, [["kontakty.read", "all"]]);
+    const u = await makeUser(db, [
+      ["kontakty.read", "all"],
+      ["kontakty.export", "all"],
+    ]);
     const r = await startExport(u.ctx, rt, specOf(), { background: true });
     if (r.mode !== "queued") throw new Error("queued");
     await db.execute(
@@ -273,9 +277,13 @@ describe("šablony exportů", () => {
   it("vlastní a sdílené; sdílet smí jen s oprávněním plánovat; cizí šablonu nesmaže", async () => {
     const sched = await makeUser(db, [
       ["kontakty.read", "all"],
+      ["kontakty.export", "all"],
       ["exports.schedule", "all"],
     ]);
-    const plain = await makeUser(db, [["kontakty.read", "all"]]);
+    const plain = await makeUser(db, [
+      ["kontakty.read", "all"],
+      ["kontakty.export", "all"],
+    ]);
     const spec = specOf({ format: "xlsx", query: { q: "Klient" } });
     const t = await saveTemplate(sched.ctx, rt, { name: "Klienti", shared: true, spec });
     await expect(
@@ -292,7 +300,7 @@ describe("šablony exportů", () => {
       saveTemplate(plain.ctx, rt, {
         name: "Zlá",
         shared: false,
-        spec: { entity: "job", format: "csv", columns: ["value"] },
+        spec: { entity: "job", format: "csv", columns: ["price"] },
       }),
     ).rejects.toThrow();
   });
@@ -376,7 +384,10 @@ describe("plánované exporty", () => {
 
   it("příjemce, který mezitím přišel o právo, se přeskočí; zastavený plán neběží; odhlášení z plánu", async () => {
     const owner = P().owner;
-    const reader = await makeUser(db, [["kontakty.read", "all"]]);
+    const reader = await makeUser(db, [
+      ["kontakty.read", "all"],
+      ["kontakty.export", "all"],
+    ]);
     const { id } = await saveSchedule(
       owner.ctx,
       rt,
@@ -392,7 +403,10 @@ describe("plánované exporty", () => {
     expect(r.runs).toBeGreaterThanOrEqual(1);
     expect(r.skipped).toContain(reader.id);
     // odhlášení: příjemce se odebere
-    const other = await makeUser(db, [["kontakty.read", "all"]]);
+    const other = await makeUser(db, [
+      ["kontakty.read", "all"],
+      ["kontakty.export", "all"],
+    ]);
     const { id: id2 } = await saveSchedule(
       owner.ctx,
       rt,

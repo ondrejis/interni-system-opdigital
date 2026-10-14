@@ -14,7 +14,7 @@ export async function kontaktyPart({ db }: FixtureEnv) {
     .returning();
   const [contact] = await db
     .insert(person)
-    .values({ name: "Jan Kontakt", companyId: client!.id })
+    .values({ firstName: "Jan", lastName: "Kontakt", primaryCompanyId: client!.id })
     .returning();
   return { client: client!.id, supplier: supplier!.id, contact: contact!.id };
 }

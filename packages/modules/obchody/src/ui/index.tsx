@@ -1,6 +1,4 @@
-import { Placeholder, defineModuleUi } from "@rebar/ui";
+import { defineModuleUi } from "@rebar/ui";
 
-/** UI oblast „ui“ modulu „obchody“; zapojuje ji `ui.tsx` přes `mergeModuleUi`. Zástupné stránky nahradí skutečné UI. */
-export const areaUi = defineModuleUi({
-  pages: [{ path: "/obchody", render: () => <Placeholder title="Obchody" icon="target" /> }],
-});
+/** UI oblast „ui“ modulu „obchody“ (OBC-B: board, detail, dialogy výhry a prohry); zapojuje ji `ui.tsx` přes `mergeModuleUi`. Seznam a kanban obchodů dodává generická trasa entity `deal`. */
+export const areaUi = defineModuleUi({});

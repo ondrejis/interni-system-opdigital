@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   addLookupItem,
@@ -63,9 +63,9 @@ import { PermissionError, UserError } from "@rebar/core/rbac";
 import { connectAppDb, makeUser } from "@rebar/core/testing";
 import { company } from "@rebar/kontakty/schema";
 import { companyEntity } from "@rebar/kontakty/server";
-import { manifest as zakazkyManifest } from "@rebar/zakazky";
-import { job } from "@rebar/zakazky/schema";
-import { jobEntity } from "@rebar/zakazky/server";
+import { manifest as obchodyManifest } from "@rebar/obchody";
+import { deal } from "@rebar/obchody/schema";
+import { dealEntity } from "@rebar/obchody/server";
 
 /*
   Konfigurace v administraci (Nastavení): stavy a pipeline, číselníky, vlastní pole, číselné řady a sazby DPH.
@@ -81,8 +81,10 @@ const ROLE_PERMS: Record<string, [string, "all" | "own"][]> = {
   partner: [
     ["kontakty.read", "all"],
     ["kontakty.write", "all"],
+    ["kontakty.create", "all"],
     ["zakazky.read", "all"],
     ["zakazky.write", "all"],
+    ["zakazky.create", "all"],
     ["dashboards.write", "all"],
   ],
   externista: [
@@ -145,7 +147,7 @@ describe("stavy a pipeline", () => {
       ],
     });
     setPipelinePhases(entityType, PHASES);
-    for (const p of zakazkyManifest.seed.pipelines ?? []) await ensurePipeline(app.db, p);
+    for (const p of obchodyManifest.seed.pipelines) await ensurePipeline(app.db, p);
   });
 
   const stages = async () => (await getPipeline(app.db, entityType, "default"))!.stages;
@@ -236,27 +238,21 @@ describe("stavy a pipeline", () => {
     expect(mine.stages.every((s) => s.usage === 0)).toBe(true);
   });
 
-  it("používaný stav nejde smazat a hláška říká, kolik záznamů ho používá (zakázky)", async () => {
-    registerStageUsageFromEntities([jobEntity]);
+  it("používaný stav nejde smazat a hláška říká, kolik záznamů ho používá (obchody)", async () => {
+    registerStageUsageFromEntities([dealEntity]);
     const u = await admin();
-    const jobStages = (await getPipeline(app.db, "job", "default"))!.stages;
-    const stage = jobStages.find((s) => s.name === "Příprava") ?? jobStages[0]!;
-    const [c] = await app.db
-      .insert(company)
-      .values({ name: `Firma ${tag()}` })
-      .returning();
-    const before = await stageUsageCount(app.db, "job", stage.id);
-    await app.db.insert(job).values([
-      { number: `CFG-${tag()}`, title: "Zkouška 1", companyId: c!.id, stageId: stage.id },
-      { number: `CFG-${tag()}`, title: "Zkouška 2", companyId: c!.id, stageId: stage.id },
-    ]);
-    // sdílená databáze: souběžné testy smí zakázky ve stavu přidat, počet tedy nikdy neklesne pod můj
-    const used = await stageUsageCount(app.db, "job", stage.id);
+    const dealStages = (await getPipeline(app.db, "deal", "default"))!.stages;
+    const stage = dealStages.find((s) => s.name === "Kontaktováno") ?? dealStages[0]!;
+    const before = await stageUsageCount(app.db, "deal", stage.id);
+    const titles = [`Zkouška ${tag()}`, `Zkouška ${tag()}`];
+    await app.db.insert(deal).values(titles.map((title) => ({ title, stageId: stage.id })));
+    // sdílená databáze: souběžné testy smí obchody ve stavu přidat, počet tedy nikdy neklesne pod můj
+    const used = await stageUsageCount(app.db, "deal", stage.id);
     expect(used).toBeGreaterThanOrEqual(before + 2);
     await expect(deleteStage(u.ctx, stage.id)).rejects.toThrow(/používá \d+ záznam/);
-    // smazaná zakázka se nepočítá
-    await app.db.update(job).set({ deletedAt: new Date() }).where(eq(job.companyId, c!.id));
-    expect(await stageUsageCount(app.db, "job", stage.id)).toBeLessThanOrEqual(used - 2);
+    // smazaný obchod se nepočítá
+    await app.db.update(deal).set({ deletedAt: new Date() }).where(inArray(deal.title, titles));
+    expect(await stageUsageCount(app.db, "deal", stage.id)).toBeLessThanOrEqual(used - 2);
   });
 });
 
@@ -406,6 +402,7 @@ describe("vlastní pole v tabulce, filtru, řazení, detailu, hledání a export
     boss = await makeUser(app.db, [
       ["kontakty.read", "all"],
       ["kontakty.write", "all"],
+      ["kontakty.create", "all"],
       ["settings.manage", "all"],
     ]);
     other = await makeUser(app.db, [["kontakty.read", "all"]]);

@@ -1,87 +1,114 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   date,
   index,
   integer,
   jsonb,
   pgTable,
-  primaryKey,
-  smallint,
   text,
   uniqueIndex,
   uuid,
-  boolean,
 } from "drizzle-orm/pg-core";
-import { audit, minor, pk, schema, ts } from "@rebar/core/db";
-import { company, person } from "@rebar/kontakty/schema";
+import {
+  audit,
+  minor,
+  pk,
+  schema,
+  trigramIndex,
+  ts,
+  visibilityColumns,
+  visibilityIndex,
+} from "@rebar/core/db";
 
-const { user, pipelineStage } = schema;
+const { user } = schema;
 
-/** Zakázka. Číslo se přiděluje z číselné řady `zakazky.cislo` ve stejné transakci jako založení. */
+/** Typ zakázky = služba, kterou agentura poskytuje. */
+export const JOB_TYPES = ["web", "marketing", "systemy"] as const;
+/** Stav zakázky (`JobStatus` v kontraktech). */
+export const JOB_STATUSES = ["planned", "active", "paused", "done", "cancelled"] as const;
+/** Způsob fakturace zakázky (`hourly` je jen příznak, R-25). */
+export const BILLING_MODELS = ["one_off", "intro_then_retainer", "retainer", "hourly"] as const;
+/** Fáze marketingové zakázky (úvod → rozhodnutí → retainer → konec). */
+export const MARKETING_STAGES = ["intro", "decision", "retainer", "ended"] as const;
+/** Stav fáze zakázky. */
+export const PHASE_STATUSES = ["not_started", "in_progress", "done", "skipped"] as const;
+/** Zvláštní význam fáze: vyhodnocení úvodní fáze marketingu, retainer. */
+export const PHASE_ROLES = ["intro_evaluation", "retainer"] as const;
+/** Role člena týmu zakázky. */
+export const JOB_MEMBER_ROLES = ["lead", "member"] as const;
+
+/** Šablona úkolu: úkol vzniklý při založení zakázky ze šablony. */
+export type TemplateTask = {
+  phaseIndex: number;
+  title: string;
+  typeKey: string;
+  priority: "none" | "low" | "medium" | "high" | "urgent";
+  assignee: { rule: "owner" | "lead" | "user" | "none"; userId?: string };
+  dueOffsetDays: number | null;
+  estimateMin: number | null;
+  description: string | null;
+};
+/** Šablona platby: platba založená se zakázkou (např. úvodní fáze 2 × 7 000 Kč). */
+export type TemplatePayment = {
+  description: string;
+  kind: "one_off" | "intro" | "retainer" | "extra";
+  amountMinor: number;
+  issuer: { rule: "owner" | "other" | "user"; userId?: string };
+  dueOffsetDays: number | null;
+};
+/** Šablona fáze zakázky; `role` označuje fázi se zvláštním významem. */
+export type TemplatePhase = {
+  name: string;
+  role: (typeof PHASE_ROLES)[number] | null;
+  offsetDays: number;
+  durationDays: number;
+};
+/** Obsah šablony zakázky (`job_template.payload`, verze 1). */
+export type JobTemplatePayload = {
+  v: 1;
+  phases: TemplatePhase[];
+  tasks: TemplateTask[];
+  payments: TemplatePayment[];
+};
+
+/**
+ * Zakázka. `number` se přiděluje z řady `zakazky.cislo` (`Z-{YYYY}-{NNN}`). Viditelnost: kořen s vlastním zámkem
+ * (rodiče nemá; soukromý klient do zakázek nedědí, R-31). Odkazy na organizaci, obchod a aktuální fázi jsou měkké
+ * (bez cizího klíče). `drive_*` píše jen modul Disk, `marketing_stage` modul Finance přes `setMarketingStage`.
+ */
 export const job = pgTable(
   "job",
   {
     id: pk(),
     number: text("number").notNull(),
     title: text("title").notNull(),
-    companyId: uuid("company_id")
-      .notNull()
-      .references(() => company.id),
-    personId: uuid("person_id").references(() => person.id),
-    stageId: uuid("stage_id")
-      .notNull()
-      .references(() => pipelineStage.id),
-    valueMinor: minor("value_minor").notNull().default(0),
-    currency: text("currency").notNull().default("CZK"),
-    address: text("address"),
+    companyId: uuid("company_id").notNull(),
+    type: text("type", { enum: JOB_TYPES }).notNull(),
+    status: text("status", { enum: JOB_STATUSES }).notNull().default("planned"),
+    currentPhaseId: uuid("current_phase_id"),
+    billingModel: text("billing_model", { enum: BILLING_MODELS }).notNull().default("one_off"),
+    marketingStage: text("marketing_stage", { enum: MARKETING_STAGES }),
+    ownerId: uuid("owner_id").references(() => user.id),
     startDate: date("start_date", { mode: "string" }),
-    endDate: date("end_date", { mode: "string" }),
-    managerId: uuid("manager_id").references(() => user.id),
+    dueDate: date("due_date", { mode: "string" }),
+    completedAt: ts("completed_at"),
+    /** Dohodnutá cena v haléřích (CZK); viz oprávnění financí. */
+    priceMinor: minor("price_minor"),
     description: text("description"),
-    /**
-     * Fáze životního cyklu (pevná v kódu, ADR 015): `inquiry`, `offer`, `preparation`, `execution`, `handover`,
-     * `warranty`, `closed`; vedlejší `lost`, `paused`. Odvozuje se ze stavu pipeline (`pipeline_stage.phase`)
-     * a mění ji jen přechod fáze (`beforeUpdate` entity), proto je tady zapsaná i pro filtry a řazení.
-     */
-    phase: text("phase").notNull().default("preparation"),
-    phaseChangedAt: ts("phase_changed_at"),
-    /** Fáze, ze které byla zakázka pozastavena (návrat po obnovení). */
-    pausedFrom: text("paused_from"),
-    lostReason: text("lost_reason"),
-    wonAt: date("won_at", { mode: "string" }),
-    handoverAt: date("handover_at", { mode: "string" }),
-    closedAt: date("closed_at", { mode: "string" }),
-    warrantyMonths: integer("warranty_months"),
-    warrantyUntil: date("warranty_until", { mode: "string" }),
-    color: text("color"),
-    /** Poptávka, ze které zakázka vznikla (měkký odkaz, modul Poptávky je volitelný). */
-    sourceInquiryId: uuid("source_inquiry_id"),
-    templateId: uuid("template_id"),
-    /* ---------- CRM (obchodní část zakázky ve fázích poptávka a nabídka, docs/CRM.md) ---------- */
-    /** Očekávané datum uzavření obchodu (prognóza). */
-    expectedCloseDate: date("expected_close_date", { mode: "string" }),
-    /** Ruční přepsání pravděpodobnosti stavu v procentech (0–100); `null` = platí pravděpodobnost stavu. Změna stavu přepsání zruší. */
-    crmProbabilityPct: smallint("crm_probability_pct"),
-    /** Zdroj obchodu (číselník `job.source`), kanál (web, Meta, doporučení…) a kampaň. */
-    crmSource: text("crm_source"),
-    crmSourceChannel: text("crm_source_channel"),
-    crmCampaign: text("crm_campaign"),
-    /** Město stavby (filtry a prognóza podle místa). */
-    siteCity: text("site_city"),
-    /** Od kdy je zakázka v aktuálním stavu (z historie stavů). Počítané, ukládá se. */
-    crmStageEnteredAt: ts("crm_stage_entered_at"),
-    /** Počítané z aktivit (`recomputeJobCrm`): nejbližší otevřená aktivita, poslední dokončená, počty a hnití. */
-    crmNextActivityAt: ts("crm_next_activity_at"),
-    crmLastActivityAt: ts("crm_last_activity_at"),
-    crmOpenActivities: integer("crm_open_activities").notNull().default(0),
-    crmOverdueActivities: integer("crm_overdue_activities").notNull().default(0),
-    crmRotting: boolean("crm_rotting").notNull().default(false),
-    /** Vážená hodnota (cena × pravděpodobnost) v haléřích; ukládá se kvůli součtům v prognóze a na nástěnce. */
-    crmWeightedMinor: minor("crm_weighted_minor").notNull().default(0),
-    /** Archivované zakázky zmizí z nástěnky a seznamu; vrací je jen pohled Archiv. */
-    crmArchivedAt: ts("crm_archived_at"),
-    /** Poznámka k prohře (k důvodu z číselníku). */
-    crmLostNote: text("crm_lost_note"),
+    dealId: uuid("deal_id"),
+    templateId: uuid("template_id").references(() => jobTemplate.id),
+    driveFolderId: text("drive_folder_id"),
+    driveStatus: text("drive_status", {
+      enum: ["none", "pending", "ready", "error", "timeout"],
+    })
+      .notNull()
+      .default("none"),
+    ...visibilityColumns(),
+    tags: text("tags")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     custom: jsonb("custom")
       .$type<Record<string, unknown>>()
       .notNull()
@@ -90,72 +117,80 @@ export const job = pgTable(
   },
   (t) => [
     uniqueIndex("job_number_uq").on(t.number),
-    index("job_phase_idx").on(t.phase),
     index("job_company_idx").on(t.companyId),
-    index("job_stage_idx").on(t.stageId),
-    index("job_manager_idx").on(t.managerId),
-    index("job_crm_close_idx").on(t.expectedCloseDate),
-    index("job_crm_next_activity_idx").on(t.crmNextActivityAt),
-    index("job_title_trgm_idx").using("gin", sql`lower(f_unaccent(${t.title})) gin_trgm_ops`),
-    index("job_number_trgm_idx").using("gin", sql`lower(f_unaccent(${t.number})) gin_trgm_ops`),
-    index("job_address_trgm_idx").using("gin", sql`lower(f_unaccent(${t.address})) gin_trgm_ops`),
+    index("job_owner_idx").on(t.ownerId),
+    index("job_status_idx").on(t.status, t.type),
+    index("job_deal_idx")
+      .on(t.dealId)
+      .where(sql`${t.dealId} is not null`),
+    index("job_due_idx")
+      .on(t.dueDate)
+      .where(sql`${t.status} in ('planned', 'active', 'paused')`),
+    index("job_template_idx").on(t.templateId),
+    trigramIndex("job_title_trgm_idx", t.title),
+    trigramIndex("job_number_trgm_idx", t.number),
+    index("job_tags_idx").using("gin", t.tags),
     index("job_custom_idx").using("gin", t.custom),
+    visibilityIndex("job_private_idx", t),
   ],
 );
 
-/** Tým zakázky. Člen týmu zakázku vidí i při oprávnění „jen moje“. */
-export const jobMember = pgTable(
-  "job_member",
-  {
-    jobId: uuid("job_id")
-      .notNull()
-      .references(() => job.id, { onDelete: "cascade" }),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => user.id),
-    role: text("role"),
-  },
-  (t) => [primaryKey({ columns: [t.jobId, t.userId] }), index("job_member_user_idx").on(t.userId)],
-);
-
-/**
- * Historie stavů zakázky: jeden řádek na pobyt ve stavu (`left_at` je prázdné u aktuálního). Zapisuje ji změna stavu
- * (`lifecycle/history.ts`); z ní se počítají dny ve stavu (pás fází), konverze a rychlost obchodu.
- */
-export const jobStageHistory = pgTable(
-  "job_stage_history",
+/** Fáze zakázky (z šablony typu, upravitelné). Zdědí viditelnost zakázky (bez vlastního zámku). */
+export const jobPhase = pgTable(
+  "job_phase",
   {
     id: pk(),
     jobId: uuid("job_id")
       .notNull()
       .references(() => job.id),
-    stageId: uuid("stage_id")
-      .notNull()
-      .references(() => pipelineStage.id),
-    /** Fáze stavu v době vstupu (stav se může později přesunout do jiné fáze). */
-    phase: text("phase"),
-    enteredAt: ts("entered_at").notNull().defaultNow(),
-    leftAt: ts("left_at"),
-    changedBy: uuid("changed_by").references(() => user.id),
+    name: text("name").notNull(),
+    position: integer("position").notNull(),
+    role: text("role", { enum: PHASE_ROLES }),
+    status: text("status", { enum: PHASE_STATUSES }).notNull().default("not_started"),
+    plannedStart: date("planned_start", { mode: "string" }),
+    plannedEnd: date("planned_end", { mode: "string" }),
+    completedAt: ts("completed_at"),
+    ...visibilityColumns(),
+    ...audit(),
   },
   (t) => [
-    index("job_stage_history_job_idx").on(t.jobId, t.enteredAt),
-    index("job_stage_history_stage_idx").on(t.stageId),
+    index("job_phase_job_idx").on(t.jobId, t.position),
+    index("job_phase_status_idx").on(t.status),
+    visibilityIndex("job_phase_private_idx", t),
   ],
 );
 
-/** Další lidé na zakázce kromě hlavní kontaktní osoby (investor, TDI, projektant…), s rolí na zakázce. */
+/** Tým zakázky: vedoucí a členové. Člen zakázku vidí i při oprávnění „jen moje“. */
+export const jobMember = pgTable(
+  "job_member",
+  {
+    id: pk(),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => job.id),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id),
+    role: text("role", { enum: JOB_MEMBER_ROLES }).notNull().default("member"),
+    ...audit(),
+  },
+  (t) => [
+    uniqueIndex("job_member_uq")
+      .on(t.jobId, t.userId)
+      .where(sql`${t.deletedAt} is null`),
+    index("job_member_user_idx").on(t.userId),
+  ],
+);
+
+/** Další kontakty na zakázce (investor, TDI, projektant…) s rolí na zakázce. */
 export const jobParticipant = pgTable(
   "job_participant",
   {
     id: pk(),
     jobId: uuid("job_id")
       .notNull()
-      .references(() => job.id, { onDelete: "cascade" }),
-    personId: uuid("person_id")
-      .notNull()
-      .references(() => person.id),
-    /** Role na zakázce (`investor`, `tdi`, `projektant`…, volný text). */
+      .references(() => job.id),
+    personId: uuid("person_id").notNull(),
     role: text("role"),
     ...audit(),
   },
@@ -167,16 +202,29 @@ export const jobParticipant = pgTable(
   ],
 );
 
-/* ---------- Šablony zakázek ---------- */
-
-/** Šablona zakázky: úkoly, složky a role týmu v JSON (tvar určuje `templates` v modulu). */
-export const jobTemplate = pgTable("job_template", {
-  id: pk(),
-  name: text("name").notNull(),
-  description: text("description"),
-  payload: jsonb("payload")
-    .$type<Record<string, unknown>>()
-    .notNull()
-    .default(sql`'{}'::jsonb`),
-  ...audit(),
-});
+/** Šablona zakázky: fáze, úkoly a platby ve verzovaném JSON (`payload`). Archivuje se, nemaže. */
+export const jobTemplate = pgTable(
+  "job_template",
+  {
+    id: pk(),
+    name: text("name").notNull(),
+    type: text("type", { enum: JOB_TYPES }).notNull(),
+    description: text("description"),
+    defaultBillingModel: text("default_billing_model", { enum: BILLING_MODELS })
+      .notNull()
+      .default("one_off"),
+    isDefault: boolean("is_default").notNull().default(false),
+    archivedAt: ts("archived_at"),
+    payload: jsonb("payload")
+      .$type<JobTemplatePayload>()
+      .notNull()
+      .default(sql`'{"v":1,"phases":[],"tasks":[],"payments":[]}'::jsonb`),
+    ...audit(),
+  },
+  (t) => [
+    index("job_template_type_idx").on(t.type),
+    uniqueIndex("job_template_default_uq")
+      .on(t.type)
+      .where(sql`${t.isDefault} and ${t.archivedAt} is null and ${t.deletedAt} is null`),
+  ],
+);

@@ -38,6 +38,10 @@ export function auditColumnsWith(userId: () => AnyPgColumn) {
     createdBy: uuid("created_by").references(userId),
     updatedBy: uuid("updated_by").references(userId),
     deletedAt: ts("deleted_at"),
+    /** Kdo záznam smazal (koš, C1). */
+    deletedBy: uuid("deleted_by").references(userId),
+    /** Dávka smazání: záznam smazaný kaskádou sdílí `deleted_batch` s rodičem; obnova vrací celou dávku (C1). */
+    deletedBatch: uuid("deleted_batch"),
   };
 }
 
@@ -60,4 +64,12 @@ export function visibilityIndex(name: string, table: { isPrivate: AnyPgColumn })
   return index(name)
     .on(table.isPrivate)
     .where(sql`${table.isPrivate}`);
+}
+
+/**
+ * Trigramový index pro hledání bez diakritiky a bez ohledu na velikost písmen (`lower(f_unaccent(sloupec))`),
+ * který zrychlí `ILIKE '%…%'` a podobnost. Použití mezi indexy tabulky: `trigramIndex("deal_title_trgm_idx", t.title)`.
+ */
+export function trigramIndex(name: string, column: AnyPgColumn) {
+  return index(name).using("gin", sql`lower(f_unaccent(${column})) gin_trgm_ops`);
 }

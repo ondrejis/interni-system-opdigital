@@ -1,6 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { defineExtension } from "@rebar/core";
-import { ensureLookup, ensurePipeline } from "@rebar/core/config-data";
 import {
   clearEntityPolicies,
   createEntityRegistry,
@@ -30,10 +29,7 @@ beforeAll(async () => {
   clearEntityPolicies();
   registry = createEntityRegistry([companyEntity, jobEntity]);
   registerEntityPolicies(registry);
-  for (const p of zakazkyManifest.seed.pipelines ?? []) await ensurePipeline(app.db, p);
-  for (const l of "lookups" in zakazkyManifest.seed ? zakazkyManifest.seed.lookups : [])
-    await ensureLookup(app.db, l);
-  if ("series" in zakazkyManifest.seed) await ensureSeries(app.db, zakazkyManifest.seed.series);
+  await ensureSeries(app.db, zakazkyManifest.seed.series);
 });
 afterEach(() => {
   setEventEmitter(undefined);
@@ -44,8 +40,10 @@ async function newJob() {
   const u = await makeUser(app.db, [
     ["zakazky.read", "all"],
     ["zakazky.write", "all"],
+    ["zakazky.create", "all"],
     ["kontakty.read", "all"],
     ["kontakty.write", "all"],
+    ["kontakty.create", "all"],
   ]);
   const [c] = await app.db
     .insert(company)

@@ -35,7 +35,6 @@ export const PARTNER_PERMISSIONS: Record<string, "all" | "own"> = Object.fromEnt
     "ukoly.types",
     "kalendar.read",
     "kalendar.write",
-    "kalendar.resources",
     "hodiny.read",
     "hodiny.write",
     "hodiny.delete",

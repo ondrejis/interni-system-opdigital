@@ -113,7 +113,6 @@ describe("route handlery v apps/web/src/app/api", () => {
     // příchozí požadavky od n8n a Googlu: podpis (HMAC) nebo token kanálu, omezení počtu požadavků (doplní C2 a KAL-A)
     "ingest/[source]": { guard: /signature|podpis|hmac/i, limit: /consumeRateLimit/ },
     "kalendar/google/webhook": { guard: /channel|token/i, limit: /consumeRateLimit/ },
-    "kalendar/feed/[token]": { guard: /feedForToken/, limit: /consumeRateLimit/ },
     "invitations/accept": { guard: /acceptInvitation/, limit: /consumeRateLimit/ },
   };
 

@@ -1,0 +1,2 @@
+S1
+S1 hotovo 2026-10-14: db:reset + db:migrate + db:seed na čisté DB, typecheck, lint, format:check a celý vitest (90 souborů) zelené (viz E-rozbehovy-log.md, sekce S1). Moduly W2 smějí začít po commitu.

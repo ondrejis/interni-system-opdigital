@@ -3,6 +3,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -71,6 +72,19 @@ export const user = pgTable(
     twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
     mustChangePassword: boolean("must_change_password").notNull().default(false),
     lastLoginAt: ts("last_login_at"),
+    /** Zkrácené jméno do tabulek, avatarů a rozpisů (Ondřej → „OD“). */
+    shortName: text("short_name"),
+    /** IČO, pod kterým uživatel fakturuje (vyrovnání mezi IČO, NAS-06). */
+    ico: text("ico"),
+    /** Fakturační nástroj uživatele, volný text (O-5). */
+    billingTool: text("billing_tool"),
+    /** Barva avataru (klíč barvy z palety UI). */
+    avatarColor: text("avatar_color"),
+    /** Osobní předvolby (zobrazení, naposledy použité filtry…); struktura je zod schéma v jádru. */
+    prefs: jsonb("prefs")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     ...auditColumnsWith((): AnyPgColumn => user.id),
   },
   (t) => [

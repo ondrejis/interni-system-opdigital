@@ -5,7 +5,7 @@ export const manifest = defineModule({
   id: "kalendar",
   name: "Kalendář",
   description:
-    "Události s účastníky, opakováním a připomenutím, zdroje (zasedačky, vybavení) s kontrolou kolizí, vrstvy z ostatních modulů, odběr kalendáře v Google, Apple a Outlooku a import cizích kalendářů jako „obsazeno“.",
+    "Kalendář propojený s Google Kalendářem uživatele: pohledy Den, Týden, Měsíc a Agenda, vrstvy z ostatních modulů (úkoly s termínem, termíny zakázek), vazby událostí na obchody a kontakty, cizí soukromé události jako „Obsazeno“.",
   icon: "calendar",
   nav: [
     {
@@ -29,8 +29,6 @@ export const manifest = defineModule({
       label: "Upravuje události",
       description: "Rozsah „jen moje“ = jen vlastní události",
     },
-    { key: "kalendar.resources", label: "Spravuje zdroje kalendáře" },
   ],
-  entities: ["event", "calendar_resource"],
   notifications: KALENDAR_NOTIFICATIONS,
 });

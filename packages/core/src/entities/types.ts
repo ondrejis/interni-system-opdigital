@@ -38,6 +38,11 @@ export type AttributeDef = {
   choices?: readonly Choice[];
   /** Možnosti z číselníku v administraci (klíč číselníku); nahradí `choices` při sestavení entity. */
   lookup?: string;
+  /**
+   * Zúžení položek číselníku `lookup` na tuto entitu (štítky: `lookup: "tag"`, `lookupScope: "company"` nabídne jen
+   * štítky, jejichž `lookup_item.scopes` obsahují klíč entity nebo jsou prázdné). Jen typ do C1.
+   */
+  lookupScope?: string;
   /** Cílový typ záznamu pro `record`. */
   record?: { entityType: string };
   /** Pipeline, ze které jsou stavy (`status`). */
@@ -75,8 +80,12 @@ export type QuickFilterDef = {
   filter: FilterGroup | ((ctx: Ctx) => FilterGroup);
 };
 
-/** Vazba záznamu na jiný typ záznamu přes sloupec (rodič pro dědění zámku, dítě pro kaskádu koše). */
-export type EntityLink = { entityType: string; column: string };
+/**
+ * Vazba záznamu na jiný typ záznamu přes sloupec (rodič pro dědění zámku, dítě pro kaskádu koše a obnovy).
+ * `column` je název vlastnosti tabulky (camelCase, např. `dealId`). U dítěte, které není entita (`job_phase`,
+ * `deal_participant`), je `entityType` jen označení a `table` je jeho tabulka (C1 přes ni kaskáduje zámek a koš).
+ */
+export type EntityLink = { entityType: string; column: string; table?: PgTable };
 
 export type EntityDef = {
   /** Klíč entity — shodný s `entity_type` v komentářích, úkolech, souborech a auditu. */

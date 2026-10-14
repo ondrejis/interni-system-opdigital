@@ -4,3 +4,5 @@ import { entities } from "./entities";
 
 /** Serverová část modulu „disk“. */
 export const server = defineModuleServer({ entities, commands });
+
+export { driveFolder, driveRequest } from "./schema";

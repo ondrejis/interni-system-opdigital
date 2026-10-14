@@ -1,9 +1,41 @@
 {
-  "id": "045a56ac-e11a-486e-b0e9-3217c53115cd",
+  "id": "290d785a-1f43-4205-848c-bb82bc22425c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.ares_cache": {
+      "name": "ares_cache",
+      "schema": "",
+      "columns": {
+        "ico": {
+          "name": "ico",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fetched_at": {
+          "name": "fetched_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.company": {
       "name": "company",
       "schema": "",
@@ -20,6 +52,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "official_name": {
+          "name": "official_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "ico": {
           "name": "ico",
           "type": "text",
@@ -28,6 +66,12 @@
         },
         "dic": {
           "name": "dic",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "legal_form": {
+          "name": "legal_form",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -50,6 +94,25 @@
           "primaryKey": false,
           "notNull": false
         },
+        "country": {
+          "name": "country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'CZ'"
+        },
+        "web": {
+          "name": "web",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "web_domain": {
+          "name": "web_domain",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "email": {
           "name": "email",
           "type": "text",
@@ -62,24 +125,11 @@
           "primaryKey": false,
           "notNull": false
         },
-        "web": {
-          "name": "web",
+        "industry": {
+          "name": "industry",
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "note": {
-          "name": "note",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "roles": {
-          "name": "roles",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{client}'::text[]"
         },
         "owner_id": {
           "name": "owner_id",
@@ -87,11 +137,89 @@
           "primaryKey": false,
           "notNull": false
         },
-        "ares_checked_at": {
-          "name": "ares_checked_at",
+        "client_status": {
+          "name": "client_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_since": {
+          "name": "client_since",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_until": {
+          "name": "client_until",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_end_reason": {
+          "name": "client_end_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "services": {
+          "name": "services",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "client_context": {
+          "name": "client_context",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "drive_folder_id": {
+          "name": "drive_folder_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "drive_status": {
+          "name": "drive_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'none'"
+        },
+        "ares_synced_at": {
+          "name": "ares_synced_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "last_activity_at": {
+          "name": "last_activity_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_private": {
+          "name": "is_private",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "visibility_source": {
+          "name": "visibility_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'own'"
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
         },
         "custom": {
           "name": "custom",
@@ -129,6 +257,18 @@
         "deleted_at": {
           "name": "deleted_at",
           "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_batch": {
+          "name": "deleted_batch",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         }
@@ -165,6 +305,112 @@
           "method": "gin",
           "with": {}
         },
+        "company_official_name_trgm_idx": {
+          "name": "company_official_name_trgm_idx",
+          "columns": [
+            {
+              "expression": "lower(f_unaccent(\"official_name\")) gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "company_ico_trgm_idx": {
+          "name": "company_ico_trgm_idx",
+          "columns": [
+            {
+              "expression": "lower(f_unaccent(\"ico\")) gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "company_city_trgm_idx": {
+          "name": "company_city_trgm_idx",
+          "columns": [
+            {
+              "expression": "lower(f_unaccent(\"city\")) gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "company_email_trgm_idx": {
+          "name": "company_email_trgm_idx",
+          "columns": [
+            {
+              "expression": "lower(f_unaccent(\"email\")) gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "company_phone_trgm_idx": {
+          "name": "company_phone_trgm_idx",
+          "columns": [
+            {
+              "expression": "lower(f_unaccent(\"phone\")) gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "company_web_domain_trgm_idx": {
+          "name": "company_web_domain_trgm_idx",
+          "columns": [
+            {
+              "expression": "lower(f_unaccent(\"web_domain\")) gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "company_web_domain_idx": {
+          "name": "company_web_domain_idx",
+          "columns": [
+            {
+              "expression": "web_domain",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"company\".\"web_domain\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "company_owner_idx": {
           "name": "company_owner_idx",
           "columns": [
@@ -180,6 +426,52 @@
           "method": "btree",
           "with": {}
         },
+        "company_client_status_idx": {
+          "name": "company_client_status_idx",
+          "columns": [
+            {
+              "expression": "client_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"company\".\"client_status\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "company_services_idx": {
+          "name": "company_services_idx",
+          "columns": [
+            {
+              "expression": "services",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "company_tags_idx": {
+          "name": "company_tags_idx",
+          "columns": [
+            {
+              "expression": "tags",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
         "company_custom_idx": {
           "name": "company_custom_idx",
           "columns": [
@@ -193,6 +485,22 @@
           "isUnique": false,
           "concurrently": false,
           "method": "gin",
+          "with": {}
+        },
+        "company_private_idx": {
+          "name": "company_private_idx",
+          "columns": [
+            {
+              "expression": "is_private",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"company\".\"is_private\"",
+          "concurrently": false,
+          "method": "btree",
           "with": {}
         }
       },
@@ -223,6 +531,15 @@
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "company_deleted_by_user_id_fk": {
+          "name": "company_deleted_by_user_id_fk",
+          "tableFrom": "company",
+          "tableTo": "user",
+          "columnsFrom": ["deleted_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -241,23 +558,27 @@
           "primaryKey": true,
           "notNull": true
         },
-        "name": {
-          "name": "name",
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_name": {
+          "name": "last_name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "email": {
-          "name": "email",
+        "full_name": {
+          "name": "full_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
-        },
-        "phone": {
-          "name": "phone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "generated": {
+            "as": "btrim(coalesce(first_name, '') || ' ' || last_name)",
+            "type": "stored"
+          }
         },
         "position": {
           "name": "position",
@@ -265,23 +586,51 @@
           "primaryKey": false,
           "notNull": false
         },
-        "company_id": {
-          "name": "company_id",
+        "primary_company_id": {
+          "name": "primary_company_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "note": {
-          "name": "note",
+        "linkedin": {
+          "name": "linkedin",
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "is_decision_maker": {
+          "name": "is_decision_maker",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "owner_id": {
           "name": "owner_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
+        },
+        "is_private": {
+          "name": "is_private",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "visibility_source": {
+          "name": "visibility_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'own'"
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
         },
         "custom": {
           "name": "custom",
@@ -321,14 +670,26 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_batch": {
+          "name": "deleted_batch",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
-        "person_name_trgm_idx": {
-          "name": "person_name_trgm_idx",
+        "person_full_name_trgm_idx": {
+          "name": "person_full_name_trgm_idx",
           "columns": [
             {
-              "expression": "lower(f_unaccent(\"name\")) gin_trgm_ops",
+              "expression": "lower(f_unaccent(\"full_name\")) gin_trgm_ops",
               "asc": true,
               "isExpression": true,
               "nulls": "last"
@@ -339,11 +700,26 @@
           "method": "gin",
           "with": {}
         },
-        "person_company_idx": {
-          "name": "person_company_idx",
+        "person_position_trgm_idx": {
+          "name": "person_position_trgm_idx",
           "columns": [
             {
-              "expression": "company_id",
+              "expression": "lower(f_unaccent(\"position\")) gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "person_primary_company_idx": {
+          "name": "person_primary_company_idx",
+          "columns": [
+            {
+              "expression": "primary_company_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -369,6 +745,37 @@
           "method": "btree",
           "with": {}
         },
+        "person_decision_idx": {
+          "name": "person_decision_idx",
+          "columns": [
+            {
+              "expression": "primary_company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"person\".\"is_decision_maker\"",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "person_tags_idx": {
+          "name": "person_tags_idx",
+          "columns": [
+            {
+              "expression": "tags",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
         "person_custom_idx": {
           "name": "person_custom_idx",
           "columns": [
@@ -383,14 +790,30 @@
           "concurrently": false,
           "method": "gin",
           "with": {}
+        },
+        "person_private_idx": {
+          "name": "person_private_idx",
+          "columns": [
+            {
+              "expression": "is_private",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"person\".\"is_private\"",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
-        "person_company_id_company_id_fk": {
-          "name": "person_company_id_company_id_fk",
+        "person_primary_company_id_company_id_fk": {
+          "name": "person_primary_company_id_company_id_fk",
           "tableFrom": "person",
           "tableTo": "company",
-          "columnsFrom": ["company_id"],
+          "columnsFrom": ["primary_company_id"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -418,6 +841,444 @@
           "tableFrom": "person",
           "tableTo": "user",
           "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "person_deleted_by_user_id_fk": {
+          "name": "person_deleted_by_user_id_fk",
+          "tableFrom": "person",
+          "tableTo": "user",
+          "columnsFrom": ["deleted_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "person_last_name_chk": {
+          "name": "person_last_name_chk",
+          "value": "btrim(\"person\".\"last_name\") <> ''"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.person_company": {
+      "name": "person_company",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "position": {
+          "name": "position",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_primary": {
+          "name": "is_primary",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_batch": {
+          "name": "deleted_batch",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "person_company_uq": {
+          "name": "person_company_uq",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"person_company\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "person_company_company_idx": {
+          "name": "person_company_company_idx",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "person_company_person_id_person_id_fk": {
+          "name": "person_company_person_id_person_id_fk",
+          "tableFrom": "person_company",
+          "tableTo": "person",
+          "columnsFrom": ["person_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "person_company_company_id_company_id_fk": {
+          "name": "person_company_company_id_company_id_fk",
+          "tableFrom": "person_company",
+          "tableTo": "company",
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "person_company_created_by_user_id_fk": {
+          "name": "person_company_created_by_user_id_fk",
+          "tableFrom": "person_company",
+          "tableTo": "user",
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "person_company_updated_by_user_id_fk": {
+          "name": "person_company_updated_by_user_id_fk",
+          "tableFrom": "person_company",
+          "tableTo": "user",
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "person_company_deleted_by_user_id_fk": {
+          "name": "person_company_deleted_by_user_id_fk",
+          "tableFrom": "person_company",
+          "tableTo": "user",
+          "columnsFrom": ["deleted_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.person_contact_point": {
+      "name": "person_contact_point",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value_norm": {
+          "name": "value_norm",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_primary": {
+          "name": "is_primary",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_batch": {
+          "name": "deleted_batch",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "person_contact_point_person_idx": {
+          "name": "person_contact_point_person_idx",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "person_contact_point_norm_idx": {
+          "name": "person_contact_point_norm_idx",
+          "columns": [
+            {
+              "expression": "kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "value_norm",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "person_contact_point_norm_trgm_idx": {
+          "name": "person_contact_point_norm_trgm_idx",
+          "columns": [
+            {
+              "expression": "lower(f_unaccent(\"value_norm\")) gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "person_contact_point_value_uq": {
+          "name": "person_contact_point_value_uq",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "value_norm",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"person_contact_point\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "person_contact_point_primary_uq": {
+          "name": "person_contact_point_primary_uq",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"person_contact_point\".\"is_primary\" and \"person_contact_point\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "person_contact_point_person_id_person_id_fk": {
+          "name": "person_contact_point_person_id_person_id_fk",
+          "tableFrom": "person_contact_point",
+          "tableTo": "person",
+          "columnsFrom": ["person_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "person_contact_point_created_by_user_id_fk": {
+          "name": "person_contact_point_created_by_user_id_fk",
+          "tableFrom": "person_contact_point",
+          "tableTo": "user",
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "person_contact_point_updated_by_user_id_fk": {
+          "name": "person_contact_point_updated_by_user_id_fk",
+          "tableFrom": "person_contact_point",
+          "tableTo": "user",
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "person_contact_point_deleted_by_user_id_fk": {
+          "name": "person_contact_point_deleted_by_user_id_fk",
+          "tableFrom": "person_contact_point",
+          "tableTo": "user",
+          "columnsFrom": ["deleted_by"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"

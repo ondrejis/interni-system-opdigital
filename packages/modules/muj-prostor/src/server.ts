@@ -16,3 +16,12 @@ export const server = mergeServers(
   invoices,
   privateOverview,
 );
+
+export {
+  recurringServiceEntity,
+  webDomainEntity,
+  emailLibraryItemEntity,
+  recurringInvoiceEntity,
+  entities,
+} from "./entities";
+export { emailLibraryItem, recurringInvoice, recurringService, webDomain } from "./schema";

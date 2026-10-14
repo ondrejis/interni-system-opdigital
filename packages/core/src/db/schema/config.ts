@@ -99,6 +99,11 @@ export const lookupItem = pgTable(
     color: text("color"),
     position: integer("position").notNull().default(0),
     active: boolean("active").notNull().default(true),
+    /** Rozsah položky: klíče entit, pro které položka platí (štítky `tag`: `company`, `deal`…); prázdné = všude. */
+    scopes: text("scopes")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     ...audit(),
   },
   (t) => [uniqueIndex("lookup_item_uq").on(t.listId, t.value)],
@@ -178,6 +183,8 @@ export const customFieldDef = pgTable(
     required: boolean("required").notNull().default(false),
     position: integer("position").notNull().default(0),
     showInTable: boolean("show_in_table").notNull().default(true),
+    /** Pole je v dialogu Nový/Upravit (jinak jen v detailu a tabulce). */
+    showInForm: boolean("show_in_form").notNull().default(true),
     ...audit(),
   },
   (t) => [

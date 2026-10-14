@@ -179,7 +179,7 @@ stateDiagram-v2
   end note
 ```
 
-Diagram ukazuje povolené přechody dopředu a do vedlejších fází; kromě nich je povolen i krok zpět o jednu fázi jako oprava (např. realizace → příprava). Úplná tabulka je `NEXT` v `packages/modules/zakazky/src/lifecycle/phases.ts` (`allowedNext`, `transitionProblem`).
+Diagram ukazuje povolené přechody dopředu a do vedlejších fází; kromě nich je povolen i krok zpět o jednu fázi jako oprava (např. realizace → příprava). Úplná tabulka je `NEXT` v `packages/_donor/zakazky/src/lifecycle/phases.ts` (starý kód, nahrazuje ho `job_phase` v D §1.2) (`allowedNext`, `transitionProblem`).
 Dopady přechodu (zamčení nabídky a kopie do realizace, otevření deníku, předávací protokol) řeší hooky modulů, které je znají.
 
 ## 6. Konfigurace klienta

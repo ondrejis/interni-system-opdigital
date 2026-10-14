@@ -1,9 +1,5 @@
 import { defineModule } from "@rebar/core/manifest";
 
-/*
-  Kostra S0 (docs/opsys/D-plan-a-kontrakty.md §1.2): manifest je úplný (navigace, oprávnění, závislosti, stránky).
-  `entities` doplní S1 spolu s `entities.ts`; zástupné stránky (`pages` + `ui.tsx`) nahradí entity a skutečné UI.
-*/
 export const manifest = defineModule({
   id: "muj-prostor",
   name: "Můj prostor",
@@ -54,24 +50,13 @@ export const manifest = defineModule({
     },
   ],
   pages: [
-    { path: "/muj-prostor/hosting", title: "Hosting a údržba", permission: "muj-prostor.hosting" },
-    { path: "/muj-prostor/domeny", title: "Domény", permission: "muj-prostor.domains" },
-    {
-      path: "/muj-prostor/knihovna",
-      title: "E-mailová knihovna",
-      permission: "muj-prostor.email_library",
-    },
-    {
-      path: "/muj-prostor/faktury",
-      title: "Opakované faktury",
-      permission: "muj-prostor.recurring_invoices",
-    },
     {
       path: "/muj-prostor/soukrome",
       title: "Soukromé",
       permission: "muj-prostor.private_overview",
     },
   ],
+  entities: ["recurring_service", "web_domain", "email_library_item", "recurring_invoice"],
   permissions: [
     { key: "muj-prostor.hosting", label: "Spravuje hosting a údržbu webů" },
     { key: "muj-prostor.domains", label: "Spravuje domény" },

@@ -7,3 +7,4 @@ export { audit } from "./common";
 export * from "./views";
 export * from "./dashboards";
 export * from "./exports";
+export * from "./integrations";

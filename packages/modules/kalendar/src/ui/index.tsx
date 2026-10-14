@@ -1,7 +1,9 @@
-import { defineModuleUi } from "@rebar/ui";
+import { Placeholder, defineModuleUi } from "@rebar/ui";
 
 /**
- * UI oblast modulu „kalendar“ (KAL-B: pohledy Den/Týden/Měsíc/Agenda). Zatím prázdná a nezapojená: KAL-B ji přidá
- * do `ui.tsx` přes `mergeModuleUi`.
+ * UI oblast „ui“ modulu „kalendar“ (KAL-B: pohledy Den/Týden/Měsíc/Agenda); zapojuje ji `ui.tsx` přes `mergeModuleUi`.
+ * Zástupná stránka čeká na skutečné UI.
  */
-export const areaUi = defineModuleUi({});
+export const areaUi = defineModuleUi({
+  pages: [{ path: "/kalendar", render: () => <Placeholder title="Kalendář" icon="calendar" /> }],
+});

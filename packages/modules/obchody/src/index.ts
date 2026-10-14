@@ -1,9 +1,5 @@
 import { defineModule } from "@rebar/core/manifest";
 
-/*
-  Kostra S0 (docs/opsys/D-plan-a-kontrakty.md §1.2): manifest je úplný (navigace, oprávnění, závislosti, stránky).
-  `entities` doplní S1 spolu s `entities.ts`; zástupné stránky (`pages` + `ui.tsx`) nahradí entity a skutečné UI.
-*/
 export const manifest = defineModule({
   id: "obchody",
   name: "Obchody",
@@ -22,7 +18,7 @@ export const manifest = defineModule({
       bottom: true,
     },
   ],
-  pages: [{ path: "/obchody", title: "Obchody", permission: "obchody.read" }],
+  entities: ["deal"],
   permissions: [
     { key: "obchody.read", label: "Vidí obchody" },
     { key: "obchody.create", label: "Zakládá obchody" },
@@ -39,4 +35,34 @@ export const manifest = defineModule({
       description: "Fáze, pravděpodobnosti a lhůty",
     },
   ],
+  seed: {
+    pipelines: [
+      {
+        entityType: "deal",
+        key: "default",
+        name: "Obchody",
+        stages: [
+          { name: "Nová poptávka", color: "gray", probabilityPct: 10, rottingDays: 1 },
+          { name: "Kontaktováno", color: "blue", probabilityPct: 20, rottingDays: 5 },
+          { name: "Schůzka / konzultace", color: "teal", probabilityPct: 40, rottingDays: 7 },
+          { name: "Nabídka odeslaná", color: "indigo", probabilityPct: 60, rottingDays: 7 },
+          { name: "Vyjednávání", color: "orange", probabilityPct: 80, rottingDays: 10 },
+        ],
+      },
+    ],
+    lookups: [
+      {
+        key: "deal.lost_reason",
+        name: "Důvod prohry obchodu",
+        items: [
+          { value: "price", label: "Cena" },
+          { value: "competitor", label: "Vybrali konkurenci" },
+          { value: "no_response", label: "Nereaguje" },
+          { value: "postponed", label: "Odloženo" },
+          { value: "unsuitable_client", label: "Nevhodný klient" },
+          { value: "other", label: "Jiné" },
+        ],
+      },
+    ],
+  },
 });

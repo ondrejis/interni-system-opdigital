@@ -83,7 +83,7 @@ describe("agregace entity: oprávnění a rozsah řádků", () => {
     expect(mine.total.count).toBe(1);
     const sum = await aggregateRecords(P().owner.ctx, f.registry, e, {
       fn: "sum",
-      attr: "value",
+      attr: "price",
       filters: { op: "and", conditions: [{ attr: "title", op: "equals", value: "Zakázka A" }] },
     });
     expect(sum.total.value).toBe(MONEY.value);
@@ -93,13 +93,13 @@ describe("agregace entity: oprávnění a rozsah řádků", () => {
     const e = await jobEntity();
     for (const who of [P().externistaA]) {
       await expect(
-        aggregateRecords(who.ctx, f.registry, e, { fn: "sum", attr: "value" }),
+        aggregateRecords(who.ctx, f.registry, e, { fn: "sum", attr: "price" }),
       ).rejects.toBeInstanceOf(UserError);
       await expect(
         aggregateRecords(who.ctx, f.registry, e, {
           fn: "count",
-          groupBy: { attr: "stage" },
-          filters: { op: "and", conditions: [{ attr: "value", op: "gt", value: 1 }] },
+          groupBy: { attr: "status" },
+          filters: { op: "and", conditions: [{ attr: "price", op: "gt", value: 1 }] },
         }),
       ).rejects.toBeInstanceOf(UserError);
     }
@@ -109,13 +109,13 @@ describe("agregace entity: oprávnění a rozsah řádků", () => {
     const e = await jobEntity();
     const byStage = await aggregateRecords(P().owner.ctx, f.registry, e, {
       fn: "count",
-      groupBy: { attr: "stage" },
+      groupBy: { attr: "status" },
       filters: OURS,
     });
     expect(byStage.groups[0]!.label).not.toBe("");
     const byManager = await aggregateRecords(P().owner.ctx, f.registry, e, {
       fn: "count",
-      groupBy: { attr: "manager" },
+      groupBy: { attr: "owner" },
       filters: OURS,
       limit: 50,
     });
@@ -159,7 +159,7 @@ describe("agregace entity: oprávnění a rozsah řádků", () => {
     const e = await jobEntity();
     const avg = await aggregateRecords(P().owner.ctx, f.registry, e, {
       fn: "avg",
-      attr: "value",
+      attr: "price",
       filters: { op: "and", conditions: [{ attr: "title", op: "equals", value: "Zakázka A" }] },
     });
     expect(avg.total.value).toBe(MONEY.value);
@@ -186,7 +186,7 @@ describe("agregace entity: oprávnění a rozsah řádků", () => {
 describe("evaluateWidget: oprávnění ani úprava definice nic neodemkne", () => {
   const sumWidget = () =>
     widget({
-      source: { kind: "entity", entity: "job", agg: { fn: "sum", attr: "value" } },
+      source: { kind: "entity", entity: "job", agg: { fn: "sum", attr: "price" } },
     });
 
   it("majitel dostane součet, externista chybu a v odpovědi nejsou peníze", async () => {
@@ -205,7 +205,7 @@ describe("evaluateWidget: oprávnění ani úprava definice nic neodemkne", () =
       env,
       widget({
         type: "table",
-        source: { kind: "records", entity: "job", columns: ["title", "value"] },
+        source: { kind: "records", entity: "job", columns: ["title", "price"] },
       }),
       { period: "all" },
     );
@@ -376,7 +376,7 @@ describe("druhy widgetů", () => {
       env,
       widget({
         type: "chart",
-        source: { ...entity, agg: { fn: "count" }, groupBy: { attr: "phase" }, splitBy: "stage" },
+        source: { ...entity, agg: { fn: "count" }, groupBy: { attr: "type" }, splitBy: "status" },
         options: { chart: "stacked" },
       }),
       { period: "all" },
@@ -391,7 +391,7 @@ describe("druhy widgetů", () => {
       env,
       widget({
         type: "chart",
-        source: { ...entity, agg: { fn: "count" }, groupBy: { attr: "phase" } },
+        source: { ...entity, agg: { fn: "count" }, groupBy: { attr: "type" } },
         options: { chart: "pie" },
       }),
       { period: "all" },
@@ -403,7 +403,7 @@ describe("druhy widgetů", () => {
       env,
       widget({
         type: "status",
-        source: { ...entity, agg: { fn: "count" }, groupBy: { attr: "stage" } },
+        source: { ...entity, agg: { fn: "count" }, groupBy: { attr: "status" } },
       }),
       { period: "all" },
     );
@@ -419,8 +419,8 @@ describe("druhy widgetů", () => {
         source: {
           kind: "records",
           entity: "job",
-          columns: ["title", "endDate"],
-          sort: [{ attr: "endDate", dir: "asc" }],
+          columns: ["title", "dueDate"],
+          sort: [{ attr: "dueDate", dir: "asc" }],
           limit: 5,
         },
       }),
@@ -434,8 +434,8 @@ describe("druhy widgetů", () => {
         type: "table",
         source: {
           ...entity,
-          agg: { fn: "sum", attr: "value" },
-          groupBy: { attr: "manager" },
+          agg: { fn: "sum", attr: "price" },
+          groupBy: { attr: "owner" },
           limit: 3,
         },
       }),

@@ -175,7 +175,7 @@ expect(info).toHaveBeenCalledWith(`[example] vznikla zakázka ${String(row.id)}`
 
 1. Přidej ji do `EventMap` (`packages/core/src/extensions/types.ts`) s jejím tvarem dat.
 2. Oznam ji tam, kde se děj stane: v příkazu modulu `await deps.emit("modul.udalost", { … })`,
-   v hooku entity (`afterCreate`, `afterUpdate`) `await emitEvent("modul.udalost", { … })` z `@rebar/core/module-server` (viz `zakazky.created` v `packages/modules/zakazky/src/lifecycle/transitions.ts`).
+   v hooku entity (`afterCreate`, `afterUpdate`) `await emitEvent("modul.udalost", { … })` z `@rebar/core/module-server` (viz `zakazky.created` v `packages/modules/zakazky/src/entities.ts`).
 3. Přidej test, že se událost oznámí (vzor: `tests/extensions.int.test.ts`).
 4. Zapiš do tabulky výše a do `CHANGELOG.md`.
 
@@ -297,8 +297,8 @@ Níže jsou všechny kroky, v tomto pořadí. Označení modulu je `<id>` (kebab
 8. **Testy.**
    - čistá logika bez databáze: `src/*.test.ts` (jednotkové, `pnpm test:unit`);
    - databázová část včetně oprávnění pro každou roli a souběhu: `src/*.int.test.ts` proti skutečnému PostgreSQL (`pnpm db:up`, pak `pnpm test`);
-     pomůcky `connectAppDb` a `makeUser` z `@rebar/core/testing`, vzor `packages/modules/zakazky/src/entities.int.test.ts`;
-   - testy napříč moduly v `tests/*.int.test.ts` (vzor `tests/kalendar.int.test.ts`).
+     pomůcky `connectAppDb` a `makeUser` z `@rebar/core/testing`, vzor `tests/extensions.int.test.ts`;
+   - testy napříč moduly v `tests/*.int.test.ts` (vzor `tests/extensions.int.test.ts`).
 
 9. **Dokumentace.** Řádek do `CHANGELOG.md`, případně ADR; modul se objeví v tabulce balíčků v README a v [ARCHITECTURE](ARCHITECTURE.md).
 

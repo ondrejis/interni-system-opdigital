@@ -1,13 +1,6 @@
 "use client";
 
-import { Placeholder, defineModuleUi } from "@rebar/ui";
+import { defineModuleUi } from "@rebar/ui";
 
-/** UI modulu „sablony-emailu“. Zástupné stránky nahradí skutečné UI. */
-export const ui = defineModuleUi({
-  pages: [
-    {
-      path: "/sablony-emailu",
-      render: () => <Placeholder title="Šablony e-mailů" icon="mail-template" />,
-    },
-  ],
-});
+/** UI modulu „sablony-emailu“ (SAB: editor, náhled s proměnnými, akce „E-mail ze šablony“). Seznam dodává generická trasa entity `email_template`. */
+export const ui = defineModuleUi({});

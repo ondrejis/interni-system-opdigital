@@ -15,7 +15,6 @@ import { createSettings } from "@rebar/core/settings";
 import { ALL_MODULES } from "../../../apps/web/src/modules";
 import { buildRegistry, collectServers } from "../../../apps/web/src/server/modules-server";
 import { ROLE_KEYS, type FixtureEnv, type Person, type RoleKey } from "./env";
-import { kalendarPart } from "./kalendar";
 import { kontaktyPart } from "./kontakty";
 import { zakazkyPart } from "./zakazky";
 
@@ -28,9 +27,11 @@ const LEGACY_ROLES = [
     permissions: {
       "kontakty.read": "all",
       "kontakty.write": "all",
+      "kontakty.create": "all",
       "kontakty.merge": "all",
       "zakazky.read": "all",
       "zakazky.write": "all",
+      "zakazky.export": "all",
       "kalendar.read": "all",
       "kalendar.write": "all",
       "tasks.read": "all",
@@ -42,7 +43,7 @@ const LEGACY_ROLES = [
   {
     key: "externista",
     name: "Externista",
-    permissions: { "zakazky.read": "own", "kalendar.read": "own" },
+    permissions: { "zakazky.read": "own", "zakazky.export": "own", "kalendar.read": "own" },
   },
 ] as const;
 
@@ -130,7 +131,6 @@ export async function buildFixture(db: Db) {
   /* ---------- data po modulech ---------- */
   const kontakty = await kontaktyPart(env);
   const zakazky = await zakazkyPart(env, kontakty.client);
-  const kalendar = await kalendarPart(env, zakazky.jobA, zakazky.jobB);
 
   return {
     deps,
@@ -145,7 +145,6 @@ export async function buildFixture(db: Db) {
       supplier: kontakty.supplier,
       contact: kontakty.contact,
       template: zakazky.template,
-      ...kalendar,
     },
   };
 }

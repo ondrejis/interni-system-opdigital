@@ -35,6 +35,8 @@ export const savedView = pgTable(
       .notNull()
       .references(() => user.id),
     shared: boolean("shared").notNull().default(false),
+    /** Připnuto do navigace pod danou entitu (C3); pořadí podle `position`. */
+    pinned: boolean("pinned").notNull().default(false),
     position: integer("position").notNull().default(0),
     config: jsonb("config").$type<SavedViewConfig>().notNull(),
     ...audit(),
@@ -69,10 +71,49 @@ export const searchDocument = pgTable(
     title: text("title").notNull(),
     subtitle: text("subtitle"),
     searchText: text("search_text").notNull(),
+    /** Efektivní viditelnost záznamu v době indexace; soukromé se bez `private.read` nikdy nenajdou. */
+    isPrivate: boolean("is_private").notNull().default(false),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
   (t) => [
     primaryKey({ columns: [t.entityType, t.entityId] }),
+    index("search_document_private_idx")
+      .on(t.entityType)
+      .where(sql`${t.isPrivate}`),
     index("search_document_trgm_idx").using("gin", sql`${t.searchText} gin_trgm_ops`),
+  ],
+);
+
+/**
+ * Soukromé záznamy napříč entitami (D §5.1). Řádek vzniká a zaniká ve stejné transakci jako změna `is_private`
+ * (nebo smazání záznamu), takže průřezové dotazy (komentáře, soubory, historie, koš, soukromý přehled) nemusí znát tabulky.
+ */
+export const privateRecord = pgTable(
+  "private_record",
+  {
+    entityType: text("entity_type").notNull(),
+    entityId: uuid("entity_id").notNull(),
+    since: ts("since").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.entityType, t.entityId] }),
+    index("private_record_id_idx").on(t.entityId),
+  ],
+);
+
+/** Naposledy otevřené záznamy uživatele (paleta Cmd+K, „Nedávné“; drží se posledních 8, C3). */
+export const recentRecord = pgTable(
+  "recent_record",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    entityType: text("entity_type").notNull(),
+    entityId: uuid("entity_id").notNull(),
+    visitedAt: ts("visited_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.entityType, t.entityId] }),
+    index("recent_record_user_idx").on(t.userId, t.visitedAt),
   ],
 );

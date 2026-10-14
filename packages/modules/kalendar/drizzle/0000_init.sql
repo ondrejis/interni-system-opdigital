@@ -1,92 +1,90 @@
-CREATE TABLE "calendar_feed" (
-	"user_id" uuid PRIMARY KEY NOT NULL,
-	"token_hash" text NOT NULL,
+CREATE TABLE "calendar" (
+	"id" uuid PRIMARY KEY NOT NULL,
+	"account_id" uuid NOT NULL,
+	"google_id" text NOT NULL,
+	"name" text NOT NULL,
+	"color" text,
+	"visible" boolean DEFAULT true NOT NULL,
+	"is_write_target" boolean DEFAULT false NOT NULL,
+	"sync_token" text,
+	"watch_channel_id" text,
+	"watch_expires_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"last_fetch_at" timestamp with time zone
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"created_by" uuid,
+	"updated_by" uuid,
+	"deleted_at" timestamp with time zone,
+	"deleted_by" uuid,
+	"deleted_batch" uuid
 );
 --> statement-breakpoint
-CREATE TABLE "calendar_import" (
+CREATE TABLE "calendar_account" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"user_id" uuid NOT NULL,
-	"name" text NOT NULL,
-	"url_encrypted" text NOT NULL,
+	"google_email" text NOT NULL,
+	"tokens_enc" text NOT NULL,
+	"status" text DEFAULT 'ok' NOT NULL,
 	"last_sync_at" timestamp with time zone,
 	"last_error" text,
-	"event_count" integer DEFAULT 0 NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
---> statement-breakpoint
-CREATE TABLE "calendar_resource" (
-	"id" uuid PRIMARY KEY NOT NULL,
-	"name" text NOT NULL,
-	"kind" text DEFAULT 'room' NOT NULL,
-	"active" boolean DEFAULT true NOT NULL,
-	"note" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_by" uuid,
 	"updated_by" uuid,
-	"deleted_at" timestamp with time zone
+	"deleted_at" timestamp with time zone,
+	"deleted_by" uuid,
+	"deleted_batch" uuid
 );
 --> statement-breakpoint
-CREATE TABLE "event" (
+CREATE TABLE "calendar_event" (
 	"id" uuid PRIMARY KEY NOT NULL,
-	"title" text NOT NULL,
-	"type" text DEFAULT 'meeting' NOT NULL,
-	"starts_at" timestamp with time zone NOT NULL,
-	"ends_at" timestamp with time zone NOT NULL,
-	"all_day" boolean DEFAULT false NOT NULL,
-	"location" text,
-	"owner_id" uuid NOT NULL,
-	"resource_id" uuid,
-	"job_id" uuid,
-	"note" text,
-	"recurrence" text,
-	"recurrence_until" date,
-	"reminder_minutes" integer,
-	"custom" jsonb DEFAULT '{}'::jsonb NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"created_by" uuid,
-	"updated_by" uuid,
-	"deleted_at" timestamp with time zone
-);
---> statement-breakpoint
-CREATE TABLE "event_attendee" (
-	"event_id" uuid NOT NULL,
-	"user_id" uuid NOT NULL,
-	CONSTRAINT "event_attendee_event_id_user_id_pk" PRIMARY KEY("event_id","user_id")
-);
---> statement-breakpoint
-CREATE TABLE "external_event" (
-	"id" uuid PRIMARY KEY NOT NULL,
-	"import_id" uuid NOT NULL,
-	"uid" text NOT NULL,
+	"calendar_id" uuid NOT NULL,
+	"google_id" text NOT NULL,
+	"etag" text,
 	"title" text,
 	"starts_at" timestamp with time zone NOT NULL,
 	"ends_at" timestamp with time zone NOT NULL,
-	"all_day" boolean DEFAULT false NOT NULL
+	"all_day" boolean DEFAULT false NOT NULL,
+	"place" text,
+	"meet_url" text,
+	"attendees" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"is_google_private" boolean DEFAULT false NOT NULL,
+	"task_id" uuid,
+	"deal_id" uuid,
+	"company_id" uuid,
+	"person_id" uuid,
+	"linked_by" uuid,
+	"remote_deleted" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"created_by" uuid,
+	"updated_by" uuid,
+	"deleted_at" timestamp with time zone,
+	"deleted_by" uuid,
+	"deleted_batch" uuid
 );
 --> statement-breakpoint
-ALTER TABLE "calendar_feed" ADD CONSTRAINT "calendar_feed_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "calendar_import" ADD CONSTRAINT "calendar_import_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "calendar_resource" ADD CONSTRAINT "calendar_resource_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "calendar_resource" ADD CONSTRAINT "calendar_resource_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "event" ADD CONSTRAINT "event_owner_id_user_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "event" ADD CONSTRAINT "event_resource_id_calendar_resource_id_fk" FOREIGN KEY ("resource_id") REFERENCES "public"."calendar_resource"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "event" ADD CONSTRAINT "event_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "event" ADD CONSTRAINT "event_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "event_attendee" ADD CONSTRAINT "event_attendee_event_id_event_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."event"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "event_attendee" ADD CONSTRAINT "event_attendee_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "external_event" ADD CONSTRAINT "external_event_import_id_calendar_import_id_fk" FOREIGN KEY ("import_id") REFERENCES "public"."calendar_import"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "calendar_feed_token_uq" ON "calendar_feed" USING btree ("token_hash");--> statement-breakpoint
-CREATE INDEX "calendar_import_user_idx" ON "calendar_import" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "calendar_resource_active_idx" ON "calendar_resource" USING btree ("active");--> statement-breakpoint
-CREATE INDEX "event_starts_idx" ON "event" USING btree ("starts_at");--> statement-breakpoint
-CREATE INDEX "event_owner_idx" ON "event" USING btree ("owner_id");--> statement-breakpoint
-CREATE INDEX "event_resource_idx" ON "event" USING btree ("resource_id");--> statement-breakpoint
-CREATE INDEX "event_job_idx" ON "event" USING btree ("job_id");--> statement-breakpoint
-CREATE INDEX "event_custom_idx" ON "event" USING gin ("custom");--> statement-breakpoint
-CREATE INDEX "event_attendee_user_idx" ON "event_attendee" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "external_event_import_idx" ON "external_event" USING btree ("import_id");--> statement-breakpoint
-CREATE INDEX "external_event_starts_idx" ON "external_event" USING btree ("starts_at");
+ALTER TABLE "calendar" ADD CONSTRAINT "calendar_account_id_calendar_account_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."calendar_account"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "calendar" ADD CONSTRAINT "calendar_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "calendar" ADD CONSTRAINT "calendar_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "calendar" ADD CONSTRAINT "calendar_deleted_by_user_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "calendar_account" ADD CONSTRAINT "calendar_account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "calendar_account" ADD CONSTRAINT "calendar_account_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "calendar_account" ADD CONSTRAINT "calendar_account_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "calendar_account" ADD CONSTRAINT "calendar_account_deleted_by_user_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "calendar_event" ADD CONSTRAINT "calendar_event_calendar_id_calendar_id_fk" FOREIGN KEY ("calendar_id") REFERENCES "public"."calendar"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "calendar_event" ADD CONSTRAINT "calendar_event_linked_by_user_id_fk" FOREIGN KEY ("linked_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "calendar_event" ADD CONSTRAINT "calendar_event_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "calendar_event" ADD CONSTRAINT "calendar_event_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "calendar_event" ADD CONSTRAINT "calendar_event_deleted_by_user_id_fk" FOREIGN KEY ("deleted_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "calendar_google_uq" ON "calendar" USING btree ("account_id","google_id") WHERE "calendar"."deleted_at" is null;--> statement-breakpoint
+CREATE UNIQUE INDEX "calendar_write_target_uq" ON "calendar" USING btree ("account_id") WHERE "calendar"."is_write_target" and "calendar"."deleted_at" is null;--> statement-breakpoint
+CREATE UNIQUE INDEX "calendar_watch_channel_uq" ON "calendar" USING btree ("watch_channel_id") WHERE "calendar"."watch_channel_id" is not null;--> statement-breakpoint
+CREATE INDEX "calendar_watch_expires_idx" ON "calendar" USING btree ("watch_expires_at") WHERE "calendar"."watch_channel_id" is not null;--> statement-breakpoint
+CREATE UNIQUE INDEX "calendar_account_user_uq" ON "calendar_account" USING btree ("user_id") WHERE "calendar_account"."deleted_at" is null;--> statement-breakpoint
+CREATE UNIQUE INDEX "calendar_event_google_uq" ON "calendar_event" USING btree ("calendar_id","google_id");--> statement-breakpoint
+CREATE INDEX "calendar_event_range_idx" ON "calendar_event" USING btree ("starts_at","ends_at");--> statement-breakpoint
+CREATE INDEX "calendar_event_task_idx" ON "calendar_event" USING btree ("task_id") WHERE "calendar_event"."task_id" is not null;--> statement-breakpoint
+CREATE INDEX "calendar_event_deal_idx" ON "calendar_event" USING btree ("deal_id") WHERE "calendar_event"."deal_id" is not null;--> statement-breakpoint
+CREATE INDEX "calendar_event_company_idx" ON "calendar_event" USING btree ("company_id") WHERE "calendar_event"."company_id" is not null;--> statement-breakpoint
+CREATE INDEX "calendar_event_person_idx" ON "calendar_event" USING btree ("person_id") WHERE "calendar_event"."person_id" is not null;--> statement-breakpoint
+CREATE INDEX "calendar_event_title_trgm_idx" ON "calendar_event" USING gin (lower(f_unaccent("title")) gin_trgm_ops);

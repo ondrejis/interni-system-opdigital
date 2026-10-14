@@ -1,5 +1,8 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
+  check,
+  date,
   index,
   integer,
   jsonb,
@@ -7,45 +10,82 @@ import {
   text,
   uniqueIndex,
   uuid,
-  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
-import { audit, pk, schema, ts } from "@rebar/core/db";
+import {
+  audit,
+  pk,
+  schema,
+  trigramIndex,
+  ts,
+  visibilityColumns,
+  visibilityIndex,
+} from "@rebar/core/db";
 
 const { user } = schema;
 
-/** Role firmy v systému. Jedna firma může být zároveň klient i dodavatel. */
-export const COMPANY_ROLES = ["client", "supplier", "subcontractor"] as const;
+/** Stav klienta u organizace (`company.client_status`); `null` = organizace není klient (jen kontakt, dodavatel…). */
+export const CLIENT_STATUSES = ["lead", "active", "paused", "former"] as const;
+/** Stav složky na Google Disku u organizace (zapisuje jen modul Disk). */
+export const DRIVE_STATUSES = ["none", "pending", "ready", "error", "timeout"] as const;
+/** Typy služeb, které agentura klientovi poskytuje (`company.services`). */
+export const SERVICE_TYPES = ["web", "marketing", "systemy"] as const;
 
-/** Firma: klient, dodavatel nebo subdodavatel. IČO je mezi živými záznamy unikátní. */
+/** Kontext klienta: čtyři pojmenovaná pole upravovaná na místě (R-27). */
+export type ClientContext = {
+  decisionMaker?: string;
+  howToCommunicate?: string;
+  history?: string;
+  notes?: string;
+};
+
+/**
+ * Organizace. Klient je organizace se `client_status` (ne samostatná entita). IČO je mezi živými záznamy unikátní.
+ * Viditelnost: kořen s vlastním zámkem (soukromá organizace nedědí do obchodů ani zakázek, R-31).
+ * `drive_*` píše jen modul Disk, `last_activity_at` modul Úkoly (oboje přes `writeSystemFields`).
+ */
 export const company = pgTable(
   "company",
   {
     id: pk(),
     name: text("name").notNull(),
+    officialName: text("official_name"),
     ico: text("ico"),
     dic: text("dic"),
+    legalForm: text("legal_form"),
     street: text("street"),
     city: text("city"),
     zip: text("zip"),
+    country: text("country").notNull().default("CZ"),
+    web: text("web"),
+    /** Doména z webu (bez `www.`), pro kontrolu duplicit (ORG-06). */
+    webDomain: text("web_domain"),
     email: text("email"),
     phone: text("phone"),
-    web: text("web"),
-    note: text("note"),
-    roles: text("roles")
+    industry: text("industry"),
+    ownerId: uuid("owner_id").references(() => user.id),
+    clientStatus: text("client_status", { enum: CLIENT_STATUSES }),
+    /** Datum prvního přechodu do stavu `active` (R-17); později se nemění. */
+    clientSince: date("client_since", { mode: "string" }),
+    clientUntil: date("client_until", { mode: "string" }),
+    clientEndReason: text("client_end_reason"),
+    services: text("services")
       .array()
       .notNull()
-      .default(sql`'{client}'::text[]`),
-    /** Typ kontaktu v obchodě (číselník `company.type`: investor, architekt, projektant, subdodavatel…). */
-    type: text("type"),
-    /** Mateřská firma (skupina, holding); dceřiné a související firmy se z ní odvozují. */
-    parentId: uuid("parent_company_id").references((): AnyPgColumn => company.id),
-    /** Štítky (číselník `contact.tag`, spravuje se v Nastavení → Číselníky). */
+      .default(sql`'{}'::text[]`),
+    clientContext: jsonb("client_context")
+      .$type<ClientContext>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    driveFolderId: text("drive_folder_id"),
+    driveStatus: text("drive_status", { enum: DRIVE_STATUSES }).notNull().default("none"),
+    aresSyncedAt: ts("ares_synced_at"),
+    /** Poslední dokončená aktivita (úkol, hovor, schůzka…) u klienta; píše modul Úkoly. */
+    lastActivityAt: ts("last_activity_at"),
+    ...visibilityColumns(),
     tags: text("tags")
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
-    ownerId: uuid("owner_id").references(() => user.id),
-    aresCheckedAt: ts("ares_checked_at"),
     custom: jsonb("custom")
       .$type<Record<string, unknown>>()
       .notNull()
@@ -56,43 +96,51 @@ export const company = pgTable(
     uniqueIndex("company_ico_uq")
       .on(t.ico)
       .where(sql`${t.ico} is not null and ${t.deletedAt} is null`),
-    index("company_name_trgm_idx").using("gin", sql`lower(f_unaccent(${t.name})) gin_trgm_ops`),
-    index("company_ico_trgm_idx").using("gin", sql`lower(f_unaccent(${t.ico})) gin_trgm_ops`),
-    index("company_city_trgm_idx").using("gin", sql`lower(f_unaccent(${t.city})) gin_trgm_ops`),
-    index("company_email_trgm_idx").using("gin", sql`lower(f_unaccent(${t.email})) gin_trgm_ops`),
-    index("company_phone_trgm_idx").using("gin", sql`lower(f_unaccent(${t.phone})) gin_trgm_ops`),
-    index("company_dic_trgm_idx").using("gin", sql`lower(f_unaccent(${t.dic})) gin_trgm_ops`),
-    index("company_street_trgm_idx").using("gin", sql`lower(f_unaccent(${t.street})) gin_trgm_ops`),
-    index("company_zip_trgm_idx").using("gin", sql`lower(f_unaccent(${t.zip})) gin_trgm_ops`),
-    index("company_web_trgm_idx").using("gin", sql`lower(f_unaccent(${t.web})) gin_trgm_ops`),
+    trigramIndex("company_name_trgm_idx", t.name),
+    trigramIndex("company_official_name_trgm_idx", t.officialName),
+    trigramIndex("company_ico_trgm_idx", t.ico),
+    trigramIndex("company_city_trgm_idx", t.city),
+    trigramIndex("company_email_trgm_idx", t.email),
+    trigramIndex("company_phone_trgm_idx", t.phone),
+    trigramIndex("company_web_domain_trgm_idx", t.webDomain),
+    index("company_web_domain_idx")
+      .on(t.webDomain)
+      .where(sql`${t.webDomain} is not null`),
     index("company_owner_idx").on(t.ownerId),
-    index("company_parent_idx").on(t.parentId),
+    index("company_client_status_idx")
+      .on(t.clientStatus)
+      .where(sql`${t.clientStatus} is not null`),
+    index("company_services_idx").using("gin", t.services),
+    index("company_tags_idx").using("gin", t.tags),
     index("company_custom_idx").using("gin", t.custom),
+    visibilityIndex("company_private_idx", t),
   ],
 );
 
-/** Kontaktní osoba, volitelně u firmy. */
+/**
+ * Kontaktní osoba. Jméno se skládá ze `first_name` a `last_name` (`full_name` je generovaný sloupec pro název záznamu,
+ * hledání a řazení). E-maily a telefony jsou v `person_contact_point`; hlavní firma je `primary_company_id`,
+ * další firmy jsou v `person_company`.
+ */
 export const person = pgTable(
   "person",
   {
     id: pk(),
-    name: text("name").notNull(),
-    email: text("email"),
-    phone: text("phone"),
+    firstName: text("first_name"),
+    lastName: text("last_name").notNull(),
+    fullName: text("full_name").generatedAlwaysAs(
+      sql`btrim(coalesce(first_name, '') || ' ' || last_name)`,
+    ),
     position: text("position"),
-    /** Role osoby v obchodě (číselník `person.role`: investor, projektant, TDI…); role na konkrétní zakázce je u účastníka. */
-    role: text("role"),
-    /** Typ hlavního e-mailu a telefonu (číselník `contact.point_type`); další údaje jsou v `person_contact_point`. */
-    emailType: text("email_type"),
-    phoneType: text("phone_type"),
+    primaryCompanyId: uuid("primary_company_id").references(() => company.id),
+    linkedin: text("linkedin"),
+    isDecisionMaker: boolean("is_decision_maker").notNull().default(false),
+    ownerId: uuid("owner_id").references(() => user.id),
+    ...visibilityColumns(),
     tags: text("tags")
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
-    /** Firma je volitelná: soukromý investor je osoba bez firmy. */
-    companyId: uuid("company_id").references(() => company.id),
-    note: text("note"),
-    ownerId: uuid("owner_id").references(() => user.id),
     custom: jsonb("custom")
       .$type<Record<string, unknown>>()
       .notNull()
@@ -100,22 +148,29 @@ export const person = pgTable(
     ...audit(),
   },
   (t) => [
-    index("person_name_trgm_idx").using("gin", sql`lower(f_unaccent(${t.name})) gin_trgm_ops`),
-    index("person_position_trgm_idx").using(
-      "gin",
-      sql`lower(f_unaccent(${t.position})) gin_trgm_ops`,
-    ),
-    index("person_email_trgm_idx").using("gin", sql`lower(f_unaccent(${t.email})) gin_trgm_ops`),
-    index("person_phone_trgm_idx").using("gin", sql`lower(f_unaccent(${t.phone})) gin_trgm_ops`),
-    index("person_company_idx").on(t.companyId),
+    check("person_last_name_chk", sql`btrim(${t.lastName}) <> ''`),
+    trigramIndex("person_full_name_trgm_idx", t.fullName),
+    trigramIndex("person_position_trgm_idx", t.position),
+    index("person_primary_company_idx").on(t.primaryCompanyId),
     index("person_owner_idx").on(t.ownerId),
+    index("person_decision_idx")
+      .on(t.primaryCompanyId)
+      .where(sql`${t.isDecisionMaker}`),
+    index("person_tags_idx").using("gin", t.tags),
     index("person_custom_idx").using("gin", t.custom),
+    visibilityIndex("person_private_idx", t),
   ],
 );
 
+/** Druh kontaktního údaje osoby. */
+export const CONTACT_POINT_KINDS = ["email", "phone"] as const;
+/** Štítek kontaktního údaje: práce, mobil, soukromý. */
+export const CONTACT_POINT_LABELS = ["work", "mobile", "private"] as const;
+
 /**
- * Další e-maily a telefony osoby s typem (práce, mobil, domů…). Hlavní e-mail a telefon zůstávají ve sloupcích osoby
- * (`person.email`, `person.phone`) kvůli hledání a kontrole duplicit; tady jsou jen doplňující údaje.
+ * E-mail nebo telefon osoby se štítkem. `value_norm` je normalizovaná hodnota pro porovnání a hledání (e-mail malými
+ * písmeny, telefon v E.164). Duplicity mezi osobami se jen hlásí (KON-03), unikátní je údaj jen u jedné osoby
+ * a jen jeden údaj daného druhu je hlavní.
  */
 export const personContactPoint = pgTable(
   "person_contact_point",
@@ -124,16 +179,54 @@ export const personContactPoint = pgTable(
     personId: uuid("person_id")
       .notNull()
       .references(() => person.id),
-    /** `email` nebo `phone`. */
-    kind: text("kind").notNull(),
+    kind: text("kind", { enum: CONTACT_POINT_KINDS }).notNull(),
     value: text("value").notNull(),
-    /** Typ údaje (klíč číselníku `contact.point_type`). */
-    label: text("label"),
+    valueNorm: text("value_norm").notNull(),
+    label: text("label", { enum: CONTACT_POINT_LABELS }),
+    isPrimary: boolean("is_primary").notNull().default(false),
     position: integer("position").notNull().default(0),
     ...audit(),
   },
   (t) => [
     index("person_contact_point_person_idx").on(t.personId),
-    index("person_contact_point_value_idx").on(t.kind, t.value),
+    index("person_contact_point_norm_idx").on(t.kind, t.valueNorm),
+    trigramIndex("person_contact_point_norm_trgm_idx", t.valueNorm),
+    uniqueIndex("person_contact_point_value_uq")
+      .on(t.personId, t.kind, t.valueNorm)
+      .where(sql`${t.deletedAt} is null`),
+    uniqueIndex("person_contact_point_primary_uq")
+      .on(t.personId, t.kind)
+      .where(sql`${t.isPrimary} and ${t.deletedAt} is null`),
   ],
 );
+
+/** Další organizace osoby (kromě hlavní) s rolí a pozicí v nich. */
+export const personCompany = pgTable(
+  "person_company",
+  {
+    id: pk(),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => person.id),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => company.id),
+    role: text("role"),
+    position: text("position"),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    ...audit(),
+  },
+  (t) => [
+    uniqueIndex("person_company_uq")
+      .on(t.personId, t.companyId)
+      .where(sql`${t.deletedAt} is null`),
+    index("person_company_company_idx").on(t.companyId),
+  ],
+);
+
+/** Cache odpovědí ARES podle IČO (24 h, ORG-04); technická tabulka bez soft-delete. */
+export const aresCache = pgTable("ares_cache", {
+  ico: text("ico").primaryKey(),
+  payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+  fetchedAt: ts("fetched_at").notNull().defaultNow(),
+});

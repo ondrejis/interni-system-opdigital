@@ -6,3 +6,6 @@ import { area as notes } from "./notes";
 
 /** Serverová část modulu „ukoly“: společné entity a příkazy plus oblasti. */
 export const server = mergeServers(defineModuleServer({ entities, commands }), tasks, notes);
+
+export { taskEntity, noteEntity, taskTypeEntity, entities } from "./entities";
+export { task, taskType, taskAttendee, note } from "./schema";

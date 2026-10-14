@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1791458995903,
+      "when": 1791987684166,
       "tag": "0000_init",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1791560307429,
-      "tag": "0001_trgm_hledani",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1791874971397,
-      "tag": "0002_crm_kontakty",
       "breakpoints": true
     }
   ]

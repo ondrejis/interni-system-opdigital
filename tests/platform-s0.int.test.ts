@@ -33,7 +33,7 @@ let resolved: ResolvedEntity;
 beforeAll(async () => {
   clearEntityPolicies();
   const [def] = applyEntityExtensions([
-    { ...companyEntity, systemFields: ["aresCheckedAt"] },
+    { ...companyEntity, systemFields: ["aresSyncedAt"] },
     extendEntity("company", {
       afterUpdate: async (_ctx, before, after) => {
         changed.push({ before: before.name as string, after: after.name as string });
@@ -49,6 +49,7 @@ const boss = () =>
   makeUser(app.db, [
     ["kontakty.read", "all"],
     ["kontakty.write", "all"],
+    ["kontakty.create", "all"],
   ]);
 
 describe("extendEntity", () => {
@@ -67,16 +68,16 @@ describe("writeSystemFields", () => {
     const at = new Date("2026-10-14T10:00:00Z");
     expect(
       await app.db.transaction((tx) =>
-        writeSystemFields({ ...u.ctx, db: tx }, registry, "company", row.id, { aresCheckedAt: at }),
+        writeSystemFields({ ...u.ctx, db: tx }, registry, "company", row.id, { aresSyncedAt: at }),
       ),
     ).toBe(true);
     const [after] = await app.db.select().from(company).where(eq(company.id, row.id));
-    expect(after!.aresCheckedAt?.toISOString()).toBe(at.toISOString());
+    expect(after!.aresSyncedAt?.toISOString()).toBe(at.toISOString());
     // stejná hodnota podruhé (a zápis snake_case názvem) nic nemění
     expect(
       await app.db.transaction((tx) =>
         writeSystemFields({ ...u.ctx, db: tx }, registry, "company", row.id, {
-          ares_checked_at: at,
+          ares_synced_at: at,
         }),
       ),
     ).toBe(false);
@@ -85,7 +86,7 @@ describe("writeSystemFields", () => {
       .from(schema.auditLog)
       .where(eq(schema.auditLog.entityId, row.id));
     const written = audit.find((a) => a.summary?.startsWith("Systémová pole"));
-    expect(written?.changes.map((c) => c.field)).toEqual(["aresCheckedAt"]);
+    expect(written?.changes.map((c) => c.field)).toEqual(["aresSyncedAt"]);
   });
 
   it("odmítne sloupec, který není deklarovaný jako systémový, i neexistující sloupec", async () => {
@@ -104,7 +105,7 @@ describe("writeSystemFields", () => {
     await expect(
       app.db.transaction((tx) =>
         writeSystemFields({ ...u.ctx, db: tx }, registry, "company", crypto.randomUUID(), {
-          aresCheckedAt: new Date(),
+          aresSyncedAt: new Date(),
         }),
       ),
     ).rejects.toBeInstanceOf(NotFoundError);

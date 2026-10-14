@@ -63,6 +63,8 @@ describe("export seznamu entity (XLSX a CSV)", () => {
       ["settings.manage", "all"],
       ["kontakty.read", "all"],
       ["kontakty.write", "all"],
+      ["kontakty.create", "all"],
+      ["kontakty.export", "all"],
     ]);
     await createFieldDef(admin.ctx, {
       entityType: "company",
@@ -126,7 +128,7 @@ describe("export seznamu entity (XLSX a CSV)", () => {
   it("exportuje celou filtrovanou sadu (450 řádků přes stránky po 200), ne jen zobrazené", async () => {
     const out = await prep(admin.ctx);
     expect(out.count).toBe(450);
-    expect(out.filename).toMatch(/^firmy-\d{4}-\d{2}-\d{2}\.xlsx$/);
+    expect(out.filename).toMatch(/^organizace-\d{4}-\d{2}-\d{2}\.xlsx$/);
     const files = unzip(await collect(out.chunks));
     const rows = cells(files.get("xl/worksheets/sheet1.xml")!.toString());
     // 1 titulek + 1 hlavička + 450 dat

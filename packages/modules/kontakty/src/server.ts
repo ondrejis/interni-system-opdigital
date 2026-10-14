@@ -2,23 +2,19 @@ import { defineModuleServer } from "@rebar/core/module-server";
 import { contactCommands } from "./commands";
 import { deleteBlockers, entities } from "./entities";
 
+export { companyEntity, personEntity, entities, TAG_LOOKUP } from "./entities";
 export {
-  companyEntity,
-  personEntity,
-  entities,
-  COMPANY_TYPE_LOOKUP,
-  PERSON_ROLE_LOOKUP,
-  POINT_TYPE_LOOKUP,
-  TAG_LOOKUP,
-} from "./entities";
-export { company, person, personContactPoint } from "./schema";
+  aresCache,
+  company,
+  person,
+  personCompany,
+  personContactPoint,
+  CLIENT_STATUSES,
+  SERVICE_TYPES,
+} from "./schema";
 export * as kontaktyApi from "./api";
-export {
-  findContactDuplicates as matchContactDuplicates,
-  normalizeEmail,
-  normalizeIco,
-  normalizePhone,
-} from "./duplicates";
-export type { CompanyMatch, ContactQuery, MatchedBy, PersonMatch } from "./duplicates";
+export { normalizeEmail, normalizeIco, normalizePhone } from "./duplicates";
+export type { ContactQuery, MatchedBy } from "./duplicates";
 
+/** Serverová část modulu „kontakty“: entity `company` a `person` a příkazy (KON je rozšíří). */
 export const server = defineModuleServer({ entities, deleteBlockers, commands: contactCommands });

@@ -4,3 +4,6 @@ import { entities } from "./entities";
 
 /** Serverová část modulu „sablony-emailu“. */
 export const server = defineModuleServer({ entities, commands });
+
+export { emailTemplateEntity, entities } from "./entities";
+export { emailTemplate } from "./schema";

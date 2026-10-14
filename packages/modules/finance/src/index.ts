@@ -1,9 +1,5 @@
 import { defineModule } from "@rebar/core/manifest";
 
-/*
-  Kostra S0 (docs/opsys/D-plan-a-kontrakty.md §1.2): manifest je úplný (navigace, oprávnění, závislosti, stránky).
-  `entities` doplní S1 spolu s `entities.ts`; zástupné stránky (`pages` + `ui.tsx`) nahradí entity a skutečné UI.
-*/
 export const manifest = defineModule({
   id: "finance",
   name: "Finance",
@@ -29,10 +25,8 @@ export const manifest = defineModule({
       order: 20,
     },
   ],
-  pages: [
-    { path: "/finance/vyrovnani", title: "Vyrovnání", permission: "finance.read" },
-    { path: "/finance", title: "Platby a rozdělení", permission: "finance.read" },
-  ],
+  pages: [{ path: "/finance/vyrovnani", title: "Vyrovnání", permission: "finance.read" }],
+  entities: ["payment", "settlement"],
   permissions: [
     {
       key: "finance.read",

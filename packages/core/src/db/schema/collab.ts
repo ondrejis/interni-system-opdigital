@@ -35,9 +35,14 @@ export const comment = pgTable(
   (t) => [index("comment_entity_idx").on(t.entityType, t.entityId, t.createdAt)],
 );
 
-/** Úkol; volitelně navázaný na záznam. „Moje úkoly“ = `assignee_id`. */
+/**
+ * Úkol; volitelně navázaný na záznam. „Moje úkoly“ = `assignee_id`.
+ *
+ * PŘECHODNÉ (S1): v databázi se tabulka jmenuje `core_task`, aby se uvolnil název `task` pro tabulku modulu
+ * `ukoly` (D §1.2). C1 core `task` odstraní celé (D §5.2 g); do té doby kód dál používá symbol `task`.
+ */
 export const task = pgTable(
-  "task",
+  "core_task",
   {
     id: pk(),
     title: text("title").notNull(),
@@ -55,8 +60,8 @@ export const task = pgTable(
     ...audit(),
   },
   (t) => [
-    index("task_assignee_idx").on(t.assigneeId, t.doneAt, t.dueDate),
-    index("task_entity_idx").on(t.entityType, t.entityId),
+    index("core_task_assignee_idx").on(t.assigneeId, t.doneAt, t.dueDate),
+    index("core_task_entity_idx").on(t.entityType, t.entityId),
   ],
 );
 

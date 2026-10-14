@@ -1,5 +1,5 @@
 {
-  "id": "1256c373-c9d9-4120-933c-f52e1ca62f09",
+  "id": "dbf05929-1ead-4796-83d7-f299b027aaec",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -32,35 +32,41 @@
           "primaryKey": false,
           "notNull": true
         },
-        "person_id": {
-          "name": "person_id",
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'planned'"
+        },
+        "current_phase_id": {
+          "name": "current_phase_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "stage_id": {
-          "name": "stage_id",
+        "billing_model": {
+          "name": "billing_model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'one_off'"
+        },
+        "marketing_stage": {
+          "name": "marketing_stage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "owner_id": {
+          "name": "owner_id",
           "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "value_minor": {
-          "name": "value_minor",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "currency": {
-          "name": "currency",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'CZK'"
-        },
-        "address": {
-          "name": "address",
-          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -70,15 +76,21 @@
           "primaryKey": false,
           "notNull": false
         },
-        "end_date": {
-          "name": "end_date",
+        "due_date": {
+          "name": "due_date",
           "type": "date",
           "primaryKey": false,
           "notNull": false
         },
-        "manager_id": {
-          "name": "manager_id",
-          "type": "uuid",
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price_minor": {
+          "name": "price_minor",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false
         },
@@ -88,69 +100,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "phase": {
-          "name": "phase",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'preparation'"
-        },
-        "phase_changed_at": {
-          "name": "phase_changed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "paused_from": {
-          "name": "paused_from",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "lost_reason": {
-          "name": "lost_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "won_at": {
-          "name": "won_at",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "handover_at": {
-          "name": "handover_at",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "closed_at": {
-          "name": "closed_at",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "warranty_months": {
-          "name": "warranty_months",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "warranty_until": {
-          "name": "warranty_until",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "color": {
-          "name": "color",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source_inquiry_id": {
-          "name": "source_inquiry_id",
+        "deal_id": {
+          "name": "deal_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -161,99 +112,39 @@
           "primaryKey": false,
           "notNull": false
         },
-        "expected_close_date": {
-          "name": "expected_close_date",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "crm_probability_pct": {
-          "name": "crm_probability_pct",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "crm_source": {
-          "name": "crm_source",
+        "drive_folder_id": {
+          "name": "drive_folder_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "crm_source_channel": {
-          "name": "crm_source_channel",
+        "drive_status": {
+          "name": "drive_status",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "crm_campaign": {
-          "name": "crm_campaign",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "site_city": {
-          "name": "site_city",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "crm_stage_entered_at": {
-          "name": "crm_stage_entered_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "crm_next_activity_at": {
-          "name": "crm_next_activity_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "crm_last_activity_at": {
-          "name": "crm_last_activity_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "crm_open_activities": {
-          "name": "crm_open_activities",
-          "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "default": 0
+          "default": "'none'"
         },
-        "crm_overdue_activities": {
-          "name": "crm_overdue_activities",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "crm_rotting": {
-          "name": "crm_rotting",
+        "is_private": {
+          "name": "is_private",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
           "default": false
         },
-        "crm_weighted_minor": {
-          "name": "crm_weighted_minor",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "crm_archived_at": {
-          "name": "crm_archived_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "crm_lost_note": {
-          "name": "crm_lost_note",
+        "visibility_source": {
+          "name": "visibility_source",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "'own'"
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
         },
         "custom": {
           "name": "custom",
@@ -293,6 +184,18 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_batch": {
+          "name": "deleted_batch",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -307,21 +210,6 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "job_phase_idx": {
-          "name": "job_phase_idx",
-          "columns": [
-            {
-              "expression": "phase",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -341,11 +229,11 @@
           "method": "btree",
           "with": {}
         },
-        "job_stage_idx": {
-          "name": "job_stage_idx",
+        "job_owner_idx": {
+          "name": "job_owner_idx",
           "columns": [
             {
-              "expression": "stage_id",
+              "expression": "owner_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -356,11 +244,17 @@
           "method": "btree",
           "with": {}
         },
-        "job_manager_idx": {
-          "name": "job_manager_idx",
+        "job_status_idx": {
+          "name": "job_status_idx",
           "columns": [
             {
-              "expression": "manager_id",
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "type",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -371,26 +265,43 @@
           "method": "btree",
           "with": {}
         },
-        "job_crm_close_idx": {
-          "name": "job_crm_close_idx",
+        "job_deal_idx": {
+          "name": "job_deal_idx",
           "columns": [
             {
-              "expression": "expected_close_date",
+              "expression": "deal_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
           "isUnique": false,
+          "where": "\"job\".\"deal_id\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}
         },
-        "job_crm_next_activity_idx": {
-          "name": "job_crm_next_activity_idx",
+        "job_due_idx": {
+          "name": "job_due_idx",
           "columns": [
             {
-              "expression": "crm_next_activity_at",
+              "expression": "due_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"job\".\"status\" in ('planned', 'active', 'paused')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "job_template_idx": {
+          "name": "job_template_idx",
+          "columns": [
+            {
+              "expression": "template_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -431,13 +342,13 @@
           "method": "gin",
           "with": {}
         },
-        "job_address_trgm_idx": {
-          "name": "job_address_trgm_idx",
+        "job_tags_idx": {
+          "name": "job_tags_idx",
           "columns": [
             {
-              "expression": "lower(f_unaccent(\"address\")) gin_trgm_ops",
+              "expression": "tags",
+              "isExpression": false,
               "asc": true,
-              "isExpression": true,
               "nulls": "last"
             }
           ],
@@ -460,41 +371,39 @@
           "concurrently": false,
           "method": "gin",
           "with": {}
+        },
+        "job_private_idx": {
+          "name": "job_private_idx",
+          "columns": [
+            {
+              "expression": "is_private",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"job\".\"is_private\"",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
-        "job_company_id_company_id_fk": {
-          "name": "job_company_id_company_id_fk",
-          "tableFrom": "job",
-          "tableTo": "company",
-          "columnsFrom": ["company_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "job_person_id_person_id_fk": {
-          "name": "job_person_id_person_id_fk",
-          "tableFrom": "job",
-          "tableTo": "person",
-          "columnsFrom": ["person_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "job_stage_id_pipeline_stage_id_fk": {
-          "name": "job_stage_id_pipeline_stage_id_fk",
-          "tableFrom": "job",
-          "tableTo": "pipeline_stage",
-          "columnsFrom": ["stage_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "job_manager_id_user_id_fk": {
-          "name": "job_manager_id_user_id_fk",
+        "job_owner_id_user_id_fk": {
+          "name": "job_owner_id_user_id_fk",
           "tableFrom": "job",
           "tableTo": "user",
-          "columnsFrom": ["manager_id"],
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "job_template_id_job_template_id_fk": {
+          "name": "job_template_id_job_template_id_fk",
+          "tableFrom": "job",
+          "tableTo": "job_template",
+          "columnsFrom": ["template_id"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -516,6 +425,15 @@
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "job_deleted_by_user_id_fk": {
+          "name": "job_deleted_by_user_id_fk",
+          "tableFrom": "job",
+          "tableTo": "user",
+          "columnsFrom": ["deleted_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -528,6 +446,12 @@
       "name": "job_member",
       "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
         "job_id": {
           "name": "job_id",
           "type": "uuid",
@@ -544,10 +468,77 @@
           "name": "role",
           "type": "text",
           "primaryKey": false,
+          "notNull": true,
+          "default": "'member'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_batch": {
+          "name": "deleted_batch",
+          "type": "uuid",
+          "primaryKey": false,
           "notNull": false
         }
       },
       "indexes": {
+        "job_member_uq": {
+          "name": "job_member_uq",
+          "columns": [
+            {
+              "expression": "job_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"job_member\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "job_member_user_idx": {
           "name": "job_member_user_idx",
           "columns": [
@@ -571,7 +562,7 @@
           "tableTo": "job",
           "columnsFrom": ["job_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "job_member_user_id_user_id_fk": {
@@ -582,14 +573,36 @@
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "job_member_created_by_user_id_fk": {
+          "name": "job_member_created_by_user_id_fk",
+          "tableFrom": "job_member",
+          "tableTo": "user",
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "job_member_updated_by_user_id_fk": {
+          "name": "job_member_updated_by_user_id_fk",
+          "tableFrom": "job_member",
+          "tableTo": "user",
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "job_member_deleted_by_user_id_fk": {
+          "name": "job_member_deleted_by_user_id_fk",
+          "tableFrom": "job_member",
+          "tableTo": "user",
+          "columnsFrom": ["deleted_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "job_member_job_id_user_id_pk": {
-          "name": "job_member_job_id_user_id_pk",
-          "columns": ["job_id", "user_id"]
-        }
-      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -654,6 +667,18 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_batch": {
+          "name": "deleted_batch",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -702,15 +727,6 @@
           "tableTo": "job",
           "columnsFrom": ["job_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "job_participant_person_id_person_id_fk": {
-          "name": "job_participant_person_id_person_id_fk",
-          "tableFrom": "job_participant",
-          "tableTo": "person",
-          "columnsFrom": ["person_id"],
-          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -731,6 +747,15 @@
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "job_participant_deleted_by_user_id_fk": {
+          "name": "job_participant_deleted_by_user_id_fk",
+          "tableFrom": "job_participant",
+          "tableTo": "user",
+          "columnsFrom": ["deleted_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -739,8 +764,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.job_stage_history": {
-      "name": "job_stage_history",
+    "public.job_phase": {
+      "name": "job_phase",
       "schema": "",
       "columns": {
         "id": {
@@ -755,139 +780,62 @@
           "primaryKey": false,
           "notNull": true
         },
-        "stage_id": {
-          "name": "stage_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "phase": {
-          "name": "phase",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "entered_at": {
-          "name": "entered_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "left_at": {
-          "name": "left_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "changed_by": {
-          "name": "changed_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "job_stage_history_job_idx": {
-          "name": "job_stage_history_job_idx",
-          "columns": [
-            {
-              "expression": "job_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "entered_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "job_stage_history_stage_idx": {
-          "name": "job_stage_history_stage_idx",
-          "columns": [
-            {
-              "expression": "stage_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "job_stage_history_job_id_job_id_fk": {
-          "name": "job_stage_history_job_id_job_id_fk",
-          "tableFrom": "job_stage_history",
-          "tableTo": "job",
-          "columnsFrom": ["job_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "job_stage_history_stage_id_pipeline_stage_id_fk": {
-          "name": "job_stage_history_stage_id_pipeline_stage_id_fk",
-          "tableFrom": "job_stage_history",
-          "tableTo": "pipeline_stage",
-          "columnsFrom": ["stage_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "job_stage_history_changed_by_user_id_fk": {
-          "name": "job_stage_history_changed_by_user_id_fk",
-          "tableFrom": "job_stage_history",
-          "tableTo": "user",
-          "columnsFrom": ["changed_by"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.job_template": {
-      "name": "job_template",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
         "name": {
           "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "description": {
-          "name": "description",
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "payload": {
-          "name": "payload",
-          "type": "jsonb",
+        "status": {
+          "name": "status",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'{}'::jsonb"
+          "default": "'not_started'"
+        },
+        "planned_start": {
+          "name": "planned_start",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "planned_end": {
+          "name": "planned_end",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_private": {
+          "name": "is_private",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "visibility_source": {
+          "name": "visibility_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'own'"
         },
         "created_at": {
           "name": "created_at",
@@ -920,9 +868,251 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_batch": {
+          "name": "deleted_batch",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "job_phase_job_idx": {
+          "name": "job_phase_job_idx",
+          "columns": [
+            {
+              "expression": "job_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "position",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "job_phase_status_idx": {
+          "name": "job_phase_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "job_phase_private_idx": {
+          "name": "job_phase_private_idx",
+          "columns": [
+            {
+              "expression": "is_private",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"job_phase\".\"is_private\"",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "job_phase_job_id_job_id_fk": {
+          "name": "job_phase_job_id_job_id_fk",
+          "tableFrom": "job_phase",
+          "tableTo": "job",
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "job_phase_created_by_user_id_fk": {
+          "name": "job_phase_created_by_user_id_fk",
+          "tableFrom": "job_phase",
+          "tableTo": "user",
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "job_phase_updated_by_user_id_fk": {
+          "name": "job_phase_updated_by_user_id_fk",
+          "tableFrom": "job_phase",
+          "tableTo": "user",
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "job_phase_deleted_by_user_id_fk": {
+          "name": "job_phase_deleted_by_user_id_fk",
+          "tableFrom": "job_phase",
+          "tableTo": "user",
+          "columnsFrom": ["deleted_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.job_template": {
+      "name": "job_template",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "default_billing_model": {
+          "name": "default_billing_model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'one_off'"
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{\"v\":1,\"phases\":[],\"tasks\":[],\"payments\":[]}'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_by": {
+          "name": "deleted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_batch": {
+          "name": "deleted_batch",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "job_template_type_idx": {
+          "name": "job_template_type_idx",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "job_template_default_uq": {
+          "name": "job_template_default_uq",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"job_template\".\"is_default\" and \"job_template\".\"archived_at\" is null and \"job_template\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "job_template_created_by_user_id_fk": {
           "name": "job_template_created_by_user_id_fk",
@@ -938,6 +1128,15 @@
           "tableFrom": "job_template",
           "tableTo": "user",
           "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "job_template_deleted_by_user_id_fk": {
+          "name": "job_template_deleted_by_user_id_fk",
+          "tableFrom": "job_template",
+          "tableTo": "user",
+          "columnsFrom": ["deleted_by"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"

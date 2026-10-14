@@ -1,13 +1,6 @@
 "use client";
 
-import { Placeholder, defineModuleUi } from "@rebar/ui";
+import { defineModuleUi } from "@rebar/ui";
 
-/** UI oblasti „hosting“ modulu „muj-prostor“; zapojuje ji `ui.tsx` přes `mergeModuleUi`. Zástupná stránka čeká na skutečné UI. */
-export const areaUi = defineModuleUi({
-  pages: [
-    {
-      path: "/muj-prostor/hosting",
-      render: () => <Placeholder title="Hosting a údržba" icon="vault" />,
-    },
-  ],
-});
+/** UI oblasti „hosting“ modulu „muj-prostor“ (MPR-1: detail hosting a obnovy); zapojuje ji `ui.tsx` přes `mergeModuleUi`. Seznam dodává generická trasa entity `recurring_service`. */
+export const areaUi = defineModuleUi({});

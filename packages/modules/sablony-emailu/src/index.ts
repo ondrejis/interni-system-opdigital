@@ -1,9 +1,5 @@
 import { defineModule } from "@rebar/core/manifest";
 
-/*
-  Kostra S0 (docs/opsys/D-plan-a-kontrakty.md §1.2): manifest je úplný (navigace, oprávnění, závislosti, stránky).
-  `entities` doplní S1 spolu s `entities.ts`; zástupné stránky (`pages` + `ui.tsx`) nahradí entity a skutečné UI.
-*/
 export const manifest = defineModule({
   id: "sablony-emailu",
   name: "Šablony e-mailů",
@@ -21,7 +17,7 @@ export const manifest = defineModule({
       order: 20,
     },
   ],
-  pages: [{ path: "/sablony-emailu", title: "Šablony e-mailů", permission: "sablony-emailu.read" }],
+  entities: ["email_template"],
   permissions: [
     { key: "sablony-emailu.read", label: "Vidí šablony e-mailů" },
     { key: "sablony-emailu.create", label: "Zakládá šablony e-mailů" },
