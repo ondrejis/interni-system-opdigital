@@ -29,5 +29,5 @@ const · `packages/modules/dochazka/src/ui.tsx`
 _Bez popisu._
 
 ```ts
-const ui: { readonly terminalWidgets: { readonly "dochazka.clock": { readonly Widget: ({ label, settings, variant, pageHref }: import("@rebar/ui").TerminalWidgetProps) => import("react").JSX.Element; }; }; readonly pages: readonly [{ readonly path: …
+const ui: { readonly pages: readonly [{ readonly path: "/dochazka"; readonly render: ({ rest, query }: { rest: string[]; query: Record<string, string>; }) => import("react").JSX.Element; }]; }
 ```

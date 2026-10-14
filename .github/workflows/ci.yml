@@ -76,7 +76,7 @@ jobs:
             next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
       - run: pnpm build
         env:
-          CLIENT: demo
+          CLIENT: opsys
       - name: Velikost JavaScriptu
         run: node scripts/bundle-report.mjs
 
@@ -93,7 +93,7 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      CLIENT: demo
+      CLIENT: opsys
       DATABASE_URL: postgres://rebar_app:app@localhost:5432/rebar_e2e
       DATABASE_MIGRATE_URL: postgres://rebar_migrator:migrator@localhost:5432/rebar_e2e
       DATABASE_APP_ROLE: rebar_app
@@ -151,12 +151,12 @@ jobs:
           context: .
           file: deploy/docker/Dockerfile
           build-args: |
-            CLIENT=demo
+            CLIENT=opsys
             APP_VERSION=0.0.0-ci
           load: true
-          tags: system-demo:ci
-          cache-from: type=gha,scope=image-demo
-          cache-to: type=gha,mode=max,scope=image-demo
+          tags: system-opsys:ci
+          cache-from: type=gha,scope=image-opsys
+          cache-to: type=gha,mode=max,scope=image-opsys
       - uses: docker/build-push-action@v6
         with:
           context: .
@@ -167,7 +167,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=image-backup
       - name: Obsah image aplikace
         run: |
-          docker run --rm --entrypoint sh system-demo:ci -c '
+          docker run --rm --entrypoint sh system-opsys:ci -c '
             test -f /srv/web/apps/web/server.js &&
             test -d /srv/web/apps/web/.next/static &&
             test -x /app/node_modules/.bin/tsx &&
@@ -199,11 +199,11 @@ jobs:
           context: .
           file: deploy/docker/Dockerfile
           build-args: |
-            CLIENT=demo
+            CLIENT=opsys
             APP_VERSION=0.0.0-ci
           load: true
-          tags: system-demo:ci
-          cache-from: type=gha,scope=image-demo
+          tags: system-opsys:ci
+          cache-from: type=gha,scope=image-opsys
       - uses: docker/build-push-action@v6
         with:
           context: .

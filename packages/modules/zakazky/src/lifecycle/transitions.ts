@@ -12,7 +12,6 @@ import { emitEvent } from "@rebar/core/module-server";
 import { UserError } from "@rebar/core/rbac";
 import type { Ctx } from "@rebar/core/rbac";
 import { todayIso } from "@rebar/core/time";
-import { recomputeJobSummary } from "../costs/api";
 import { job } from "../schema";
 import { runJobChangeHooks } from "./change-hooks";
 import { recordStageEntry } from "./history";
@@ -214,8 +213,6 @@ export async function afterJobUpdate(
     };
   }
   const phaseMoved = !!from && !!to && from !== to;
-  // změna původní ceny mění cenu zakázky v seznamu (`sum_contract_minor`), proto se souhrn přepočte i bez změny fáze
-  if (!phaseMoved && before.valueMinor !== after.valueMinor) await recomputeJobSummary(ctx, id);
   if (phaseMoved) {
     const transition: PhaseTransition = { from, to };
     await recordAudit(ctx, {
@@ -236,8 +233,6 @@ export async function afterJobUpdate(
     };
     for (const h of stageHooksFor("job")) await h.afterStage?.(ctx, row, change);
   }
-  // fáze rozhoduje, zda seznam ukazuje cenu nabídky nebo smluvní cenu (`listPriceMinor`)
-  if (phaseMoved) await recomputeJobSummary(ctx, id);
   if (CRM_TRACKED.some((k) => before[k] !== row[k])) await runJobChangeHooks(ctx, before, row);
 }
 
@@ -256,7 +251,6 @@ export async function afterJobCreate(ctx: Ctx, created: Record<string, unknown>)
     const transition: PhaseTransition = { from: "", to };
     await ctx.db.update(job).set({ phaseChangedAt: new Date() }).where(eq(job.id, id));
     for (const h of phaseHooksFor("job", transition)) await h.after?.(ctx, row, transition);
-    await recomputeJobSummary(ctx, id);
   }
   const change: StageChange = {
     fromStageId: null,

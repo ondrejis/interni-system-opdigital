@@ -81,6 +81,5 @@ export type { BottomItem } from "./shell/bottom-nav";
 export type { NavItem, NavSection, ShellProps } from "./shell/app-shell";
 export { ThemeSwitch, themeScript } from "./shell/theme";
 export * from "./data";
-export * from "./terminal";
 export * from "./charts";
 export * from "./dashboards";

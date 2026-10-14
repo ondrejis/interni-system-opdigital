@@ -26,7 +26,7 @@ Vstupní bod `@rebar/core/collab` (soubor `packages/core/src/collab/index.ts`). 
 | [`parseMentions`](#parsementions) | function |  |  |
 | [`unreadCount`](#unreadcount) | function |  |  |
 | [`updateTask`](#updatetask) | function |  |  |
-| [`usersWithPermission`](#userswithpermission) | function | Aktivní uživatelé, kteří mají dané oprávnění (v kterémkoli rozsahu), a majitelé (systémová role má vždy všechna). Pro upozornění typu „schválená vícepráce → fakturace“. |  |
+| [`usersWithPermission`](#userswithpermission) | function | Aktivní uživatelé, kteří mají dané oprávnění (v kterémkoli rozsahu), a majitelé (systémová role má vždy všechna). Pro upozornění typu „schválená platba → fakturace“. |  |
 | [`taskInput`](#taskinput) | const |  |  |
 | [`NewNotification`](#newnotification) | type |  |  |
 
@@ -210,7 +210,7 @@ async function updateTask(ctx: Ctx, id: string, raw: Partial<z.input<typeof task
 function · `packages/core/src/notifications/recipients.ts`
 
 Aktivní uživatelé, kteří mají dané oprávnění (v kterémkoli rozsahu), a majitelé (systémová role má vždy všechna).
-Pro upozornění typu „schválená vícepráce → fakturace“.
+Pro upozornění typu „schválená platba → fakturace“.
 
 ```ts
 async function usersWithPermission(db: Executor, permission: string): Promise<string[]>

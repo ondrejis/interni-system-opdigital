@@ -94,34 +94,34 @@ const specOf = (over: Record<string, unknown> = {}) => ({
 const text = async (c: AsyncGenerator<Buffer>) => (await collect(c)).toString("utf8");
 
 describe("export seznamu: oprávnění, obsah, audit", () => {
-  it("export respektuje oprávnění: montér bez práva na firmy nic nedostane", async () => {
-    await expect(startExport(P().workerA.ctx, rt, specOf())).rejects.toBeInstanceOf(
+  it("export respektuje oprávnění: externista bez práva na firmy nic nedostane", async () => {
+    await expect(startExport(P().externistaA.ctx, rt, specOf())).rejects.toBeInstanceOf(
       PermissionError,
     );
   });
 
-  it("citlivé sloupce bez práva nikdy: mistr nemůže vyexportovat cenu zakázky ani změnou sloupců", async () => {
+  it("citlivé sloupce bez práva nikdy: externista nemůže vyexportovat cenu zakázky ani změnou sloupců", async () => {
     await expect(
-      startExport(P().foremanA.ctx, rt, {
+      startExport(P().externistaA.ctx, rt, {
         entity: "job",
         format: "csv",
-        columns: ["title", "sumContract"],
+        columns: ["title", "value"],
       }),
     ).rejects.toThrow(/neznámý nebo nedostupný sloupec/);
     const ok = await startExport(P().owner.ctx, rt, {
       entity: "job",
       format: "csv",
-      columns: ["title", "sumContract"],
+      columns: ["title", "value"],
     });
     expect(ok.mode).toBe("stream");
     if (ok.mode === "stream") expect(await text(ok.prepared.chunks)).toContain("77");
-    // mistr: jen svá data (rozsah „jen moje“), výchozí sloupce bez cen
-    const mine = await startExport(P().foremanA.ctx, rt, { entity: "job", format: "csv" });
+    // externista: jen svá data (rozsah „jen moje“), výchozí sloupce bez cen
+    const mine = await startExport(P().externistaA.ctx, rt, { entity: "job", format: "csv" });
     if (mine.mode !== "stream") throw new Error("čekal se stream");
     const csv = await text(mine.prepared.chunks);
     expect(csv).toContain("Zakázka A");
     expect(csv).not.toContain("Zakázka B");
-    expect(csv).not.toContain(String(MONEY.contract / 100));
+    expect(csv).not.toContain(String(MONEY.value / 100));
   });
 
   it("audit i záznam o exportu vznikne při každém exportu (kdo, co, kolik řádků, filtr), i s nulou řádků", async () => {
@@ -230,7 +230,7 @@ describe("velké exporty na pozadí a Moje exporty", () => {
       );
     expect(notes.length).toBe(1);
     // cizí uživatel soubor nedostane
-    await expect(openRunFile(P().office.ctx, rt, r.runId)).rejects.toThrow(/nenalezen/);
+    await expect(openRunFile(P().partner.ctx, rt, r.runId)).rejects.toThrow(/nenalezen/);
   });
 
   it("export na pozadí běží s aktuálními právy: kdo mezitím o právo přišel, dostane chybu", async () => {
@@ -261,7 +261,7 @@ describe("velké exporty na pozadí a Moje exporty", () => {
   });
 
   it("exporty všech vidí jen správce exportů, soubory cizích ani on ne", async () => {
-    await expect(listRuns(P().office.ctx, { all: true })).rejects.toBeInstanceOf(PermissionError);
+    await expect(listRuns(P().partner.ctx, { all: true })).rejects.toBeInstanceOf(PermissionError);
     const mgr = await makeUser(db, [["exports.manage", "all"]]);
     const all = await listRuns(mgr.ctx, { all: true });
     expect(all.length).toBeGreaterThan(0);
@@ -292,7 +292,7 @@ describe("šablony exportů", () => {
       saveTemplate(plain.ctx, rt, {
         name: "Zlá",
         shared: false,
-        spec: { entity: "job", format: "csv", columns: ["sumContract"] },
+        spec: { entity: "job", format: "csv", columns: ["value"] },
       }),
     ).rejects.toThrow();
   });
@@ -315,7 +315,7 @@ describe("plánované exporty", () => {
     const owner = P().owner;
     const noData = await makeUser(db, [["exports.schedule", "all"]]);
     await expect(
-      saveSchedule(P().workerA.ctx, rt, schedule({ recipients: [P().workerA.id] })),
+      saveSchedule(P().externistaA.ctx, rt, schedule({ recipients: [P().externistaA.id] })),
     ).rejects.toBeInstanceOf(PermissionError);
     await expect(
       saveSchedule(owner.ctx, rt, schedule({ recipients: [noData.id] })),

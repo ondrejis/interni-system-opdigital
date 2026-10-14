@@ -127,6 +127,8 @@ export async function listContactPoints(ctx: Ctx, personId: string) {
     .orderBy(asc(personContactPoint.position), asc(personContactPoint.createdAt));
 }
 
+export { findContactDuplicates, normalizeEmail, normalizeIco, normalizePhone } from "./duplicates";
+export type { CompanyMatch, ContactQuery, MatchedBy, PersonMatch } from "./duplicates";
 export { aresLookup, isValidIco, normalizeIcoInput, mapAres } from "./ares";
 export type { AresCompany, AresResult } from "./ares";
 export { previewMerge, mergeContacts, discoverReferences } from "./merge";

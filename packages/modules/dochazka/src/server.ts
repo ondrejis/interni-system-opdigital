@@ -8,7 +8,6 @@ import {
   defineModuleJob,
   defineModuleServer,
   type AttentionItem,
-  type CostLine,
   type ModuleDeps,
 } from "@rebar/core/module-server";
 import { notify } from "@rebar/core/notifications";
@@ -32,7 +31,6 @@ import {
 } from "@rebar/core/time";
 import {
   assertDayLimit,
-  BILLABLE_KINDS,
   PAID_ABSENCE,
   clockMinutes,
   editedStatus,
@@ -45,7 +43,6 @@ import {
 import { dochazkaSetting, type DochazkaSettings } from "./settings";
 import { sendEveningReminders, sendForgottenClockOut, sendMissingClockIn } from "./notices";
 import { TIME_APPROVED, TIME_RETURNED, TIME_SUBMITTED } from "./notifications";
-import { terminalSummary } from "./terminal";
 import { dashboardMetrics } from "./metrics";
 import { timeEntry, timeLock } from "./schema";
 /* ---------- entita (jen čtení: zapisuje se přes příkazy a stránku Docházka) ---------- */
@@ -176,7 +173,7 @@ const bestScope = (ctx: Ctx, keys: readonly string[]): "all" | "own" | null => {
 /** Rozsah, ve kterém aktér vidí docházku jiných: `all` (vedení, kancelář), `own` (mistr: jeho tým), nebo nic. */
 const readScope = (ctx: Ctx) => bestScope(ctx, ["dochazka.read", "dochazka.approve"]);
 /** Mzdové náklady (sazba × hodiny) vidí jen držitel ekonomiky zakázek, ne ten, kdo jen schvaluje hodiny. */
-const canSeeLabourCost = (ctx: Ctx) => can(ctx, "zakazky.economics");
+const canSeeLabourCost = (ctx: Ctx) => can(ctx, "zakazky.finance");
 
 /**
  * Tým aktéra s rozsahem „jen moje“: on sám a lidé, kteří zapsali docházku na zakázky, které aktér smí vidět
@@ -1071,82 +1068,11 @@ export const server = defineModuleServer({
     clockIn,
     clockBreak,
     clockOut,
-    terminalSummary,
     month,
     report,
     lockMonth,
     getSettings,
     saveSettings,
-  ],
-  costProviders: [
-    {
-      key: "dochazka",
-      costs: async (ctx, jobId): Promise<CostLine[]> => {
-        if (!can(ctx, "dochazka.read") && !canApprove(ctx) && !ctx.actor.unrestricted) return [];
-        // Řádek na úrovni záznamu: hodiny × nákladová sazba pracovníka v době zápisu. Sazba se nevrací,
-        // jen částka a hodiny v popisu; vidí je jen ten, kdo smí ekonomiku zakázky (hlídá zakázka).
-        const rows = await ctx.db
-          .select({
-            id: timeEntry.id,
-            date: timeEntry.date,
-            minutes: timeEntry.minutes,
-            cost: sql<number>`(${timeEntry.minutes} * ${timeEntry.hourlyCostMinor} / 60.0)::float`,
-            name: schema.user.name,
-          })
-          .from(timeEntry)
-          .innerJoin(schema.user, eq(schema.user.id, timeEntry.userId))
-          .where(
-            and(
-              eq(timeEntry.jobId, jobId),
-              inArray(timeEntry.kind, [...BILLABLE_KINDS]),
-              isNull(timeEntry.deletedAt),
-              sql`${timeEntry.minutes} > 0`,
-            ),
-          )
-          .orderBy(asc(timeEntry.date), asc(schema.user.name));
-        return rows.map((r): CostLine => ({
-          category: "labour",
-          label: `Práce: ${r.name} (${formatMinutes(r.minutes)})`,
-          amountMinor: Math.round(r.cost),
-          source: "dochazka",
-          ref: r.id,
-          date: r.date,
-        }));
-      },
-    },
-  ],
-  diaryPrefill: [
-    async (ctx, jobId, date) => {
-      if (!canRead(ctx)) return {};
-      const rows = await ctx.db
-        .select({
-          userId: schema.user.id,
-          name: schema.user.name,
-          minutes: sql<number>`sum(${timeEntry.minutes})::int`,
-          note: sql<string | null>`string_agg(distinct ${timeEntry.note}, '; ')`,
-        })
-        .from(timeEntry)
-        .innerJoin(schema.user, eq(schema.user.id, timeEntry.userId))
-        .where(
-          and(
-            eq(timeEntry.jobId, jobId),
-            eq(timeEntry.date, date),
-            eq(timeEntry.kind, "work"),
-            isNull(timeEntry.deletedAt),
-          ),
-        )
-        .groupBy(schema.user.id, schema.user.name)
-        .orderBy(schema.user.name);
-      return {
-        workers: rows.map((r) => ({
-          userId: r.userId,
-          name: r.name,
-          hours: Math.round((r.minutes / 60) * 10) / 10,
-        })),
-        people: rows.map((r) => `${r.name} (${formatMinutes(r.minutes, false)} h)`).join(", "),
-        work: [...new Set(rows.flatMap((r) => (r.note ? r.note.split("; ") : [])))].join("; "),
-      };
-    },
   ],
   attention: [
     async (ctx, deps) => {

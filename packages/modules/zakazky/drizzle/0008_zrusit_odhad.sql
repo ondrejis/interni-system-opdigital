@@ -1,1 +1,0 @@
-DROP TABLE "job_estimate_line" CASCADE;

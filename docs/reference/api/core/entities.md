@@ -588,7 +588,7 @@ type AttributeDef = {
   readonly?: boolean;
   required?: boolean;
   /**
-   * Oprávnění ke čtení atributu (např. `zakazky.economics` u cen a marží). Aktér bez něj atribut nevidí
+   * Oprávnění ke čtení atributu (např. `finance.read` u cen a plateb). Aktér bez něj atribut nevidí
    * ani nenajde: chybí v popisu, v řádcích, součtech, filtrech i řazení a nejde ho zapsat.
    */
   permission?: string;

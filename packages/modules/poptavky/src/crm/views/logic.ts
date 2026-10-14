@@ -99,7 +99,7 @@ export const currentMonth = (now: Date = new Date()): string =>
 
 /* ---------- sloupce prognózy ---------- */
 
-/** Zakázka v prognóze: údaje, které potřebuje karta. Peníze jsou `null` bez oprávnění `zakazky.economics`. */
+/** Zakázka v prognóze: údaje, které potřebuje karta. Peníze jsou `null` bez oprávnění `zakazky.finance`. */
 export type ForecastDeal = {
   id: string;
   number: string;
@@ -159,7 +159,7 @@ export type ForecastResult = {
   /** Okno měsíců (první měsíc a počet). */
   from: string;
   months: number;
-  /** Vidí aktér peníze (`zakazky.economics`)? Bez nich jsou částky `null`. */
+  /** Vidí aktér peníze (`zakazky.finance`)? Bez nich jsou částky `null`. */
   money: boolean;
   columns: ForecastColumn[];
   /** Stavy otevřených fází v pořadí (pro pruh pozice na kartě). */
@@ -282,7 +282,7 @@ export function dealAttentionKind(
   return null;
 }
 
-/** Jeden řádek archivu: uzavřený (vyhraný, prohraný) nebo archivovaný obchod. Peníze jsou `null` bez `zakazky.economics`. */
+/** Jeden řádek archivu: uzavřený (vyhraný, prohraný) nebo archivovaný obchod. Peníze jsou `null` bez `zakazky.finance`. */
 export type ArchiveRow = {
   id: string;
   number: string;

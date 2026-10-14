@@ -12,9 +12,9 @@ import { collectServers } from "../apps/web/src/server/modules-server";
 /**
  * Doplní výchozí data klienta (role, pipeline, číselníky, řady, DPH) a volitelně založí prvního uživatele.
  * Idempotentní — bezpečné spouštět při každé aktualizaci.
- *   CLIENT=demo OWNER_EMAIL=… OWNER_NAME="Jan Majitel" OWNER_PASSWORD=… pnpm db:seed
+ *   CLIENT=opsys OWNER_EMAIL=… OWNER_NAME="Jan Majitel" OWNER_PASSWORD=… pnpm db:seed
  */
-const slug = process.env.CLIENT ?? "demo";
+const slug = process.env.CLIENT ?? "opsys";
 const root = path.resolve(import.meta.dirname, "..");
 const config = (
   (await import(pathToFileURL(path.join(root, "clients", slug, "config.ts")).href)) as {

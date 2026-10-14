@@ -283,7 +283,7 @@ describe("obsah podle oprávnění", () => {
   it("peníze v titulku i podtitulku dostane jen ten, kdo smí vidět ekonomiku", async () => {
     const finance = await person([
       ["test_job.read", "all"],
-      ["fakturace.read", "all"],
+      ["finance.read", "all"],
     ]);
     const foreman = await person([["test_job.read", "all"]]);
     const job = crypto.randomUUID();

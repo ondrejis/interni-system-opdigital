@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core` (soubor `packages/core/src/index.ts`). Exportů: 28, z toho s popisem 12.
+Vstupní bod `@rebar/core` (soubor `packages/core/src/index.ts`). Exportů: 27, z toho s popisem 11.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
@@ -36,7 +36,6 @@ Vstupní bod `@rebar/core` (soubor `packages/core/src/index.ts`). Exportů: 28, 
 | [`NotificationEventDef`](manifest.md#notificationeventdef) | type |  | v `@rebar/core/manifest` |
 | [`PageDef`](manifest.md#pagedef) | type | Stránka modulu mimo seznamy entit; adresa i oprávnění jsou v manifestu, vykreslení v UI modulu. | v `@rebar/core/manifest` |
 | [`PermissionDef`](manifest.md#permissiondef) | type |  | v `@rebar/core/manifest` |
-| [`TerminalWidgetDef`](manifest.md#terminalwidgetdef) | type | Dlaždice (widget) mobilního terminálu řemeslníka, kterou modul nabízí. Jádro konkrétní moduly nezná: dlaždice, které uživatel uvidí, se skládají ze zapnutých modulů, oprávnění role a nastavení klienta (viz `docs/TERMINAL.md`). Vykreslení dlaždice je v UI části modulu (`terminalWidgets`), tady je jen popis. | v `@rebar/core/manifest` |
 
 ### collectNav
 

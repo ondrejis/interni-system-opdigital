@@ -19,7 +19,7 @@ import { manifest as kontaktyManifest } from "@rebar/kontakty";
 import { company, person } from "@rebar/kontakty/schema";
 import { companyEntity, kontaktyApi, personEntity } from "@rebar/kontakty/server";
 import { manifest as zakazkyManifest } from "@rebar/zakazky";
-import { job, jobCost, jobParticipant } from "@rebar/zakazky/schema";
+import { job, jobParticipant } from "@rebar/zakazky/schema";
 import { jobEntity, server as zakazkyServer } from "@rebar/zakazky/server";
 import { manifest } from "../../index";
 import { crmActivity, crmActivityType, crmNote, inquiry } from "../../schema";
@@ -158,17 +158,6 @@ describe("sloučení kontaktů přepojí odkazy napříč moduly", () => {
       { fileId: f!.id, entityType: "company", entityId: sid },
       { fileId: f!.id, entityType: "company", entityId: tid },
     ]);
-    await app.db.insert(jobCost).values({
-      jobId: deal.jobId,
-      date: "2026-10-01",
-      category: "other",
-      title: "náklad",
-      supplierId: sid,
-      amountMinor: 100,
-    });
-    await app.db.execute(
-      sql`insert into stock_item (id, code, name, supplier_id) values (gen_random_uuid(), ${`K-${t}`}, 'Položka', ${sid}::uuid)`,
-    );
     const [kid] = await app.db
       .insert(person)
       .values({ name: `Kontakt ${t}`, companyId: sid })
@@ -180,7 +169,7 @@ describe("sloučení kontaktů přepojí odkazy napříč moduly", () => {
 
     expect((await stillPointingAt("company", sid)).length).toBeGreaterThan(8);
     const res = await kontaktyApi.mergeContacts(u.ctx, "company", sid, tid);
-    expect(res.moved).toBeGreaterThanOrEqual(10);
+    expect(res.moved).toBeGreaterThanOrEqual(9);
 
     expect(await stillPointingAt("company", sid)).toEqual([]);
     expect((await app.db.select().from(job).where(eq(job.id, deal.jobId)))[0]!.companyId).toBe(tid);

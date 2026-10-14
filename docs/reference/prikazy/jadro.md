@@ -5,28 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (registr příkazů (`ModuleServer.commands`) a jejich Zod schémata). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Příkaz je pojmenovaná akce nebo dotaz volaný z UI (`api.command(name, input)`). Vstup se validuje Zodem, oprávnění hlídá jednotný vstupní bod ([ADR 012](../../adr/012-moduly-prikazy-a-poskytovatele.md)). Modul: [Platforma (jádro)](../moduly/jadro.md). Počet příkazů: 44.
-
-### core.tasks.complete
-
-Odškrtnutí úkolu z terminálu (jde i přes zápisovou frontu). Oprávnění k úkolu hlídá `completeTask`.
-
-- **Oprávnění:** stačí přihlášení; přístup k datům hlídá vrstva dat (viz [ADR 007](../../adr/007-opravneni-v-datove-vrstve.md))
-- **Definice:** `packages/core/src/terminal/commands.ts`
-
-| Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
-| --- | --- | --- | --- | --- | --- |
-| `taskId` | uuid | ano |  |  |  |
-| `done` | ano/ne | ne |  | výchozí `true` |  |
-
-### core.tasks.mine
-
-Úkoly přihlášeného pro terminál: otevřené, termínované první, s názvem záznamu, ke kterému patří (jen když ho aktér smí vidět).
-
-- **Oprávnění:** stačí přihlášení; přístup k datům hlídá vrstva dat (viz [ADR 007](../../adr/007-opravneni-v-datove-vrstve.md))
-- **Definice:** `packages/core/src/terminal/commands.ts`
-
-_Bez vstupních polí._
+Příkaz je pojmenovaná akce nebo dotaz volaný z UI (`api.command(name, input)`). Vstup se validuje Zodem, oprávnění hlídá jednotný vstupní bod ([ADR 012](../../adr/012-moduly-prikazy-a-poskytovatele.md)). Modul: [Platforma (jádro)](../moduly/jadro.md). Počet příkazů: 41.
 
 ### crm.activity.complete
 
@@ -197,22 +176,9 @@ Archiv obchodů (`crm.archive.list`): archivované a uzavřené (prohrané s dů
 | `limit` | celé číslo | ne |  | hodnota 1–200; výchozí `50` |  |
 | `offset` | celé číslo | ne |  | hodnota 0–100000; výchozí `0` |  |
 
-### crm.contact.duplicates
-
-Kontrola duplicit podle IČO, e-mailu a telefonu (rychlé zadání a kvalifikace ukážou nalezené záznamy k výběru).
-
-- **Oprávnění:** `kontakty.read` (stačí kterékoli)
-- **Definice:** `packages/modules/poptavky/src/crm/inbox/contacts.ts`
-
-| Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
-| --- | --- | --- | --- | --- | --- |
-| `ico` | text | ne |  | délka ≤ 20 |  |
-| `email` | text | ne |  | délka ≤ 200 |  |
-| `phone` | text | ne |  | délka ≤ 40 |  |
-
 ### crm.contact.overview
 
-Přehled obchodu u firmy nebo osoby: zakázky s fází a stavem (pro mini pás stavů), souhrn otevřených a vyhraných obchodů, kontaktní osoby, související firmy a (u osoby) účasti na zakázkách. Částky vidí jen, kdo má `zakazky.economics`; zakázky se řídí oprávněním `zakazky.read` (rozsah „jen moje“ platí).
+Přehled obchodu u firmy nebo osoby: zakázky s fází a stavem (pro mini pás stavů), souhrn otevřených a vyhraných obchodů, kontaktní osoby, související firmy a (u osoby) účasti na zakázkách. Částky vidí jen, kdo má `zakazky.finance`; zakázky se řídí oprávněním `zakazky.read` (rozsah „jen moje“ platí).
 
 - **Oprávnění:** `kontakty.read` (stačí kterékoli)
 - **Definice:** `packages/modules/poptavky/src/crm/inbox/contacts.ts`
@@ -407,7 +373,7 @@ Přestane sledovat zakázku (sebe, nebo jiného uživatele, když smím zakázku
 
 ### crm.forecast
 
-Prognóza obchodů po měsících (`crm.forecast`). Agregace běží na serveru nad zakázkami v rozsahu aktéra (oprávnění ke čtení, rozsah „jen moje“); částky a váženou hodnotu dostane jen ten, kdo má `zakazky.economics`, jinak jsou `null` a sečtou se jen počty. Nearchivované otevřené obchody (poptávka, nabídka) padají do měsíců podle předpokládaného uzavření, vyhrané podle data výhry. Vstup: `owner` (`all`, `me`, id uživatele), `from` (první měsíc `YYYY-MM`, výchozí aktuální) a `months` (1 až 12, výchozí 4).
+Prognóza obchodů po měsících (`crm.forecast`). Agregace běží na serveru nad zakázkami v rozsahu aktéra (oprávnění ke čtení, rozsah „jen moje“); částky a váženou hodnotu dostane jen ten, kdo má `zakazky.finance`, jinak jsou `null` a sečtou se jen počty. Nearchivované otevřené obchody (poptávka, nabídka) padají do měsíců podle předpokládaného uzavření, vyhrané podle data výhry. Vstup: `owner` (`all`, `me`, id uživatele), `from` (první měsíc `YYYY-MM`, výchozí aktuální) a `months` (1 až 12, výchozí 4).
 
 - **Oprávnění:** `zakazky.read` (stačí kterékoli)
 - **Definice:** `packages/modules/poptavky/src/crm/views/forecast.ts`
@@ -560,7 +526,7 @@ _Bez vstupních polí._
 
 ### crm.today
 
-Data stránky „Moje dnešní práce“ (`crm.today`): (b) moje otevřené obchody bez další aktivity (zhnilé a nejdéle ve stavu první), (c) nové poptávky ve schránce (nejdéle čekající první). Dnešní a zpožděné aktivity bere stránka z komponenty `ActivityList`. Obchody a poptávky se čtou v rozsahu aktéra; cena nabídky jen s `zakazky.economics`.
+Data stránky „Moje dnešní práce“ (`crm.today`): (b) moje otevřené obchody bez další aktivity (zhnilé a nejdéle ve stavu první), (c) nové poptávky ve schránce (nejdéle čekající první). Dnešní a zpožděné aktivity bere stránka z komponenty `ActivityList`. Obchody a poptávky se čtou v rozsahu aktéra; cena nabídky jen s `zakazky.finance`.
 
 - **Oprávnění:** `poptavky.read` (stačí kterékoli)
 - **Definice:** `packages/modules/poptavky/src/crm/today/today.ts`

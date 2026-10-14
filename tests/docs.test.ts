@@ -43,11 +43,21 @@ const REQUIRED = [
  */
 const GENERATED = walk("docs/reference", (f) => f.endsWith(".md"));
 
+/**
+ * Pracovní dokumenty projektu OPSYS (zadání, rozbory, specifikace od zadavatele): mluví o jádru Rebar a o postupu prací,
+ * proto se u nich nekontrolují odkazy, příkazy ani interní název. Do rozcestníku docs/INDEX.md patří (generuje se).
+ */
+const WORKING_DOCS = ["docs/opsys/", "docs/specifikace/"];
+
 /** Ručně psané dokumenty, ve kterých se kontrolují odkazy a příkazy. */
 const DOCS = [
   "README.md",
   "CHANGELOG.md",
-  ...walk("docs", (f) => f.endsWith(".md") && !GENERATED.includes(f)),
+  ...walk(
+    "docs",
+    (f) =>
+      f.endsWith(".md") && !GENERATED.includes(f) && !WORKING_DOCS.some((w) => f.startsWith(w)),
+  ),
   ...walk("clients", (f) => f.endsWith(".md")),
 ];
 
@@ -290,7 +300,6 @@ describe("cesty v dokumentaci existují", () => {
     "docs/DEPLOYMENT.md",
     "docs/RUNBOOK.md",
     "docs/SECURITY.md",
-    "docs/TERMINAL.md",
   ];
   for (const doc of CHECKED) {
     it(`${doc}: cesty v kódu ukazují na existující soubory a složky`, () => {
@@ -319,7 +328,6 @@ describe("README", () => {
       "docs/DEPLOYMENT.md",
       "docs/RUNBOOK.md",
       "docs/SECURITY.md",
-      "docs/TERMINAL.md",
       "docs/DASHBOARDY.md",
       "docs/EXPORTY.md",
       "CHANGELOG.md",

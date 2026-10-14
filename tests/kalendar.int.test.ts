@@ -49,9 +49,7 @@ const deps = () =>
     registry,
     baseURL: "http://localhost:3000",
     cipher,
-    costProviders: [],
     calendarLayers: layers,
-    diaryPrefill: [],
     emit: async () => {},
   }) as unknown as ModuleDeps;
 

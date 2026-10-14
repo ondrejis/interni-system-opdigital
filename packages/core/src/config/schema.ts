@@ -3,7 +3,6 @@ import { definitionSchema } from "../dashboards/definition";
 import type { DashboardDefinition } from "../dashboards/types";
 import { MODULE_IDS } from "../modules/ids";
 import { notificationsConfigSchema } from "../notifications/config";
-import { terminalConfigSchema } from "../terminal/config";
 
 /** Interní pracovní název jádra. Nesmí se dostat do nic, co vidí klient. */
 export const INTERNAL_NAME = "rebar";
@@ -65,8 +64,12 @@ export const clientConfigSchema = z.strictObject({
     })
     .prefault({}),
 
-  /** Mobilní terminál řemeslníka: role, výchozí dlaždice a volby (správce je v Nastavení může přepsat). */
-  terminal: terminalConfigSchema.prefault({}),
+  /** Navigace: pořadí sekcí postranního panelu (sekce, které tu nejsou, jdou za nimi v pořadí modulů). */
+  navigation: z
+    .strictObject({
+      groupOrder: z.array(z.string().min(1)).default([]),
+    })
+    .prefault({}),
 
   /**
    * Pravidla upozornění klienta: výchozí kanály, příjemci a texty událostí, tiché hodiny, časy shrnutí.

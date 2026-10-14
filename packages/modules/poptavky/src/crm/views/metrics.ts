@@ -10,7 +10,7 @@ import type { Ctx } from "@rebar/core/rbac";
 import { job } from "@rebar/zakazky/schema";
 import { openDealWhere } from "./scope";
 
-const ECONOMICS = "zakazky.economics";
+const ECONOMICS = "zakazky.finance";
 const PHASES = ["all", "inquiry", "offer"] as const;
 
 const phaseParam = {
@@ -27,11 +27,11 @@ const phaseParam = {
 
 /**
  * Otevřené obchody v rozsahu aktéra (a volitelně jednoho vlastníka z filtru nástěnky). Peníze smí číst jen ten, kdo má
- * `zakazky.economics`: atribut, který aktér nevidí, v entitě neexistuje, takže ho nesečte ani úpravou definice widgetu.
+ * `zakazky.finance`: atribut, který aktér nevidí, v entitě neexistuje, takže ho nesečte ani úpravou definice widgetu.
  */
 async function dealScope(ctx: Ctx, deps: ModuleDeps, input: DashboardMetricInput, money: boolean) {
   const scope = await scopedEntity(ctx, deps, "job");
-  if (money && !(scope.entity.byKey.has("sumContract") && scope.entity.byKey.has("crmWeighted")))
+  if (money && !(scope.entity.byKey.has("value") && scope.entity.byKey.has("crmWeighted")))
     throw new PermissionError("Na ekonomiku zakázek nemáte oprávnění.");
   const phase = choiceParam(input.params, "phase", PHASES, "all");
   return and(
@@ -44,7 +44,7 @@ const num = (v: unknown) => Number(v ?? 0);
 
 /**
  * Pojmenované metriky nástěnek pro obchodní část CRM (prefix modulu `poptavky`). Čtou jen nearchivované otevřené obchody
- * (zakázky ve fázi poptávka a nabídka) v rozsahu aktéra; částky vyžadují `zakazky.economics`. Filtr osoby nástěnky
+ * (zakázky ve fázi poptávka a nabídka) v rozsahu aktéra; částky vyžadují `zakazky.finance`. Filtr osoby nástěnky
  * zužuje na vlastníka obchodu. Vážená hodnota je uložená cena nabídky × pravděpodobnost stavu (nebo ruční přepsání).
  */
 export const crmDashboardMetrics = [
@@ -61,7 +61,7 @@ export const crmDashboardMetrics = [
     compute: async (ctx, input, deps) => {
       const where = await dealScope(ctx, deps, input, true);
       const [r] = await ctx.db
-        .select({ v: sql<number>`coalesce(sum(${job.sumContractMinor}), 0)::float8` })
+        .select({ v: sql<number>`coalesce(sum(${job.valueMinor}), 0)::float8` })
         .from(job)
         .where(where);
       return { kind: "scalar", value: num(r?.v) };

@@ -43,7 +43,7 @@ const money = (minor: number | null) => (minor === null ? "–" : formatMinor(mi
  * Prognóza obchodů: sloupce po měsících podle předpokládaného uzavření (vlevo „Dřívější“ po termínu, vpravo „Bez data“).
  * V hlavičce sloupce je otevřeno, vyhráno a celkem a vážená hodnota; na kartě pruh pozice ve fázích. Šipkami se posouvá
  * po měsících, „Dnes“ skočí na aktuální měsíc. Agregace běží na serveru (`crm.forecast`); částky vidí jen ten, kdo má
- * `zakazky.economics`. Karta otevře detail zakázky v pop-upu (`?record=`), který si pohled sám obsluhuje.
+ * `zakazky.finance`. Karta otevře detail zakázky v pop-upu (`?record=`), který si pohled sám obsluhuje.
  */
 export function ForecastView({ owner }: { owner: OwnerFilter }) {
   const [from, setFrom] = useState(() => currentMonth());

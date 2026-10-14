@@ -12,13 +12,7 @@ import {
   resolveEntity,
   type EntityRegistry,
 } from "@rebar/core/entities";
-import type {
-  CostProvider,
-  DiaryPrefillProvider,
-  ModuleDeps,
-  ModuleJob,
-  ModuleJobDeps,
-} from "@rebar/core/module-server";
+import type { ModuleDeps, ModuleJob, ModuleJobDeps } from "@rebar/core/module-server";
 import { ensureSeries } from "@rebar/core/numbering";
 import { PermissionError } from "@rebar/core/rbac";
 import { connectAppDb, makeUser } from "@rebar/core/testing";
@@ -61,9 +55,7 @@ const deps = () =>
   ({
     registry,
     baseURL: "http://localhost",
-    costProviders: [],
     calendarLayers: [],
-    diaryPrefill: [],
     emit: async () => {},
     settings: {
       get: async (_db: unknown, def: { key: string; default: Record<string, unknown> }) =>
@@ -90,7 +82,7 @@ const boss = () =>
     ["dochazka.read", "all"],
     ["dochazka.approve", "all"],
     ["dochazka.close_month", "all"],
-    ["zakazky.economics", "all"], // mzdové náklady v přehledu vidí jen držitel ekonomiky zakázek
+    ["zakazky.finance", "all"], // mzdové náklady v přehledu vidí jen držitel ekonomiky zakázek
   ]);
 /** Schvalovatel docházky bez ekonomiky (mistr): hodiny vidí, náklady ne. */
 const approver = () =>
@@ -505,58 +497,7 @@ describe("entita a poskytovatelé", () => {
     );
   });
 
-  it("náklad práce na zakázku a předvyplnění deníku z docházky; absence a cizí zakázky se nepočítají", async () => {
-    const u = await worker();
-    const b = await boss();
-    const [c] = await app.db
-      .insert(company)
-      .values({ name: `F ${randomBytes(2).toString("hex")}` })
-      .returning();
-    const stage = (await getPipeline(app.db, "job", "default"))!.stages[0]!;
-    const [j] = await app.db
-      .insert(job)
-      .values({
-        number: `D-${randomBytes(4).toString("hex")}`,
-        title: "Dům",
-        companyId: c!.id,
-        stageId: stage.id,
-      })
-      .returning();
-    await save.handler(
-      u.ctx,
-      input(save, { date: "2025-12-01", kind: "work", hours: 8, jobId: j!.id, note: "Zdění" }),
-      deps(),
-    );
-    await save.handler(
-      u.ctx,
-      input(save, { date: "2025-12-01", kind: "travel", hours: 1, jobId: j!.id }),
-      deps(),
-    );
-    await save.handler(u.ctx, input(save, { date: "2025-12-02", kind: "work", hours: 5 }), deps());
-    const cost = await (server.costProviders![0] as CostProvider).costs(b.ctx, j!.id, deps());
-    // řádky na úrovni záznamu (ref = id záznamu), celkem stejně jako dřív: 9 h × 250 Kč
-    expect(cost).toHaveLength(2);
-    expect(cost.map((l) => l.amountMinor).sort((a, b) => a - b)).toEqual([250_00, 8 * 250_00]);
-    expect(cost.reduce((a, l) => a + l.amountMinor, 0)).toBe(9 * 250_00);
-    for (const l of cost)
-      expect(l).toMatchObject({
-        category: "labour",
-        source: "dochazka",
-        ref: expect.any(String),
-        date: expect.stringMatching(/^2025-12-0\d$/),
-      });
-    expect(new Set(cost.map((l) => l.ref)).size).toBe(2);
-    const pre = await (server.diaryPrefill![0] as DiaryPrefillProvider)(
-      b.ctx,
-      j!.id,
-      "2025-12-01",
-      deps(),
-    );
-    expect(pre.people).toContain("(8:00 h)");
-    expect(pre.work).toBe("Zdění");
-  });
-
-  it("náklad v měsíčním přehledu a v ekonomice zakázky se shodují na haléř i u neceločíselných hodin", async () => {
+  it("náklad v měsíčním přehledu se zaokrouhluje po záznamech i u neceločíselných hodin", async () => {
     const u = await worker();
     const b = await boss();
     const [c] = await app.db
@@ -596,11 +537,8 @@ describe("entita a poskytovatelé", () => {
       }),
       deps(),
     );
-    const lines = await (server.costProviders![0] as CostProvider).costs(b.ctx, j!.id, deps());
-    const fromJob = lines.reduce((a, l) => a + l.amountMinor, 0);
-    expect(lines.map((l) => l.amountMinor).sort((a, b) => a - b)).toEqual([77_917, 185_417]);
     const rep = await report.handler(b.ctx, input(report, { month: "2024-02" }), deps());
-    expect(rep.users.find((x) => x.userId === u.id)!.costMinor).toBe(fromJob);
+    expect(rep.users.find((x) => x.userId === u.id)!.costMinor).toBe(77_917 + 185_417);
   });
 
   it("večerní připomínka upozorní jen toho, kdo dnes nic nezapsal, a jen jednou za den", async () => {

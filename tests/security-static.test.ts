@@ -112,7 +112,6 @@ describe("route handlery v apps/web/src/app/api", () => {
     health: { guard: /HEALTH_TOKEN/, limit: null },
     "intake/poptavky": { guard: /Bearer|authorization/i, limit: /consumeRateLimit/ },
     "kalendar/feed/[token]": { guard: /feedForToken/, limit: /consumeRateLimit/ },
-    "investor/[token]/files/[fileId]": { guard: /resolveShare/, limit: /investorRateOk/ },
     "invitations/accept": { guard: /acceptInvitation/, limit: /consumeRateLimit/ },
   };
 
@@ -157,10 +156,7 @@ describe("route handlery v apps/web/src/app/api", () => {
   });
 
   it("odpovědi se soubory mají nosniff a nikdy neposílají neověřený typ (inline jen obrázky a PDF)", () => {
-    for (const file of [
-      "apps/web/src/app/api/files/[id]/route.ts",
-      "apps/web/src/server/investor.ts",
-    ]) {
+    for (const file of ["apps/web/src/app/api/files/[id]/route.ts"]) {
       const src = read(file);
       expect(src, file).toMatch(/x-content-type-options.*nosniff/i);
       expect(src, file).toMatch(

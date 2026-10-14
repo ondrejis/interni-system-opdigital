@@ -52,7 +52,7 @@ function · `packages/core/src/config-data/lookups.ts`
 Přidá položku. `value` je stabilní klíč (nejde měnit), `label` jde přejmenovat.
 
 ```ts
-async function addLookupItem(ctx: Ctx, key: string, item: { value: string; label: string; color?: string }): Promise<{ value: string; label: string; id: string; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; active: boolean; color: string | null; position: number; listId: string; }>
+async function addLookupItem(ctx: Ctx, key: string, item: { value: string; label: string; color?: string }): Promise<{ value: string; id: string; label: string; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; active: boolean; color: string | null; position: number; listId: string; }>
 ```
 
 ### addStage
@@ -263,7 +263,7 @@ function · `packages/core/src/config-data/vat.ts`
 _Bez popisu._
 
 ```ts
-async function saveVatRate(ctx: Ctx, raw: z.input<typeof vatInput>): Promise<{ label: string; id: string; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; code: string; rateBp: number; validFrom: string; validTo: string | null; }>
+async function saveVatRate(ctx: Ctx, raw: z.input<typeof vatInput>): Promise<{ id: string; label: string; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; code: string; rateBp: number; validFrom: string; validTo: string | null; }>
 ```
 
 ### setDefaultVatCode

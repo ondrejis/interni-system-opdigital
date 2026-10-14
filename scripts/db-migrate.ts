@@ -17,7 +17,7 @@ if (!url) {
   console.error("Chybí DATABASE_MIGRATE_URL (připojení pod uživatelem migrací).");
   process.exit(1);
 }
-const slug = process.env.CLIENT ?? "demo";
+const slug = process.env.CLIENT ?? "opsys";
 const root = path.resolve(import.meta.dirname, "..");
 const config = (
   (await import(pathToFileURL(path.join(root, "clients", slug, "config.ts")).href)) as {

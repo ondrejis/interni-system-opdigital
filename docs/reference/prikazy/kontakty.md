@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (registr příkazů (`ModuleServer.commands`) a jejich Zod schémata). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Příkaz je pojmenovaná akce nebo dotaz volaný z UI (`api.command(name, input)`). Vstup se validuje Zodem, oprávnění hlídá jednotný vstupní bod ([ADR 012](../../adr/012-moduly-prikazy-a-poskytovatele.md)). Modul: [Kontakty](../moduly/kontakty.md). Počet příkazů: 6.
+Příkaz je pojmenovaná akce nebo dotaz volaný z UI (`api.command(name, input)`). Vstup se validuje Zodem, oprávnění hlídá jednotný vstupní bod ([ADR 012](../../adr/012-moduly-prikazy-a-poskytovatele.md)). Modul: [Kontakty](../moduly/kontakty.md). Počet příkazů: 7.
 
 ### kontakty.ares
 
@@ -17,6 +17,19 @@ Doplnění firmy z ARES podle IČO. Nikdy nevyhodí chybu kvůli síti: výslede
 | Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
 | --- | --- | --- | --- | --- | --- |
 | `ico` | text | ano |  | délka 1–20 |  |
+
+### kontakty.duplicates
+
+Kontrola duplicit podle IČO, e-mailu a telefonu (zakládání obchodů a rychlé zadání ukážou nalezené záznamy k výběru).
+
+- **Oprávnění:** `kontakty.read` (stačí kterékoli)
+- **Definice:** `packages/modules/kontakty/src/commands.ts`
+
+| Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
+| --- | --- | --- | --- | --- | --- |
+| `ico` | text | ne |  | délka ≤ 20 |  |
+| `email` | text | ne |  | délka ≤ 200 |  |
+| `phone` | text | ne |  | délka ≤ 40 |  |
 
 ### kontakty.merge.preview
 

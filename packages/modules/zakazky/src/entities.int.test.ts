@@ -75,7 +75,7 @@ const boss = () =>
   person([
     ["zakazky.read", "all"],
     ["zakazky.write", "all"],
-    ["zakazky.economics", "all"],
+    ["zakazky.finance", "all"],
     ["kontakty.read", "all"],
     ["kontakty.write", "all"],
     ["settings.manage", "all"],
@@ -335,7 +335,7 @@ describe("oprávnění a rozsah", () => {
     const worker = await person([
       ["zakazky.read", "own"],
       ["zakazky.write", "own"],
-      ["zakazky.economics", "all"],
+      ["zakazky.finance", "all"],
     ]);
     const s = await seedJobs(u);
     await app.db.update(job).set({ managerId: worker.id }).where(eq(job.id, s.a.id));
@@ -518,7 +518,7 @@ describe("zápis: vytvoření a inline úprava", () => {
     const changes = audit.find((a) => a.action === "update")!.changes;
     expect(changes).toEqual(
       expect.arrayContaining([
-        { field: "Původní smluvní cena", old: "100\u00a0000\u00a0Kč", new: "150\u00a0000\u00a0Kč" },
+        { field: "Hodnota", old: "100\u00a0000\u00a0Kč", new: "150\u00a0000\u00a0Kč" },
         { field: "Stav", old: "Příprava", new: "Realizace" },
       ]),
     );

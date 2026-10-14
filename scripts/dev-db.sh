@@ -1,13 +1,16 @@
 #!/bin/sh
-# Lokální PostgreSQL 17 pro vývoj a testy (oddělený cluster, port 5433, trust auth jen na localhost).
-# Nezasahuje do jiných lokálních clusterů. Použití: scripts/dev-db.sh up|down|status|reset
+# Lokální PostgreSQL 17 pro vývoj a testy OPSYS (oddělený cluster, výchozí port 5434, trust auth jen na localhost).
+# Nezasahuje do jiných lokálních clusterů. Cluster jde přesunout proměnnými: REBAR_PG_PORT (výchozí 5434),
+# REBAR_PG_DATA (výchozí ~/.local/share/opsys-pg17), REBAR_PG_SOCKET_DIR (výchozí /tmp/opsys-pg), PG_BIN.
+# Použití: scripts/dev-db.sh up|down|status|reset
 set -e
 # macOS: postmaster potřebuje platnou locale, jinak spadne na „multithreaded during startup“
 export LC_ALL=en_US.UTF-8
 
 PG_BIN="${PG_BIN:-/opt/homebrew/opt/postgresql@17/bin}"
-DATA="${REBAR_PG_DATA:-$HOME/.local/share/rebar-pg17}"
-PORT="${REBAR_PG_PORT:-5433}"
+DATA="${REBAR_PG_DATA:-$HOME/.local/share/opsys-pg17}"
+PORT="${REBAR_PG_PORT:-5434}"
+SOCKET_DIR="${REBAR_PG_SOCKET_DIR:-/tmp/opsys-pg}"
 
 pg() { "$PG_BIN/$1" "${@:2}"; }
 
@@ -38,7 +41,8 @@ SQL
 case "${1:-status}" in
   up)
     ensure_cluster
-    pg pg_ctl -D "$DATA" status >/dev/null 2>&1 || pg pg_ctl -D "$DATA" -o "-p $PORT -c listen_addresses=localhost -c unix_socket_directories=/tmp/rebar-pg" -l "$DATA/server.log" -w start >/dev/null
+    mkdir -p "$SOCKET_DIR"
+    pg pg_ctl -D "$DATA" status >/dev/null 2>&1 || pg pg_ctl -D "$DATA" -o "-p $PORT -c listen_addresses=localhost -c unix_socket_directories=$SOCKET_DIR" -l "$DATA/server.log" -w start >/dev/null
     ensure_roles_and_dbs
     echo "PostgreSQL 17 běží na localhost:$PORT (rebar_dev, rebar_test, rebar_e2e)"
     ;;

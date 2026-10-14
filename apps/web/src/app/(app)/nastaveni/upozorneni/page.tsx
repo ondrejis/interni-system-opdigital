@@ -10,7 +10,7 @@ export const metadata = { title: "Upozornění" };
 
 /** Moje upozornění: zařízení, co chci dostávat, tiché hodiny, protokol doručení. Dostupné každému přihlášenému (i v terminálu). */
 export default async function NotificationsPage() {
-  const ctx = await requireCtx({ allowTerminalOnly: true });
+  const ctx = await requireCtx();
   const s = getServices();
   const [prefs, deliveries] = await Promise.all([getMyPreferences(ctx), listMyDeliveries(ctx)]);
   return (

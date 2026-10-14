@@ -51,7 +51,7 @@ export const archiveListCommand = defineCommand({
   handler: async (ctx, input, deps): Promise<ArchivePage> => {
     const owner = parseOwner(input.owner);
     const scope = await scopedEntity(ctx, deps, "job");
-    const money = scope.entity.byKey.has("sumContract");
+    const money = scope.entity.byKey.has("value");
     const pattern = input.q ? `%${input.q.replace(/[\\%_]/g, "\\$&")}%` : null;
     const where = and(
       scope.where,
@@ -77,7 +77,7 @@ export const archiveListCommand = defineCommand({
         stageName: schema.pipelineStage.name,
         stageColor: schema.pipelineStage.color,
         managerName: schema.user.name,
-        value: money ? job.sumContractMinor : sql<number>`0`,
+        value: money ? job.valueMinor : sql<number>`0`,
         lostReason: job.lostReason,
         lostNote: job.crmLostNote,
         archivedAt: job.crmArchivedAt,

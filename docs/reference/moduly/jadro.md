@@ -119,15 +119,6 @@ Odesílání e-mailů (SMTP). Heslo je v DB zašifrované. Definice: `packages/c
 | `password` | string \| null | ano |  |  |  | `null` |
 | `from` | text | ano |  |  |  | `""` |
 
-### terminal
-
-Nastavení terminálu v tabulce `setting` (klíč `terminal`). Tvar hlídá `terminalSettingsSchema` a převod starších verzí `migrateTerminalSettings`; samotná definice je volná, aby si čtení mohlo poradit i se starším tvarem. Definice: `packages/core/src/terminal/settings.ts`.
-
-| Pole | Typ | Povinné | Hodnoty | Omezení | Popis | Výchozí hodnota v kódu |
-| --- | --- | --- | --- | --- | --- | --- |
-| `(vstup)` | slovník (klíč → hodnota) | ano |  |  |  |  |
-| `*` | libovolné | ne |  |  |  |  |
-
 ## Upozornění
 
 | Druh | Vzniká v |
@@ -135,4 +126,4 @@ Nastavení terminálu v tabulce `setting` (klíč `terminal`). Tvar hlídá `ter
 | `export_failed` | `packages/core/src/export/runs.ts` |
 | `export_ready` | `packages/core/src/export/runs.ts` |
 
-Databázové tabulky jádra: [databaze/jadro.md](../databaze/jadro.md). Příkazy platformy: [prikazy/jadro.md](../prikazy/jadro.md) (44).
+Databázové tabulky jádra: [databaze/jadro.md](../databaze/jadro.md). Příkazy platformy: [prikazy/jadro.md](../prikazy/jadro.md) (41).

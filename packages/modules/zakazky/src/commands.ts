@@ -4,23 +4,18 @@ import { recordAudit } from "@rebar/core/audit";
 import { schema } from "@rebar/core/db";
 import { assertEntityAccess } from "@rebar/core/entities";
 import { defineCommand } from "@rebar/core/module-server";
-import { notify } from "@rebar/core/notifications";
-import { inTx, NotFoundError, PermissionError, UserError } from "@rebar/core/rbac";
-import { scopeOf } from "@rebar/core/rbac";
+import { inTx, NotFoundError, UserError } from "@rebar/core/rbac";
 import type { Ctx } from "@rebar/core/rbac";
-import { JOB_TEAM } from "./notifications";
 import { job, jobMember } from "./schema";
 
 const jobId = z.uuid();
 
-/** Čtení zakázky vyžaduje přístup k záznamu; údaje o penězích navíc `zakazky.economics`. */
-async function readJob(ctx: Ctx, id: string, opts: { economics?: boolean } = {}) {
+/** Čtení a zápis zakázky vyžadují přístup k záznamu (rozsah „jen moje“ hlídá entita). */
+async function readJob(ctx: Ctx, id: string) {
   await assertEntityAccess(ctx, "job", id, "read");
-  if (opts.economics && !scopeOf(ctx, "zakazky.economics")) throw new PermissionError();
 }
-async function writeJob(ctx: Ctx, id: string, opts: { economics?: boolean } = {}) {
+async function writeJob(ctx: Ctx, id: string) {
   await assertEntityAccess(ctx, "job", id, "write");
-  if (opts.economics && !scopeOf(ctx, "zakazky.economics")) throw new PermissionError();
 }
 
 async function loadJob(ctx: Ctx, id: string) {
@@ -57,7 +52,7 @@ export const teamAdd = defineCommand({
   handler: async (ctx, i) => {
     await writeJob(ctx, i.jobId);
     await inTx(ctx, async (c) => {
-      const j = await loadJob(c, i.jobId);
+      await loadJob(c, i.jobId);
       const [u] = await c.db
         .select({ name: schema.user.name })
         .from(schema.user)
@@ -81,12 +76,6 @@ export const teamAdd = defineCommand({
         entityType: "job",
         entityId: i.jobId,
         summary: `${u.name} přidán(a) do týmu${i.role ? ` (${i.role})` : ""}`,
-      });
-      await notify(c.db, JOB_TEAM, {
-        params: { number: j.number, title: j.title, role: i.role || null },
-        to: { member: [i.userId] },
-        record: { type: "job", id: i.jobId },
-        actorId: c.actor.userId,
       });
     });
   },

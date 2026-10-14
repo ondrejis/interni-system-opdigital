@@ -79,7 +79,7 @@ const boss = () =>
   makeUser(app.db, [
     ["zakazky.read", "all"],
     ["zakazky.write", "all"],
-    ["zakazky.economics", "all"],
+    ["zakazky.finance", "all"],
     ["kontakty.read", "all"],
     ["kontakty.write", "all"],
     ["settings.manage", "all"],

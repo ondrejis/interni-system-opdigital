@@ -28,7 +28,6 @@ import {
 import { ChevronLeft, ChevronRight, Coffee, LogIn, LogOut, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { TIME_KINDS, isAbsence } from "./rules";
-import { ClockTerminalWidget } from "./terminal-ui";
 
 type Entry = {
   id: string;
@@ -1051,7 +1050,6 @@ function DochazkaPage({ rest, query }: { rest: string[]; query: Record<string, s
 }
 
 export const ui = defineModuleUi({
-  terminalWidgets: { "dochazka.clock": { Widget: ClockTerminalWidget } },
   pages: [
     { path: "/dochazka", render: ({ rest, query }) => <DochazkaPage rest={rest} query={query} /> },
   ],

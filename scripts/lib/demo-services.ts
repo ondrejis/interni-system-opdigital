@@ -7,7 +7,7 @@ import type { ModuleDeps } from "@rebar/core/module-server";
 import { collectNotificationEvents, configureNotifications } from "@rebar/core/notifications";
 import { createCipher, parseKeyRing } from "@rebar/core/security";
 import { createSettings } from "@rebar/core/settings";
-import type { DemoServices } from "../../clients/demo/seed/kit";
+import type { DemoServices } from "../../clients/opsys/seed/kit";
 import { ALL_MODULES } from "../../apps/web/src/modules";
 import { buildRegistry, collectServers } from "../../apps/web/src/server/modules-server";
 
@@ -53,9 +53,7 @@ export function createDemoServices(o: DemoServiceOptions) {
     cipher,
     baseURL: o.appUrl,
     emit: async () => {},
-    costProviders: collected.costProviders,
     calendarLayers: collected.calendarLayers,
-    diaryPrefill: collected.diaryPrefill,
   };
   const services: DemoServices = {
     db: handle.db,

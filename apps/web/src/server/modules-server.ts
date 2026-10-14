@@ -12,26 +12,17 @@ import type {
   AttentionProvider,
   CalendarLayerProvider,
   CommandDef,
-  CostProvider,
   DashboardMetricDef,
-  DiaryPrefillProvider,
-  JobInvoicingProvider,
   ModuleJob,
   ModuleServer,
   WidgetProvider,
 } from "@rebar/core/module-server";
-import { setJobFinanceProviders } from "@rebar/core/module-server";
-import { coreTerminalCommands } from "@rebar/core/terminal";
 import { registerStageUsageFromEntities, setPipelinePhases } from "@rebar/core/config-data";
 import { PHASE_LIST } from "@rebar/zakazky/phases";
 import { server as dochazka } from "@rebar/dochazka/server";
-import { server as fakturace } from "@rebar/fakturace/server";
 import { server as kalendar } from "@rebar/kalendar/server";
 import { server as kontakty } from "@rebar/kontakty/server";
 import { server as poptavky } from "@rebar/poptavky/server";
-import { server as realizace } from "@rebar/realizace/server";
-import { server as sklad } from "@rebar/sklad/server";
-import { server as stroje } from "@rebar/stroje/server";
 import { server as zakazky } from "@rebar/zakazky/server";
 
 /**
@@ -42,11 +33,7 @@ const SERVERS: Partial<Record<ModuleId, ModuleServer>> = {
   kontakty,
   poptavky,
   zakazky,
-  realizace,
-  fakturace,
   dochazka,
-  sklad,
-  stroje,
   kalendar,
 };
 
@@ -58,16 +45,13 @@ export const COMMAND_PREFIXES: Partial<Record<ModuleId, readonly string[]>> = {
 export type Collected = {
   entities: NonNullable<ModuleServer["entities"]>[number][];
   commands: Map<string, CommandDef>;
-  costProviders: CostProvider[];
   attention: AttentionProvider[];
   widgets: WidgetProvider[];
   dashboardMetrics: DashboardMetricDef[];
   calendarLayers: CalendarLayerProvider[];
-  diaryPrefill: DiaryPrefillProvider[];
   jobs: ModuleJob[];
   phaseHooks: PhaseTransitionHook[];
   deleteBlockers: DeleteBlocker[];
-  jobInvoicing: JobInvoicingProvider[];
   ensure: NonNullable<ModuleServer["ensure"]>[number][];
 };
 
@@ -75,16 +59,13 @@ export function collectServers(modules: readonly ModuleManifest[]): Collected {
   const out: Collected = {
     entities: [],
     commands: new Map(),
-    costProviders: [],
     attention: [],
     widgets: [],
     dashboardMetrics: [],
     calendarLayers: [],
-    diaryPrefill: [],
     jobs: [],
     phaseHooks: [],
     deleteBlockers: [],
-    jobInvoicing: [],
     ensure: [],
   };
   for (const m of modules) {
@@ -97,7 +78,6 @@ export function collectServers(modules: readonly ModuleManifest[]): Collected {
       if (out.commands.has(c.name)) throw new Error(`Příkaz „${c.name}“ je definovaný dvakrát.`);
       out.commands.set(c.name, c);
     }
-    out.costProviders.push(...(s.costProviders ?? []));
     out.attention.push(...(s.attention ?? []));
     out.widgets.push(...(s.widgets ?? []));
     for (const metric of s.dashboardMetrics ?? []) {
@@ -108,18 +88,13 @@ export function collectServers(modules: readonly ModuleManifest[]): Collected {
       out.dashboardMetrics.push(metric);
     }
     out.calendarLayers.push(...(s.calendarLayers ?? []));
-    out.diaryPrefill.push(...(s.diaryPrefill ?? []));
     out.jobs.push(...(s.jobs ?? []));
     out.phaseHooks.push(...(s.phaseHooks ?? []));
     out.deleteBlockers.push(...(s.deleteBlockers ?? []));
-    out.jobInvoicing.push(...(s.jobInvoicing ?? []));
     out.ensure.push(...(s.ensure ?? []));
   }
-  // příkazy platformy pro terminál řemeslníka (úkoly); moduly je nedodávají
-  for (const c of coreTerminalCommands) out.commands.set(c.name, c);
   setPhaseHooks(out.phaseHooks);
   setDeleteBlockers(out.deleteBlockers);
-  setJobFinanceProviders({ costProviders: out.costProviders, invoicing: out.jobInvoicing });
   return out;
 }
 

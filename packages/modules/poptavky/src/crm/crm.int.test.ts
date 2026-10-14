@@ -66,7 +66,7 @@ const boss = () =>
   makeUser(app.db, [
     ["zakazky.read", "all"],
     ["zakazky.write", "all"],
-    ["zakazky.economics", "all"],
+    ["zakazky.finance", "all"],
     ["kontakty.read", "all"],
     ["kontakty.write", "all"],
     ["settings.manage", "all"],
@@ -391,44 +391,6 @@ describe("výhra, prohra, znovuotevření", () => {
     await expect(reopenDeal(u.ctx, j.id, deps())).rejects.toThrow(/už znovu otevřít nejde/);
   });
 
-  it("výhra s odeslanou nabídkou nabídku zamkne a zkopíruje do realizace; takový obchod nejde znovu otevřít jako vyhraný", async () => {
-    const u = await makeUser(app.db, [
-      ["zakazky.read", "all"],
-      ["zakazky.write", "all"],
-      ["zakazky.economics", "all"],
-      ["zakazky.budget", "all"],
-      ["kontakty.read", "all"],
-    ]);
-    const run = (name: string, input: unknown) => {
-      const c = zakazkyServer.commands!.find((x) => x.name === name)!;
-      return c.handler(u.ctx, c.input.parse(input), deps()) as Promise<{ id: string }>;
-    };
-    const j = await mkJob(u, { stage: stage("Jednání").id, address: "Nová 1", manager: u.id });
-    // vstup do nabídky při založení zakládá hook jen u přechodu; verzi založíme ručně
-    const v = await run("zakazky.budget.version.create", { jobId: j.id, kind: "offer" });
-    const sec = await run("zakazky.budget.section.save", { versionId: v.id, title: "Elektro" });
-    await run("zakazky.budget.item.save", {
-      sectionId: sec.id,
-      title: "Montáž",
-      kind: "labour",
-      unit: "h",
-      quantity: "10",
-      unitPriceMinor: 80_000,
-      unitCostMinor: 50_000,
-    });
-    // odeslaná nabídka je podmínka výhry; draft ji blokuje českou větou
-    await expect(winDeal(u.ctx, j.id, deps())).rejects.toThrow(/nebyla odeslána/);
-    await run("zakazky.budget.version.setStatus", { versionId: v.id, status: "sent" });
-    await winDeal(u.ctx, j.id, deps());
-    expect((await raw(j.id)).valueMinor).toBe(800_000);
-    // nabídka je zamčená a zkopírovaná do realizace: vyhraný obchod s rozpočtem znovu otevřít nejde
-    await expect(reopenDeal(u.ctx, j.id, deps())).rejects.toThrow(/rozpočet realizace/);
-    expect((await raw(j.id)).phase).toBe("preparation");
-    // prohra po výhře jde, ale ani prohranou zakázku s rozpočtem realizace znovu otevřít nejde
-    await loseDeal(u.ctx, j.id, { reasonKey: "price" }, deps());
-    await expect(reopenDeal(u.ctx, j.id, deps())).rejects.toThrow(/rozpočet realizace/);
-  });
-
   it("bez oprávnění k zápisu zakázky přechod selže", async () => {
     const u = await boss();
     const reader = await makeUser(app.db, [
@@ -515,9 +477,7 @@ describe("pravidla kvality polí (povinné od stavu)", () => {
       { attr: "value", fromStageId: stage("Obhlídka").id, level: "required" },
     ]);
     const j = await mkJob(u, { value: 0 });
-    await expect(upd(u, j.id, { stage: stage("Obhlídka").id })).rejects.toThrow(
-      /„Původní smluvní cena“/,
-    );
+    await expect(upd(u, j.id, { stage: stage("Obhlídka").id })).rejects.toThrow(/„Hodnota“/);
     await upd(u, j.id, { value: 10_000_00, stage: stage("Obhlídka").id });
   });
 

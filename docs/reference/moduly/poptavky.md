@@ -169,8 +169,8 @@ _Tento registr zatím nemá vlastní sekci v generátoru, zobrazeno obecně._
 | key | label | description | format | shape | permissions | compute | params |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `poptavky.conversion` | `Úspěšnost poptávek` | `Podíl vyhraných poptávek z uzavřených (vyhraných a prohraných), v procentech. Období se vztahuje k datu přijetí poptávky (datum uzavření systém neeviduje). Otevřené poptávky se nepočítají.` | `percent` | `scalar` | `poptavky.read` | funkce |  |
-| `poptavky.pipeline_value` | `Hodnota obchodů` | `Součet cen nabídek otevřených obchodů (poptávka a nabídka, bez archivovaných) v Kč. U poptávky bez rozpočtu je to odhad hodnoty.` | `money` | `scalar` | `zakazky.read`, `zakazky.economics` | funkce | pole (1) |
-| `poptavky.pipeline_weighted` | `Vážená hodnota obchodů` | `Součet cen nabídek otevřených obchodů vynásobených pravděpodobností jejich stavu (nebo ručně zadanou pravděpodobností) v Kč.` | `money` | `scalar` | `zakazky.read`, `zakazky.economics` | funkce | pole (1) |
+| `poptavky.pipeline_value` | `Hodnota obchodů` | `Součet cen nabídek otevřených obchodů (poptávka a nabídka, bez archivovaných) v Kč. U poptávky bez rozpočtu je to odhad hodnoty.` | `money` | `scalar` | `zakazky.read`, `zakazky.finance` | funkce | pole (1) |
+| `poptavky.pipeline_weighted` | `Vážená hodnota obchodů` | `Součet cen nabídek otevřených obchodů vynásobených pravděpodobností jejich stavu (nebo ručně zadanou pravděpodobností) v Kč.` | `money` | `scalar` | `zakazky.read`, `zakazky.finance` | funkce | pole (1) |
 | `poptavky.rotting` | `Zhnilé obchody` | `Počet otevřených obchodů, které se ve stavu nehnuly déle, než dovoluje stav (dny do zhnití), a nemají novou dokončenou aktivitu.` | `number` | `scalar` | `zakazky.read` | funkce | pole (1) |
 | `poptavky.no_next_activity` | `Obchody bez další aktivity` | `Počet otevřených obchodů, které nemají žádnou naplánovanou (nedokončenou) aktivitu. Každý otevřený obchod má mít další krok.` | `number` | `scalar` | `zakazky.read` | funkce | pole (1) |
 

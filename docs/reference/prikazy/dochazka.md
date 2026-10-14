@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (registr příkazů (`ModuleServer.commands`) a jejich Zod schémata). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Příkaz je pojmenovaná akce nebo dotaz volaný z UI (`api.command(name, input)`). Vstup se validuje Zodem, oprávnění hlídá jednotný vstupní bod ([ADR 012](../../adr/012-moduly-prikazy-a-poskytovatele.md)). Modul: [Docházka](../moduly/dochazka.md). Počet příkazů: 17.
+Příkaz je pojmenovaná akce nebo dotaz volaný z UI (`api.command(name, input)`). Vstup se validuje Zodem, oprávnění hlídá jednotný vstupní bod ([ADR 012](../../adr/012-moduly-prikazy-a-poskytovatele.md)). Modul: [Docházka](../moduly/dochazka.md). Počet příkazů: 16.
 
 ### dochazka.approvals
 
@@ -151,15 +151,6 @@ _Bez vstupních polí._
 | Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
 | --- | --- | --- | --- | --- | --- |
 | `weekStart` | datum | ano |  |  |  |
-
-### dochazka.terminal.summary
-
-Přehled odpracovaného času pro dlaždici Docházka v terminálu: dnešek (záznamy se zakázkou a časy) a týden. Jen vlastní záznamy, jen minuty: sazby, náklady ani částky se nevracejí.
-
-- **Oprávnění:** `dochazka.own` (stačí kterékoli)
-- **Definice:** `packages/modules/dochazka/src/terminal.ts`
-
-_Bez vstupních polí._
 
 ### dochazka.week
 

@@ -5,7 +5,7 @@ import type { NextConfig } from "next";
  * Image se staví per klient: `CLIENT=<slug>` vybere složku v `clients/`, ze které se
  * do aplikace vkompiluje konfigurace a rozšíření (ADR 001). Za běhu už se klient nemění.
  */
-const client = process.env.CLIENT ?? "demo";
+const client = process.env.CLIENT ?? "opsys";
 const root = path.resolve(import.meta.dirname, "../..");
 const config = path.join(root, "clients", client, "config.ts");
 const extensions = path.join(root, "clients", client, "extensions", "index.ts");
@@ -25,11 +25,7 @@ const nextConfig: NextConfig = {
     "@rebar/kontakty",
     "@rebar/poptavky",
     "@rebar/zakazky",
-    "@rebar/realizace",
-    "@rebar/fakturace",
     "@rebar/dochazka",
-    "@rebar/sklad",
-    "@rebar/stroje",
     "@rebar/kalendar",
   ],
   outputFileTracingRoot: root,

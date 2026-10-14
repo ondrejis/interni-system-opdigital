@@ -63,7 +63,10 @@ test("pozvánka: majitel pozve, kolega ji přijme a přihlásí se", async ({ pa
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("E-mail").fill(email);
   await dialog.getByRole("button", { name: "Vyberte roli…" }).click();
-  await page.getByRole("option", { name: /Mistr/ }).first().click();
+  await page
+    .getByRole("option", { name: /Partner/ })
+    .first()
+    .click();
   await dialog.getByRole("button", { name: "Odeslat pozvánku" }).click();
   const pending = page.locator("main li").filter({ hasText: email });
   await expect(pending).toBeVisible();

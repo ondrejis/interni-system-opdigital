@@ -60,7 +60,7 @@ Implementace: Better Auth nad vlastní databází (`packages/core/src/auth/`), r
    Náklady z docházky vidí jen `zakazky.economics`. Časová osa zakázky (audit) částky a změny skrytých atributů bez `zakazky.economics` skrývá. Sazby zaměstnanců jen `employees.read`.
    Rozsah „jen moje“ u **docházky**: mistr vidí, zapisuje a schvaluje docházku jen svého týmu (sebe a lidi, kteří zapsali hodiny na jeho zakázky); cizí člověk se tváří jako neexistující. Vlastní pole nemají oprávnění per pole, proto do nich nepatří peníze zakázek.
 5. **Vypnutý modul.** Oprávnění mimo katalog zapnutých modulů se při načtení aktéra zahodí; systémová role majitele dostane všechna oprávnění katalogu.
-6. **Hlídání v testech.** Testy oprávnění pro jednotlivé role běží proti skutečné databázi v každém modulu (`*.int.test.ts`, např. „montér nevidí faktury“, „montér nevidí cizí výkazy“, `tests/detail-zakazky.int.test.ts`);
+6. **Hlídání v testech.** Testy oprávnění pro jednotlivé role běží proti skutečné databázi v každém modulu (`*.int.test.ts`, např. „montér nevidí faktury“, „montér nevidí cizí výkazy“, `tests/security-matrix.int.test.ts`);
    `apps/web/src/server/command-gate.ts` má oprávnění příkazů samostatně testovatelné; `tests/guards.test.ts` hlídá, že jádro neobsahuje klientskou logiku.
    Hlavní jištění je `tests/security-matrix.int.test.ts` (podrobně [security-notes.md](security-notes.md) §3): **každý registrovaný příkaz musí mít probe**, jinak test padá; příkazy se spouštějí pro role `owner`, `office`,
    `foreman`, `worker` nad vlastní i cizí zakázkou a odpovědi se skenují na peněžní částky; každá entita × role (čtení, úprava, vytvoření, smazání, obnovení). Dále `tests/public-surface.int.test.ts` (interní název a ceny ve veřejných výstupech),

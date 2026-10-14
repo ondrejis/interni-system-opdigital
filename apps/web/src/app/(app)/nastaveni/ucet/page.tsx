@@ -8,7 +8,7 @@ export const metadata = { title: "Můj účet" };
 
 /** Můj účet: profil, změna hesla, přihlášená zařízení a odkaz na dvoufázové ověření. Dostupné každému přihlášenému. */
 export default async function MyAccountPage() {
-  const ctx = await requireCtx({ allowTerminalOnly: true });
+  const ctx = await requireCtx();
   const [account, sid] = await Promise.all([getAccount(ctx), currentSessionId()]);
   const sessions = await listOwnSessions(ctx, sid);
   return (

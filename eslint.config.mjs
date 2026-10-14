@@ -5,17 +5,16 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 import docsPlugin from "./scripts/docs/eslint-plugin.mjs";
 
-const MODULES = [
-  "kontakty",
-  "poptavky",
-  "zakazky",
-  "realizace",
-  "fakturace",
-  "dochazka",
-  "sklad",
-  "stroje",
-  "kalendar",
-];
+// Moduly se zjišťují ze složky packages/modules (smazání modulu nesmí shodit lint).
+const MODULES = fs
+  .readdirSync(new URL("./packages/modules/", import.meta.url), { withFileTypes: true })
+  .filter(
+    (d) =>
+      d.isDirectory() &&
+      fs.existsSync(new URL(`./packages/modules/${d.name}/package.json`, import.meta.url)),
+  )
+  .map((d) => d.name)
+  .sort();
 
 // Modul smí importovat jen moduly, na kterých výslovně závisí (dependencies v package.json = dependsOn v manifestu; hlídá test).
 const moduleDeps = (m) =>

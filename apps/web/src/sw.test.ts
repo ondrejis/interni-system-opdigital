@@ -233,7 +233,7 @@ describe("service worker: klepnutí na upozornění", () => {
 
   it("akce Odložit jen pošle požadavek a nic neotevírá", async () => {
     const t = setup();
-    const n = notification({ url: "/stroje", nid: "0191a000-0000-7000-8000-000000000002" });
+    const n = notification({ url: "/kalendar", nid: "0191a000-0000-7000-8000-000000000002" });
     await t.dispatch("notificationclick", { notification: n, action: "snooze" });
     expect(n.close).toHaveBeenCalled();
     expect(t.opened).toEqual([]);
@@ -280,9 +280,10 @@ describe("service worker: obnova odběru", () => {
   });
 });
 
-describe("service worker: terminál zůstal nedotčený", () => {
-  it("část pro offline stránku terminálu je v souboru dál a push nepřepisuje navigace mimo /t", () => {
-    expect(source).toContain("TERMINAL_OFFLINE_CACHE");
-    expect(source).toContain('pathname !== "/t"');
+describe("service worker: bez terminálu řemeslníka", () => {
+  it("nepřepisuje navigace a jen uklízí staré offline cache terminálu", () => {
+    expect(source).not.toContain("TERMINAL_OFFLINE_URL");
+    expect(source).not.toContain('pathname !== "/t"');
+    expect(source).toContain('k.startsWith("terminal-offline-")');
   });
 });

@@ -54,9 +54,6 @@ importers:
       '@rebar/dochazka':
         specifier: workspace:*
         version: link:../../packages/modules/dochazka
-      '@rebar/fakturace':
-        specifier: workspace:*
-        version: link:../../packages/modules/fakturace
       '@rebar/kalendar':
         specifier: workspace:*
         version: link:../../packages/modules/kalendar
@@ -66,15 +63,6 @@ importers:
       '@rebar/poptavky':
         specifier: workspace:*
         version: link:../../packages/modules/poptavky
-      '@rebar/realizace':
-        specifier: workspace:*
-        version: link:../../packages/modules/realizace
-      '@rebar/sklad':
-        specifier: workspace:*
-        version: link:../../packages/modules/sklad
-      '@rebar/stroje':
-        specifier: workspace:*
-        version: link:../../packages/modules/stroje
       '@rebar/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -146,7 +134,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/core
 
-  clients/demo:
+  clients/opsys:
     dependencies:
       '@rebar/core':
         specifier: workspace:*
@@ -224,46 +212,6 @@ importers:
       '@rebar/ui':
         specifier: workspace:*
         version: link:../../ui
-      drizzle-orm:
-        specifier: ^0.45.3
-        version: 0.45.3(@opentelemetry/api@1.9.1)(kysely@0.29.6)(pg@8.23.1)(postgres@3.4.9)
-      lucide-react:
-        specifier: ^1.53.0
-        version: 1.53.0(@types/react@19.3.0)(react@19.3.0)
-      react:
-        specifier: ^19.3.0
-        version: 19.3.0
-      zod:
-        specifier: ^4.6.5
-        version: 4.6.5
-    devDependencies:
-      '@types/node':
-        specifier: ^24.0.0
-        version: 24.19.1
-      '@types/react':
-        specifier: ^19.3.0
-        version: 19.3.0
-      drizzle-kit:
-        specifier: ^0.31.11
-        version: 0.31.11
-      vitest:
-        specifier: ^5.0.3
-        version: 5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.19.1)(vite@8.3.3(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
-
-  packages/modules/fakturace:
-    dependencies:
-      '@rebar/core':
-        specifier: workspace:*
-        version: link:../../core
-      '@rebar/kontakty':
-        specifier: workspace:*
-        version: link:../kontakty
-      '@rebar/ui':
-        specifier: workspace:*
-        version: link:../../ui
-      '@rebar/zakazky':
-        specifier: workspace:*
-        version: link:../zakazky
       drizzle-orm:
         specifier: ^0.45.3
         version: 0.45.3(@opentelemetry/api@1.9.1)(kysely@0.29.6)(pg@8.23.1)(postgres@3.4.9)
@@ -372,114 +320,6 @@ importers:
       drizzle-orm:
         specifier: ^0.45.3
         version: 0.45.3(@opentelemetry/api@1.9.1)(kysely@0.29.6)(pg@8.23.1)(postgres@3.4.9)
-      react:
-        specifier: ^19.3.0
-        version: 19.3.0
-      zod:
-        specifier: ^4.6.5
-        version: 4.6.5
-    devDependencies:
-      '@types/node':
-        specifier: ^24.0.0
-        version: 24.19.1
-      '@types/react':
-        specifier: ^19.3.0
-        version: 19.3.0
-      drizzle-kit:
-        specifier: ^0.31.11
-        version: 0.31.11
-      vitest:
-        specifier: ^5.0.3
-        version: 5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.19.1)(vite@8.3.3(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
-
-  packages/modules/realizace:
-    dependencies:
-      '@rebar/core':
-        specifier: workspace:*
-        version: link:../../core
-      '@rebar/ui':
-        specifier: workspace:*
-        version: link:../../ui
-      '@rebar/zakazky':
-        specifier: workspace:*
-        version: link:../zakazky
-      drizzle-orm:
-        specifier: ^0.45.3
-        version: 0.45.3(@opentelemetry/api@1.9.1)(kysely@0.29.6)(pg@8.23.1)(postgres@3.4.9)
-      lucide-react:
-        specifier: ^1.53.0
-        version: 1.53.0(@types/react@19.3.0)(react@19.3.0)
-      react:
-        specifier: ^19.3.0
-        version: 19.3.0
-      zod:
-        specifier: ^4.6.5
-        version: 4.6.5
-    devDependencies:
-      '@types/node':
-        specifier: ^24.0.0
-        version: 24.19.1
-      '@types/react':
-        specifier: ^19.3.0
-        version: 19.3.0
-      drizzle-kit:
-        specifier: ^0.31.11
-        version: 0.31.11
-      vitest:
-        specifier: ^5.0.3
-        version: 5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.19.1)(vite@8.3.3(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
-
-  packages/modules/sklad:
-    dependencies:
-      '@rebar/core':
-        specifier: workspace:*
-        version: link:../../core
-      '@rebar/kontakty':
-        specifier: workspace:*
-        version: link:../kontakty
-      '@rebar/ui':
-        specifier: workspace:*
-        version: link:../../ui
-      drizzle-orm:
-        specifier: ^0.45.3
-        version: 0.45.3(@opentelemetry/api@1.9.1)(kysely@0.29.6)(pg@8.23.1)(postgres@3.4.9)
-      lucide-react:
-        specifier: ^1.53.0
-        version: 1.53.0(@types/react@19.3.0)(react@19.3.0)
-      react:
-        specifier: ^19.3.0
-        version: 19.3.0
-      zod:
-        specifier: ^4.6.5
-        version: 4.6.5
-    devDependencies:
-      '@types/node':
-        specifier: ^24.0.0
-        version: 24.19.1
-      '@types/react':
-        specifier: ^19.3.0
-        version: 19.3.0
-      drizzle-kit:
-        specifier: ^0.31.11
-        version: 0.31.11
-      vitest:
-        specifier: ^5.0.3
-        version: 5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.19.1)(vite@8.3.3(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
-
-  packages/modules/stroje:
-    dependencies:
-      '@rebar/core':
-        specifier: workspace:*
-        version: link:../../core
-      '@rebar/ui':
-        specifier: workspace:*
-        version: link:../../ui
-      drizzle-orm:
-        specifier: ^0.45.3
-        version: 0.45.3(@opentelemetry/api@1.9.1)(kysely@0.29.6)(pg@8.23.1)(postgres@3.4.9)
-      lucide-react:
-        specifier: ^1.53.0
-        version: 1.53.0(@types/react@19.3.0)(react@19.3.0)
       react:
         specifier: ^19.3.0
         version: 19.3.0
@@ -609,9 +449,6 @@ importers:
       '@rebar/dochazka':
         specifier: workspace:*
         version: link:../packages/modules/dochazka
-      '@rebar/fakturace':
-        specifier: workspace:*
-        version: link:../packages/modules/fakturace
       '@rebar/kalendar':
         specifier: workspace:*
         version: link:../packages/modules/kalendar
@@ -621,15 +458,6 @@ importers:
       '@rebar/poptavky':
         specifier: workspace:*
         version: link:../packages/modules/poptavky
-      '@rebar/realizace':
-        specifier: workspace:*
-        version: link:../packages/modules/realizace
-      '@rebar/sklad':
-        specifier: workspace:*
-        version: link:../packages/modules/sklad
-      '@rebar/stroje':
-        specifier: workspace:*
-        version: link:../packages/modules/stroje
       '@rebar/zakazky':
         specifier: workspace:*
         version: link:../packages/modules/zakazky

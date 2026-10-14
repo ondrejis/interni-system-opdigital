@@ -6,23 +6,25 @@ import { getPipeline } from "@rebar/core/config-data";
 import { createDb, type DbHandle } from "@rebar/core/db";
 import { queryGroups, queryRecords, resolveEntity, searchAll } from "@rebar/core/entities";
 import { aggregateRecords } from "@rebar/core/entities";
-import { evaluateWidget, standardDashboards, type DashboardEnv } from "@rebar/core/dashboards";
+import { evaluateWidget, type DashboardEnv } from "@rebar/core/dashboards";
 import { prepareEntityExport } from "@rebar/core/export";
 import { coreJobs } from "@rebar/core/jobs";
 import { migrationSources, runMigrations } from "@rebar/core/migrations";
 import type { ModuleDeps } from "@rebar/core/module-server";
 import { createCtx, loadActor, type Ctx } from "@rebar/core/rbac";
-import { DEFAULT_ROLES, runSeed } from "@rebar/core/seed";
+import { runSeed } from "@rebar/core/seed";
 import { createCipher, parseKeyRing } from "@rebar/core/security";
 import { createSettings } from "@rebar/core/settings";
 import { ALL_MODULES } from "../apps/web/src/modules";
 import { buildRegistry, collectServers } from "../apps/web/src/server/modules-server";
+import opsysSeed from "../clients/opsys/seed/index";
+import { opsysDashboards } from "../clients/opsys/dashboards";
 
 /**
  * Měření výkonu na syntetických datech (zadání §8: seznam 50 řádků do 1 s, cíl stroj 1 vCPU / 4 GB).
  *
  *   pnpm perf:check                      vytvoří databázi `rebar_perf`, nasype data (20 000 zakázek, 50 000 firem a osob,
- *                                        100 000 řádků docházky a nákladů), změří serverové latence a vypíše p50/p95
+ *                                        100 000 řádků docházky), změří serverové latence a vypíše p50/p95
  *   pnpm perf:check --reset              databázi zahodí a nasype znovu
  *   pnpm perf:check --explain            navíc EXPLAIN ANALYZE dotazů, které trvají déle než 5 ms (sekvenční čtení velkých tabulek)
  *   pnpm perf:check --queries            vypíše dotazy jednotlivých měření (hledání N+1)
@@ -43,7 +45,7 @@ const flag = (k: string) => args.has(k) && args.get(k) !== "false";
 const RUNS = Number(args.get("runs") ?? 15);
 const SCALE = Number(args.get("scale") ?? 1);
 const DB_NAME = process.env.PERF_DB_NAME ?? "rebar_perf";
-const HOST = process.env.PERF_DB_HOST ?? "localhost:5433";
+const HOST = process.env.PERF_DB_HOST ?? `localhost:${process.env.REBAR_PG_PORT ?? 5434}`;
 const ADMIN_URL = process.env.PERF_ADMIN_URL ?? `postgres://postgres@${HOST}/postgres`;
 const MIGRATE_URL =
   process.env.PERF_MIGRATE_URL ?? `postgres://rebar_migrator:migrator@${HOST}/${DB_NAME}`;
@@ -101,7 +103,7 @@ async function seedBulk(modules: ReturnType<typeof resolveModules>, handle: DbHa
   const catalog = new Set(collectPermissions(modules).map((p) => p.key));
   await runSeed(
     db,
-    { roles: DEFAULT_ROLES },
+    { roles: opsysSeed.roles },
     {
       config: { security: { require2faRoles: [], idleTimeoutMinutes: 480 } } as never,
       catalog,
@@ -126,13 +128,13 @@ async function seedBulk(modules: ReturnType<typeof resolveModules>, handle: DbHa
       const [role] = await m`select id from role where key = 'owner'`;
       await m`insert into "user" (id, name, email, role_id) values (gen_random_uuid(), 'Majitel (měření)', 'owner@perf.test', ${role!.id})`;
     }
-    const [foreman] = await m`select id from role where key = 'foreman'`;
-    const [worker] = await m`select id from role where key = 'worker'`;
+    const [partner] = await m`select id from role where key = 'partner'`;
+    const [externista] = await m`select id from role where key = 'externista'`;
     await step(
       "uživatelé",
       () =>
         m`insert into "user" (id, name, email, role_id)
-        select gen_random_uuid(), 'Pracovník ' || g, 'p' || g || '@perf.test', case when g % 5 = 0 then ${foreman!.id}::uuid else ${worker!.id}::uuid end
+        select gen_random_uuid(), 'Pracovník ' || g, 'p' || g || '@perf.test', case when g % 5 = 0 then ${partner!.id}::uuid else ${externista!.id}::uuid end
         from generate_series(1, 50) g on conflict do nothing`,
     );
     await m`create temp table pu as select id, row_number() over (order by email) rn from "user" where email like 'p%@perf.test'`;
@@ -140,13 +142,12 @@ async function seedBulk(modules: ReturnType<typeof resolveModules>, handle: DbHa
     await step(
       `firmy (${n(30_000)})`,
       () =>
-        m`insert into company (id, name, ico, city, email, roles)
+        m`insert into company (id, name, ico, city, email)
         select gen_random_uuid(),
           'Firma ' || (array['Novák','Svoboda','Dvořák','Černý','Procházka','Šimůnek','Žák'])[1 + g % 7] || ' ' || g || ' s.r.o.',
           lpad((10000000 + g)::text, 8, '0'),
           (array['Plzeň','Praha','Brno','Ostrava','České Budějovice'])[1 + g % 5],
-          'info' || g || '@firma.example',
-          case when g % 6 = 0 then '{supplier}'::text[] else '{client}'::text[] end
+          'info' || g || '@firma.example'
         from generate_series(1, ${n(30_000)}) g on conflict do nothing`,
     );
     await m`create temp table pc as select id, row_number() over (order by id) rn from company`;
@@ -170,13 +171,11 @@ async function seedBulk(modules: ReturnType<typeof resolveModules>, handle: DbHa
     await step(
       `zakázky (${n(20_000)})`,
       () =>
-        m`insert into job (id, number, title, company_id, stage_id, phase, value_minor, sum_contract_minor, sum_planned_cost_minor, sum_cost_minor,
-          sum_invoiced_minor, sum_paid_minor, sum_margin_pct, sum_drawdown_pct, sum_health, address, start_date, end_date, manager_id)
+        m`insert into job (id, number, title, company_id, stage_id, phase, value_minor, address, start_date, end_date, manager_id)
         select gen_random_uuid(), 'Z-' || lpad(g::text, 6, '0'),
-          (array['Rekonstrukce koupelny','Novostavba rodinného domu','Střecha - výměna krytiny','Elektroinstalace hala','Fasáda a zateplení','Půdní vestavba'])[1 + g % 6] || ' ' || g,
+          (array['Nový web','Správa Meta reklam','Systém na míru','Automatizace Make','Redesign e-shopu','AI chatbot'])[1 + g % 6] || ' ' || g,
           pc.id, ps.id, (array['inquiry','offer','preparation','execution','execution','handover','warranty','closed'])[1 + g % 8],
-          (500000 + g * 137) * 100, (500000 + g * 137) * 100, (400000 + g * 97) * 100, (g % 400000) * 100, (g % 300000) * 100, (g % 250000) * 100,
-          round((g % 40)::numeric, 1), round((g % 120)::numeric, 1), (array['ok','warning','danger'])[1 + g % 3],
+          (50000 + g * 137) * 100,
           (array['Plzeň','Praha','Brno'])[1 + g % 3] || ', Hlavní ' || g, date '2026-01-01' + (g % 300), date '2026-06-01' + (g % 300), pu.id
         from generate_series(1, ${n(20_000)}) g
           join pc on pc.rn = 1 + (g * 7) % ${companies}
@@ -193,29 +192,6 @@ async function seedBulk(modules: ReturnType<typeof resolveModules>, handle: DbHa
         select pj.id, pu.id from pj join pu on pu.rn in (1 + pj.rn % 50, 1 + (pj.rn + 17) % 50) on conflict do nothing`,
     );
 
-    // rozpočty: 300 zakázek po 20 položkách a jedna velká zakázka (č. 1) s 1 000 položkami v 10 oddílech
-    await step("rozpočty (300 zakázek + velká zakázka s 1 000 položkami)", async () => {
-      await m`create temp table bv as select pj.id as job_id, gen_random_uuid() as version_id, gen_random_uuid() as object_id, pj.rn
-        from pj where pj.rn <= 300`;
-      await m`insert into budget_version (id, job_id, kind, number, status) select version_id, job_id, 'realization', 1, 'draft' from bv`;
-      await m`insert into budget_object (id, version_id, title, is_default) select object_id, version_id, 'Celá zakázka', true from bv`;
-      await m`create temp table bs as select bv.version_id, bv.object_id, gen_random_uuid() as section_id, s, bv.rn
-        from bv, generate_series(1, case when bv.rn = 1 then 10 else 5 end) s`;
-      await m`insert into budget_section (id, version_id, object_id, title, position) select section_id, version_id, object_id, 'Oddíl ' || s, s from bs`;
-      await m`insert into budget_item (id, version_id, section_id, position, title, quantity, unit_cost_minor, unit_price_minor)
-        select gen_random_uuid(), bs.version_id, bs.section_id, i, 'Položka ' || bs.s || '/' || i, (1 + i % 9)::numeric, (1000 + i * 13) * 100, (1500 + i * 17) * 100
-        from bs, generate_series(1, case when bs.rn = 1 then 100 else 4 end) i`;
-    });
-
-    await step(
-      `náklady (${n(50_000)} + 2 000 na velké zakázce)`,
-      () =>
-        m`insert into job_cost (id, job_id, date, category, title, amount_minor)
-        select gen_random_uuid(), case when g <= 2000 then (select id from pj where rn = 1) else pj.id end, date '2026-01-01' + (g % 280),
-          (array['material','labour','subcontract','machines'])[1 + g % 4], 'Náklad ' || g, (100 + g % 5000) * 100
-        from generate_series(1, ${n(50_000) + 2000}) g left join pj on pj.rn = 1 + g % ${jobs}`,
-    );
-
     await step(
       `docházka (${n(100_000)})`,
       () =>
@@ -223,26 +199,6 @@ async function seedBulk(modules: ReturnType<typeof resolveModules>, handle: DbHa
         select gen_random_uuid(), pu.id, date '2026-01-01' + (g % 280), 'work', 240 + (g % 5) * 60, pj.id,
           (array['approved','approved','approved','submitted','draft'])[1 + g % 5], 35000
         from generate_series(1, ${n(100_000)}) g join pu on pu.rn = 1 + g % 50 join pj on pj.rn = 1 + (g * 3) % ${jobs}`,
-    );
-
-    await step(`faktury vydané (${n(20_000)}) a přijaté (${n(10_000)})`, async () => {
-      await m`insert into invoice (id, title, kind, state, company_id, job_id, number, net_minor, vat_minor, gross_minor, paid_minor, issue_date, due_date)
-        select gen_random_uuid(), 'Faktura ' || g, 'standard', (array['draft','issued','paid'])[1 + g % 3], pc.id, pj.id, 'FV' || lpad(g::text, 7, '0'),
-          (10000 + g % 90000) * 100, (2100 + g % 18900) * 100, (12100 + g % 108900) * 100, 0, date '2026-01-01' + (g % 280), date '2026-02-01' + (g % 280)
-        from generate_series(1, ${n(20_000)}) g join pc on pc.rn = 1 + g % ${companies} join pj on pj.rn = 1 + g % ${jobs}`;
-      await m`insert into received_invoice (id, number, supplier_id, job_id, net_minor, vat_minor, gross_minor, state, issue_date, due_date)
-        select gen_random_uuid(), 'PF' || lpad(g::text, 7, '0'), pc.id, pj.id, (5000 + g % 50000) * 100, (1050 + g % 10500) * 100, (6050 + g % 60500) * 100,
-          (array['draft','approved','paid'])[1 + g % 3], date '2026-01-01' + (g % 280), date '2026-02-01' + (g % 280)
-        from generate_series(1, ${n(10_000)}) g join pc on pc.rn = 1 + g % ${companies} join pj on pj.rn = 1 + g % ${jobs}`;
-    });
-
-    await step(
-      "sklad (5 000 karet)",
-      () =>
-        m`insert into stock_item (id, code, name, unit, category, last_price_minor, avg_cost, total_qty, min_qty)
-        select gen_random_uuid(), 'K' || lpad(g::text, 6, '0'), (array['Kabel CYKY','Vodič','Jistič','Zásuvka','Šroub','Hmoždinka'])[1 + g % 6] || ' ' || g, 'ks',
-          (array['Elektro','Voda','Spojovací'])[1 + g % 3], (50 + g % 900) * 100, ((50 + g % 900) * 100)::numeric, (g % 200)::numeric, 10
-        from generate_series(1, 5000) g`,
     );
 
     await step("upozornění (20 000) a auditní stopa (100 000)", async () => {
@@ -287,7 +243,7 @@ const pct = (sorted: number[], p: number) =>
   sorted[Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1)]!;
 
 async function main() {
-  const slug = process.env.CLIENT ?? "demo";
+  const slug = process.env.CLIENT ?? "opsys";
   let modules = resolveModules(
     (
       (await import(
@@ -335,9 +291,7 @@ async function main() {
     cipher,
     baseURL: "http://localhost",
     emit: async () => {},
-    costProviders: collected.costProviders,
     calendarLayers: collected.calendarLayers,
-    diaryPrefill: collected.diaryPrefill,
   } as ModuleDeps;
 
   const [owner] = await client<
@@ -345,21 +299,18 @@ async function main() {
   >`select u.id from "user" u join role r on r.id = u.role_id where r.key = 'owner' and u.active limit 1`;
   if (!owner) throw new Error("V databázi není žádný majitel.");
   const ownerCtx = createCtx(db, (await loadActor(db, owner.id, { catalog }))!);
-  const [fm] = await client<
+  const [ex] = await client<
     { id: string }[]
-  >`select u.id from "user" u join role r on r.id = u.role_id where r.key = 'foreman' and u.active limit 1`;
-  const foremanCtx: Ctx | null = fm
-    ? createCtx(db, (await loadActor(db, fm.id, { catalog }))!)
+  >`select u.id from "user" u join role r on r.id = u.role_id where r.key = 'externista' and u.active limit 1`;
+  const externistaCtx: Ctx | null = ex
+    ? createCtx(db, (await loadActor(db, ex.id, { catalog }))!)
     : null;
 
   const ent = async (key: string) => resolveEntity(db, registry.get(key)!);
   const job = await ent("job");
   const company = await ent("company");
   const person = await ent("person");
-  const invoice = registry.get("invoice") ? await ent("invoice") : null;
   const timeEntry = registry.get("time_entry") ? await ent("time_entry") : null;
-  const bigJob = (await client<{ id: string }[]>`select id from job order by number limit 1`)[0]!
-    .id;
   const stage = (await getPipeline(db, "job", "default"))?.stages[0];
   const cmd = (name: string, ctx: Ctx, input: unknown) => {
     const c = collected.commands.get(name);
@@ -384,7 +335,7 @@ async function main() {
       fn: () => queryRecords(ownerCtx, registry, job, { limit: 50 }),
     },
     {
-      name: "zakázky: filtr fáze + řazení podle nákladů",
+      name: "zakázky: filtr fáze + řazení podle hodnoty",
       budget: L,
       maxQueries: 6,
       fn: () =>
@@ -394,14 +345,14 @@ async function main() {
             op: "and",
             conditions: [{ attr: "phase", op: "is", value: "execution" }],
           } as never,
-          sort: [{ attr: "sumCost", dir: "desc" }],
+          sort: [{ attr: "value", dir: "desc" }],
         }),
     },
     {
-      name: "zakázky: hledání bez diakritiky („rekonstrukce koupelny“)",
+      name: "zakázky: hledání bez diakritiky („sprava meta reklam“)",
       budget: L,
       maxQueries: 6,
-      fn: () => queryRecords(ownerCtx, registry, job, { limit: 50, q: "rekonstrukce koupelny 1" }),
+      fn: () => queryRecords(ownerCtx, registry, job, { limit: 50, q: "sprava meta reklam 1" }),
     },
     {
       name: "zakázky: seskupení podle stavu se součty",
@@ -409,13 +360,13 @@ async function main() {
       maxQueries: 3,
       fn: () => queryGroups(ownerCtx, job, "stage", {}),
     },
-    ...(foremanCtx
+    ...(externistaCtx
       ? [
           {
-            name: "zakázky: seznam mistra (rozsah „jen moje“)",
+            name: "zakázky: seznam externisty (rozsah „jen moje“)",
             budget: L,
             maxQueries: 6,
-            fn: () => queryRecords(foremanCtx, registry, job, { limit: 50 }),
+            fn: () => queryRecords(externistaCtx, registry, job, { limit: 50 }),
           } as Case,
         ]
       : []),
@@ -437,16 +388,6 @@ async function main() {
       maxQueries: 6,
       fn: () => queryRecords(ownerCtx, registry, person, { limit: 50 }),
     },
-    ...(invoice
-      ? [
-          {
-            name: "faktury: seznam 50 řádků + součty",
-            budget: L,
-            maxQueries: 6,
-            fn: () => queryRecords(ownerCtx, registry, invoice, { limit: 50 }),
-          } as Case,
-        ]
-      : []),
     ...(timeEntry
       ? [
           {
@@ -458,36 +399,18 @@ async function main() {
         ]
       : []),
     {
-      name: "velká zakázka: souhrn (ekonomika)",
-      budget: D,
-      maxQueries: 20,
-      fn: () => cmd("zakazky.summary", ownerCtx, { jobId: bigJob }),
-    },
-    {
-      name: "velká zakázka: strom rozpočtu (1 000 položek)",
-      budget: D,
-      maxQueries: 12,
-      fn: () => cmd("zakazky.budget.tree", ownerCtx, { jobId: bigJob }),
-    },
-    {
-      name: "velká zakázka: náklady (2 000 řádků)",
-      budget: D,
-      maxQueries: 15,
-      fn: () => cmd("zakazky.costs.list", ownerCtx, { jobId: bigJob }),
-    },
-    {
       name: "přehled (pozornost + dlaždice), majitel",
       budget: 800,
       maxQueries: 60,
       fn: () => dashboard(ownerCtx),
     },
-    ...(foremanCtx
+    ...(externistaCtx
       ? [
           {
-            name: "přehled (pozornost + dlaždice), mistr",
+            name: "přehled (pozornost + dlaždice), externista",
             budget: 800,
             maxQueries: 60,
-            fn: () => dashboard(foremanCtx),
+            fn: () => dashboard(externistaCtx),
           } as Case,
         ]
       : []),
@@ -499,13 +422,13 @@ async function main() {
         aggregateRecords(ownerCtx, registry, job, { fn: "count", groupBy: { attr: "stage" } }),
     },
     {
-      name: "nástěnka: součet smluvních cen po měsících",
+      name: "nástěnka: součet hodnot zakázek po měsících",
       budget: L,
       maxQueries: 6,
       fn: () =>
         aggregateRecords(ownerCtx, registry, job, {
           fn: "sum",
-          attr: "sumContract",
+          attr: "value",
           groupBy: { attr: "startDate", bucket: "month" },
         }),
     },
@@ -520,9 +443,7 @@ async function main() {
           metrics: new Map(collected.dashboardMetrics.map((m) => [m.key, m])),
           cacheTtlMs: 0,
         };
-        const set = standardDashboards(ALL_MODULES.map((m) => m.id)).find(
-          (d) => d.role === "owner",
-        );
+        const set = opsysDashboards().find((d) => d.role === "owner");
         await Promise.all(
           (set?.definition.widgets ?? []).map((w) =>
             evaluateWidget(ownerCtx, env, w, { period: "this_month" }),

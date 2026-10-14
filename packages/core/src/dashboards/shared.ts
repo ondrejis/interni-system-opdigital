@@ -17,4 +17,3 @@ export {
 export { formatValue, formatCompact, deltaOf, COMPARE_LABELS } from "./format";
 export { seedDashboard } from "./seed";
 export type { DashboardSeedInput, DashboardSeed, SeedWidget } from "./seed";
-export { standardDashboards } from "./defaults";

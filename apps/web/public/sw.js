@@ -167,49 +167,16 @@ function urlBase64ToBytes(base64url) {
   return out;
 }
 
-/* ===========================================================================================================
-   Terminál řemeslníka, offline: když se terminál otevírá bez spojení, ukáže se místo chyby prohlížeče stránka
-   „Jste offline“ (public/t-offline.html). Nekešuje se nic s daty uživatele, jen tato jedna veřejná statická stránka.
-   Zápisy z terminálu čekají ve frontě v zařízení (IndexedDB) a odesílá je aplikace sama, viz docs/TERMINAL.md.
-   Tento blok je oddělený od části souboru s push upozorněními a nesahá do ní.
-   =========================================================================================================== */
-const TERMINAL_OFFLINE_CACHE = "terminal-offline-v1";
-const TERMINAL_OFFLINE_URL = "/t-offline.html";
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(TERMINAL_OFFLINE_CACHE)
-      .then((cache) => cache.add(TERMINAL_OFFLINE_URL))
-      .catch(() => {}),
-  );
-});
-
+/* Úklid po odstraněném terminálu řemeslníka: staré offline cache se při aktivaci smažou. */
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
       .then((keys) =>
         Promise.all(
-          keys
-            .filter((k) => k.startsWith("terminal-offline-") && k !== TERMINAL_OFFLINE_CACHE)
-            .map((k) => caches.delete(k)),
+          keys.filter((k) => k.startsWith("terminal-offline-")).map((k) => caches.delete(k)),
         ),
       )
       .catch(() => {}),
-  );
-});
-
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  if (req.mode !== "navigate") return;
-  const { pathname } = new URL(req.url);
-  if (pathname !== "/t" && !pathname.startsWith("/t/")) return;
-  event.respondWith(
-    fetch(req).catch(() =>
-      caches
-        .match(TERMINAL_OFFLINE_URL)
-        .then((hit) => hit || new Response("Jste offline.", { status: 503 })),
-    ),
   );
 });

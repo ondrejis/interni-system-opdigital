@@ -1,6 +1,4 @@
 import { randomBytes } from "node:crypto";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ensureLookup, ensurePipeline, getPipeline } from "@rebar/core/config-data";
@@ -60,7 +58,7 @@ const boss = () =>
   makeUser(app.db, [
     ["zakazky.read", "all"],
     ["zakazky.write", "all"],
-    ["zakazky.economics", "all"],
+    ["zakazky.finance", "all"],
     ["kontakty.read", "all"],
     ["kontakty.write", "all"],
   ]);
@@ -343,7 +341,7 @@ describe("hooky přechodu z jiných oblastí", () => {
 });
 
 describe("oprávnění a viditelnost sloupců", () => {
-  it("bez zakazky.economics nejsou v popisu, řádcích, součtech, filtrech ani zápisu ceny a marže", async () => {
+  it("bez zakazky.finance nejsou v popisu, řádcích, součtech, filtrech ani zápisu hodnoty zakázky", async () => {
     const u = await boss();
     const j = await mkJob(u, { value: 90_000_00 });
     const worker = await makeUser(app.db, [
@@ -354,13 +352,10 @@ describe("oprávnění a viditelnost sloupců", () => {
     const d = await describeEntity(worker.ctx, app.db, jobE, registry);
     const keys = d.attributes.map((a) => a.key);
     expect(keys).toContain("phase");
-    expect(keys).toContain("sumHealth");
-    for (const k of ["value", "sumContract", "sumCost", "sumMarginPct", "sumDrawdownPct"])
-      expect(keys).not.toContain(k);
+    expect(keys).not.toContain("value");
 
     const { row } = await getRecord(worker.ctx, registry, jobE, j.id);
     expect(row).not.toHaveProperty("value");
-    expect(row).not.toHaveProperty("sumContract");
     const page = await queryRecords(worker.ctx, registry, jobE, {
       filters: { op: "and", conditions: [{ attr: "title", op: "equals", value: String(j.title) }] },
     });
@@ -371,7 +366,7 @@ describe("oprávnění a viditelnost sloupců", () => {
       }),
     ).rejects.toThrow(/nejde filtrovat/);
     await expect(
-      queryRecords(worker.ctx, registry, jobE, { sort: [{ attr: "sumContract", dir: "asc" }] }),
+      queryRecords(worker.ctx, registry, jobE, { sort: [{ attr: "value", dir: "asc" }] }),
     ).rejects.toThrow();
     await expect(updateRecord(worker.ctx, registry, jobE, j.id, { value: 1 })).rejects.toThrow(
       /Neznámý atribut/,
@@ -379,39 +374,26 @@ describe("oprávnění a viditelnost sloupců", () => {
     // majitel ceny vidí
     expect((await getRecord(u.ctx, registry, jobE, j.id)).row.value).toBe(90_000_00);
   });
-
-  it("retentionBp se ukládá v setinách procenta a sloupce marže jsou čísla", async () => {
-    const u = await boss();
-    const j = await mkJob(u, { retentionBp: 500, siteLat: 49.7475, siteLng: 13.3776 });
-    expect(j.retentionBp).toBe(500);
-    await app.db.update(job).set({ sumMarginPct: "23.5" }).where(eq(job.id, j.id));
-    const r = await getRecord(u.ctx, registry, jobE, j.id);
-    expect(r.row.sumMarginPct).toBe(23.5);
-    expect(r.row.siteLat).toBe(49.7475);
-  });
 });
 
 describe("přehled a kalendář", () => {
-  it("upozornění: nabídka bez odpovědi 14 dní, záruka končí do 60 dní, semafor problém", async () => {
+  it("upozornění: nabídka bez odpovědi 14 dní, záruka končí do 60 dní", async () => {
     const u = await boss();
     const offer = await mkJob(u, { stage: stage("Nabídka v přípravě").id });
     const warranty = await mkJob(u, {
       stage: stage("Záruka").id,
       warrantyUntil: addDaysIso(todayIso(), 20),
     });
-    const bad = await mkJob(u, { stage: stage("Realizace").id });
     const fresh = await mkJob(u, { stage: stage("Nabídka v přípravě").id });
     await app.db
       .update(job)
       .set({ phaseChangedAt: sql`now() - interval '20 days'` })
       .where(eq(job.id, offer.id));
-    await app.db.update(job).set({ sumHealth: "danger" }).where(eq(job.id, bad.id));
 
     const items = (await area.attention![0]!(u.ctx, deps())).map((i) => i.id);
     expect(items).toContain(`job-offer-stale-${offer.id}`);
     expect(items).not.toContain(`job-offer-stale-${fresh.id}`);
     expect(items).toContain(`job-warranty-ends-${warranty.id}`);
-    expect(items).toContain(`job-health-${bad.id}`);
 
     const layer = area.calendarLayers![0]!;
     const cal = await layer.items(
@@ -450,69 +432,5 @@ describe("výchozí pohledy a migrace", () => {
         filters: v.config.filters as never,
         limit: 1,
       });
-  });
-
-  it("migrace doplní fáze starým stavům, chybějící stavy a fáze existujících zakázek", async () => {
-    // Pipeline s původními stavy pod zkušebním typem; SQL migrace se pustí nad ním (typ se v textu zamění).
-    const type = `jobmig${randomBytes(3).toString("hex")}`;
-    const [p] = await app.db
-      .insert(schema.pipeline)
-      .values({ entityType: type, key: "default", name: "Stará" })
-      .returning();
-    const old = [
-      ["Příprava", "open"],
-      ["Realizace", "open"],
-      ["Předání", "open"],
-      ["Hotovo", "done"],
-      ["Zrušeno", "lost"],
-      ["Vlastní", "open"],
-    ] as const;
-    const ids = await app.db
-      .insert(schema.pipelineStage)
-      .values(old.map(([name, kind], position) => ({ pipelineId: p!.id, name, kind, position })))
-      .returning();
-    const file = readFileSync(
-      path.join(import.meta.dirname, "../../drizzle/0006_lifecycle_phases.sql"),
-      "utf8",
-    );
-    // jen příkazy nad pipeline_stage; poslední příkaz (job) se zde nepouští, aby se nesahalo na cizí zakázky
-    const statements = file
-      .split("--> statement-breakpoint")
-      .map((s) => s.replace(/--.*$/gm, "").trim())
-      .filter(Boolean)
-      .slice(0, -1)
-      .map((s) => s.replaceAll("'job'", `'${type}'`));
-    for (const s of statements) await app.db.execute(sql.raw(s));
-    const after = await app.db
-      .select()
-      .from(schema.pipelineStage)
-      .where(eq(schema.pipelineStage.pipelineId, p!.id));
-    const byName = new Map(after.map((s) => [s.name, s]));
-    expect(byName.get("Příprava")!.phase).toBe("preparation");
-    expect(byName.get("Realizace")!.phase).toBe("execution");
-    expect(byName.get("Předání")!.phase).toBe("handover");
-    expect(byName.get("Hotovo")!.phase).toBe("closed");
-    expect(byName.get("Zrušeno")!.phase).toBe("lost");
-    expect(byName.get("Vlastní")!.phase).toBeNull();
-    // chybějící fáze jsou doplněné (poptávka, nabídka, záruka, pozastaveno), uzavřeno/prohráno se nezdvojí
-    for (const n of ["Poptávka", "Nabídka", "Záruka", "Pozastaveno"])
-      expect(byName.has(n), n).toBe(true);
-    expect(byName.has("Uzavřeno")).toBe(false);
-    expect(byName.has("Prohráno")).toBe(false);
-    // pořadí podle fází
-    const order = [...after]
-      .sort((a, b) => a.position - b.position)
-      .map((s) => s.phase)
-      .filter(Boolean);
-    expect(order.slice(0, 7)).toEqual([
-      "inquiry",
-      "offer",
-      "preparation",
-      "execution",
-      "handover",
-      "warranty",
-      "closed",
-    ]);
-    expect(ids).toHaveLength(6);
   });
 });

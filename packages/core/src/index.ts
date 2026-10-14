@@ -11,7 +11,6 @@ export type {
   NavItem,
   PageDef,
   PermissionDef,
-  TerminalWidgetDef,
 } from "./modules/manifest";
 export {
   resolveModules,

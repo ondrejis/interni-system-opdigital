@@ -3,10 +3,10 @@ import { z } from "zod";
 import { recordAudit } from "@rebar/core/audit";
 import { assertEntityAccess } from "@rebar/core/entities";
 import { defineCommand } from "@rebar/core/module-server";
-import { inTx, NotFoundError, PermissionError, scopeOf, UserError } from "@rebar/core/rbac";
+import { inTx, NotFoundError, UserError } from "@rebar/core/rbac";
 import type { Ctx } from "@rebar/core/rbac";
 import { jobTemplate } from "../schema";
-import { templatePayload, stripPrices, summarizePayload } from "./payload";
+import { templatePayload, summarizePayload } from "./payload";
 import { applyTemplateTx, buildPayloadFromJob } from "./service";
 
 const uuid = z.uuid();
@@ -18,10 +18,6 @@ const description = z
   .nullish()
   .transform((v) => v || null);
 
-function needBudget(ctx: Ctx) {
-  if (!scopeOf(ctx, "zakazky.budget")) throw new PermissionError();
-}
-
 async function load(ctx: Ctx, id: string) {
   const [row] = await ctx.db
     .select()
@@ -31,7 +27,7 @@ async function load(ctx: Ctx, id: string) {
   return row;
 }
 
-const view = (r: typeof jobTemplate.$inferSelect, canSeePrices: boolean) => {
+const view = (r: typeof jobTemplate.$inferSelect) => {
   const payload = templatePayload.parse(r.payload);
   return {
     id: r.id,
@@ -39,7 +35,7 @@ const view = (r: typeof jobTemplate.$inferSelect, canSeePrices: boolean) => {
     description: r.description,
     createdAt: r.createdAt.toISOString(),
     summary: summarizePayload(payload),
-    payload: canSeePrices ? payload : stripPrices(payload),
+    payload,
   };
 };
 
@@ -54,7 +50,7 @@ export const templateList = defineCommand({
       .where(isNull(jobTemplate.deletedAt))
       .orderBy(desc(jobTemplate.createdAt));
     return rows.map((r) => {
-      const { payload: _payload, ...rest } = view(r, false);
+      const { payload: _payload, ...rest } = view(r);
       void _payload;
       return rest;
     });
@@ -65,36 +61,28 @@ export const templateGet = defineCommand({
   name: "zakazky.template.get",
   permission: "zakazky.read",
   input: z.object({ id: uuid }),
-  handler: async (ctx, i) => view(await load(ctx, i.id), !!scopeOf(ctx, "zakazky.economics")),
+  handler: async (ctx, i) => view(await load(ctx, i.id)),
 });
 
 /** Vytvoří šablonu z existující zakázky (nebo přepíše šablonu `replaceId`). */
 export const templateCreateFromJob = defineCommand({
   name: "zakazky.template.createFromJob",
-  permission: "zakazky.budget",
+  permission: "zakazky.write",
   input: z.object({
     jobId: uuid,
     name,
     description: description.optional(),
-    versionId: uuid.nullish(),
-    withPrices: z.boolean().default(false),
-    includeBudget: z.boolean().default(true),
     includeTasks: z.boolean().default(true),
     includeRoles: z.boolean().default(true),
     replaceId: uuid.optional(),
   }),
   handler: async (ctx, i) => {
-    needBudget(ctx);
     await assertEntityAccess(ctx, "job", i.jobId, "read");
-    if ((i.includeBudget || i.withPrices) && !scopeOf(ctx, "zakazky.economics"))
-      throw new PermissionError();
     return inTx(ctx, async (c) => {
       const payload = await buildPayloadFromJob(c, i.jobId, i);
       const s = summarizePayload(payload);
-      if (!s.hasBudget && !s.tasks && !s.roles)
-        throw new UserError(
-          "Zakázka nemá nic, co by šlo uložit do šablony (rozpočet, úkoly, role).",
-        );
+      if (!s.tasks && !s.roles)
+        throw new UserError("Zakázka nemá nic, co by šlo uložit do šablony (úkoly, role).");
       const values = {
         name: i.name,
         description: i.description ?? null,
@@ -116,7 +104,7 @@ export const templateCreateFromJob = defineCommand({
         action: i.replaceId ? "update" : "create",
         entityType: "job",
         entityId: i.jobId,
-        summary: `Uložena šablona zakázky „${i.name}“ (oddílů ${s.sections}, položek ${s.items}, úkolů ${s.tasks})`,
+        summary: `Uložena šablona zakázky „${i.name}“ (úkolů ${s.tasks}, rolí ${s.roles})`,
       });
       return { id, summary: s };
     });
@@ -125,10 +113,9 @@ export const templateCreateFromJob = defineCommand({
 
 export const templateSave = defineCommand({
   name: "zakazky.template.save",
-  permission: "zakazky.budget",
+  permission: "zakazky.write",
   input: z.object({ id: uuid, name: name.optional(), description: description.optional() }),
   handler: async (ctx, i) => {
-    needBudget(ctx);
     await load(ctx, i.id);
     await ctx.db
       .update(jobTemplate)
@@ -144,10 +131,9 @@ export const templateSave = defineCommand({
 
 export const templateDelete = defineCommand({
   name: "zakazky.template.delete",
-  permission: "zakazky.budget",
+  permission: "zakazky.write",
   input: z.object({ id: uuid }),
   handler: async (ctx, i) => {
-    needBudget(ctx);
     const r = await load(ctx, i.id);
     await ctx.db
       .update(jobTemplate)
@@ -159,12 +145,11 @@ export const templateDelete = defineCommand({
 
 export const templateApply = defineCommand({
   name: "zakazky.template.apply",
-  permission: "zakazky.budget",
-  input: z.object({ jobId: uuid, templateId: uuid, versionId: uuid.nullish() }),
+  permission: "zakazky.write",
+  input: z.object({ jobId: uuid, templateId: uuid }),
   handler: async (ctx, i) => {
-    needBudget(ctx);
     await assertEntityAccess(ctx, "job", i.jobId, "write");
-    return inTx(ctx, (c) => applyTemplateTx(c, i.jobId, i.templateId, { versionId: i.versionId }));
+    return inTx(ctx, (c) => applyTemplateTx(c, i.jobId, i.templateId));
   },
 });
 

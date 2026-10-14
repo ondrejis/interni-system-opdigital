@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core/dashboards` (soubor `packages/core/src/dashboards/index.ts`). Exportů: 117, z toho s popisem 63.
+Vstupní bod `@rebar/core/dashboards` (soubor `packages/core/src/dashboards/index.ts`). Exportů: 116, z toho s popisem 62.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
@@ -60,7 +60,6 @@ Vstupní bod `@rebar/core/dashboards` (soubor `packages/core/src/dashboards/inde
 | [`setRoleDefault`](#setroledefault) | function | Výchozí nástěnka pro roli (správce): vidí ji všichni z této role. S příznakem `home` se otevírá na úvodní stránce místo klasického Přehledu (za roli nejvýš jedna). `roleKey = null` výchozí nastavení zruší. |  |
 | [`shareBoard`](#shareboard) | function | Sdílení s rolemi a uživateli (autor nebo správce). Nahradí dosavadní sdílení. |  |
 | [`sourceCatalog`](#sourcecatalog) | function | Katalog zdrojů, které aktér smí použít ve widgetech: čitelné entity a dostupné metriky. |  |
-| [`standardDashboards`](#standarddashboards) | function | Výchozí nástěnky podle rolí (majitel, kancelář, mistr, účetní) pro zapnuté moduly. Widgety modulů, které klient nemá zapnuté, se vynechají; nástěnka, které nezbyde žádný widget, se nezakládá. Žádná se neotevírá na úvodní stránce (zůstává klasický Přehled), uživatel ji najde v přepínači nástěnek. |  |
 | [`tableToCsv`](#tabletocsv) | function | CSV z dat widgetu (středník nebo čárka podle klienta, UTF-8 s BOM, ochrana proti vzorcům). |  |
 | [`tableToXlsx`](#tabletoxlsx) | function | XLSX z dat widgetu: částky jako částky, data jako data, čísla jako čísla. |  |
 | [`tryScopedEntity`](#tryscopedentity) | function | Jako `scopedEntity`, ale bez oprávnění nebo při vypnutém modulu vrátí `null` (pro doplňkové popisky a odkazy). |  |
@@ -649,19 +648,7 @@ function · `packages/core/src/dashboards/evaluate.ts`
 Katalog zdrojů, které aktér smí použít ve widgetech: čitelné entity a dostupné metriky.
 
 ```ts
-function sourceCatalog(ctx: Ctx, env: DashboardEnv): { entities: { key: string; label: string; module: "kontakty" | "zakazky" | "poptavky" | "realizace" | "fakturace" | "dochazka" | "sklad" | "stroje" | "kalendar"; }[]; metrics: MetricInfo[]; }
-```
-
-### standardDashboards
-
-function · `packages/core/src/dashboards/defaults.ts`
-
-Výchozí nástěnky podle rolí (majitel, kancelář, mistr, účetní) pro zapnuté moduly. Widgety modulů, které klient
-nemá zapnuté, se vynechají; nástěnka, které nezbyde žádný widget, se nezakládá. Žádná se neotevírá na úvodní stránce
-(zůstává klasický Přehled), uživatel ji najde v přepínači nástěnek.
-
-```ts
-function standardDashboards(modules: readonly ModuleId[]): DashboardSeed[]
+function sourceCatalog(ctx: Ctx, env: DashboardEnv): { entities: { key: string; label: string; module: "kontakty" | "zakazky" | "poptavky" | "dochazka" | "kalendar"; }[]; metrics: MetricInfo[]; }
 ```
 
 ### tableToCsv

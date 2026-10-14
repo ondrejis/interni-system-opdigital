@@ -7,19 +7,19 @@ import { activityState, daysSince } from "../logic";
 import { columnTotals, pluralDays } from "./logic";
 
 /** Klíče, které karta zobrazuje sama (zbylé atributy z nabídky „Karta“ se připojí pod ně). */
-const OWN = new Set(["company", "siteCity", "sumContract", "manager", "title", "stage", "value"]);
+const OWN = new Set(["company", "siteCity", "value", "manager", "title", "stage"]);
 
 const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
 
 /**
  * Tělo karty zakázky na nástěnce: název, pod ním firma (investor) a obec stavby v jedné řádce, hodnota a vlastník
- * (avatar). Stav další aktivity a „zhnilá“ jsou v patičce (`DealCardFooter`). Hodnota se ukáže jen s `zakazky.economics`.
+ * (avatar). Stav další aktivity a „zhnilá“ jsou v patičce (`DealCardFooter`). Hodnota se ukáže jen s `zakazky.finance`.
  */
 export function DealCardBody({ row, labels, attributes, cardAttributes }: KanbanCardContext) {
   const company = text(row.company) ? labels.company?.[String(row.company)]?.label : null;
   const owner = text(row.manager) ? labels.manager?.[String(row.manager)]?.label : null;
   const city = text(row.siteCity);
-  const value = typeof row.sumContract === "number" ? row.sumContract : null;
+  const value = typeof row.value === "number" ? row.value : null;
   const extras = cardAttributes
     .filter((k) => !OWN.has(k))
     .map((k) => attributes.find((a) => a.key === k))
@@ -119,7 +119,7 @@ export function DealCardFooter(ctx: KanbanCardContext) {
 
 /**
  * Doplňující řádek hlavičky sloupce: vážený součet za celý sloupec (součty počítá server přes agregace, ne jen načtená
- * stránka karet) a pravděpodobnost stavu. Bez `zakazky.economics` zůstane jen pravděpodobnost.
+ * stránka karet) a pravděpodobnost stavu. Bez `zakazky.finance` zůstane jen pravděpodobnost.
  */
 export function DealColumnHeader({ stage, count, sums }: KanbanColumnContext) {
   const totals = columnTotals(count, sums);

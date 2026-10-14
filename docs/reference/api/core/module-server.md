@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core/module-server` (soubor `packages/core/src/modules/server.ts`). Exportů: 30, z toho s popisem 18.
+Vstupní bod `@rebar/core/module-server` (soubor `packages/core/src/modules/server.ts`). Exportů: 23, z toho s popisem 14.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
@@ -15,24 +15,17 @@ Vstupní bod `@rebar/core/module-server` (soubor `packages/core/src/modules/serv
 | [`defineModuleJob`](#definemodulejob) | function | Úloha modulu na pozadí: stejná jako `defineJob`, jen s typovanými službami workeru. |  |
 | [`defineModuleServer`](#definemoduleserver) | function |  |  |
 | [`emitEvent`](#emitevent) | function | Oznámí událost rozšířením klienta. Pro kód, který nemá `ModuleDeps` (hooky entit, např. `afterCreate`); příkazy modulů používají `deps.emit`. Běží v transakci akce, která událost vyvolala. |  |
-| [`getJobFinanceProviders`](#getjobfinanceproviders) | function |  |  |
 | [`mergeServers`](#mergeservers) | function | Složí serverovou část modulu z oblastí (každá oblast je samostatná složka s vlastním vlastníkem, ADR 015): seznamy se spojí v daném pořadí. |  |
 | [`setEventEmitter`](#seteventemitter) | function | Aplikace tu při startu zaregistruje oznamovač rozšíření klienta (web). Bez něj (worker, testy) se události zahazují. |  |
-| [`setJobFinanceProviders`](#setjobfinanceproviders) | function | Zaregistruje poskytovatele zapnutých modulů pro přepočet souhrnu zakázky (`recomputeJobSummary` nemá `deps`, volají ho příkazy jiných oblastí uvnitř transakce). Volá se při sestavení modulů (web, worker, testy). |  |
 | [`AttentionItem`](#attentionitem) | type | Položka „Vyžaduje pozornost“ na přehledu. |  |
 | [`AttentionProvider`](#attentionprovider) | type |  |  |
 | [`CalendarItem`](#calendaritem) | type | Položka kalendářní vrstvy (fáze, rezervace, termíny, splatnosti…). |  |
 | [`CalendarLayerProvider`](#calendarlayerprovider) | type |  |  |
 | [`CommandDef`](#commanddef) | type | Příkaz modulu: pojmenovaná akce nebo dotaz volaný z UI (`api.command(name, input)`). Oprávnění a validaci vstupu hlídá jednotný vstupní bod; handler je čistá funkce nad `ctx`. |  |
-| [`CostLine`](#costline) | type | Jeden řádek nákladů zakázky. Sklad, stroje a docházka je dodávají; zakázky je jen sečtou. |  |
-| [`CostProvider`](#costprovider) | type |  |  |
 | [`DashboardMetricDef`](#dashboardmetricdef) | type | Pojmenovaná metrika nástěnky: výpočet, který nejde složit z jedné entity (marže zakázek, nevyfakturováno, využití strojů…). Modul ji deklaruje ve své serverové části (`dashboardMetrics`). Metrika **nikdy nevidí víc než aktér**: jádro ji nevyhodnotí bez všech `permissions` a výpočet musí čerpat data přes entity a datovou vrstvu (rozsah „jen moje“). |  |
 | [`DashboardMetricInput`](#dashboardmetricinput) | type | Vstup výpočtu pojmenované metriky nástěnky (období a filtry z hlavičky nástěnky, parametry z widgetu). |  |
 | [`DashboardMetricResult`](#dashboardmetricresult) | type |  |  |
-| [`DiaryPrefill`](#diaryprefill) | type | Předvyplnění zápisu do stavebního deníku z jiných modulů (docházka, stroje, sklad za daný den). |  |
-| [`DiaryPrefillProvider`](#diaryprefillprovider) | type |  |  |
 | [`EventEmitter`](#eventemitter) | type |  |  |
-| [`JobInvoicingProvider`](#jobinvoicingprovider) | type | Kolik z zakázky je vyfakturováno a uhrazeno (bez DPH). Dodává modul Fakturace; zakázky ho nesmí importovat (fakturace závisí na zakázkách), proto jde o poskytovatele, stejně jako u nákladů. |  |
 | [`ModuleDeps`](#moduledeps) | type | Služby, které aplikace předává modulům (příkazy, poskytovatelé, úlohy). Moduly je dostávají jako parametr; nikdy neimportují jeden druhého kvůli službám (vypnutý modul nesmí zanechat stopu). |  |
 | [`ModuleJob`](#modulejob) | type |  |  |
 | [`ModuleJobDeps`](#modulejobdeps) | type | Úloha modulu na pozadí (připomínky, uzávěrky…); běží ve workeru s právy systému. |  |
@@ -102,16 +95,6 @@ příkazy modulů používají `deps.emit`. Běží v transakci akce, která ud�
 async function emitEvent(name, payload): Promise<void>
 ```
 
-### getJobFinanceProviders
-
-function · `packages/core/src/modules/server.ts`
-
-_Bez popisu._
-
-```ts
-function getJobFinanceProviders(): { costProviders: CostProvider[]; invoicing: JobInvoicingProvider[]; }
-```
-
 ### mergeServers
 
 function · `packages/core/src/modules/server.ts`
@@ -131,17 +114,6 @@ Aplikace tu při startu zaregistruje oznamovač rozšíření klienta (web). Bez
 
 ```ts
 function setEventEmitter(emitter: EventEmitter | undefined): void
-```
-
-### setJobFinanceProviders
-
-function · `packages/core/src/modules/server.ts`
-
-Zaregistruje poskytovatele zapnutých modulů pro přepočet souhrnu zakázky (`recomputeJobSummary` nemá `deps`,
-volají ho příkazy jiných oblastí uvnitř transakce). Volá se při sestavení modulů (web, worker, testy).
-
-```ts
-function setJobFinanceProviders(p: { costProviders: readonly CostProvider[]; invoicing: readonly JobInvoicingProvider[]; }): void
 ```
 
 ### AttentionItem
@@ -229,53 +201,6 @@ type CommandDef<S extends ZodType = ZodType, R = unknown> = {
 };
 ```
 
-### CostLine
-
-type · `packages/core/src/modules/server.ts`
-
-Jeden řádek nákladů zakázky. Sklad, stroje a docházka je dodávají; zakázky je jen sečtou.
-
-```ts
-type CostLine = {
-  /** Kategorie ekonomiky (`material`, `labor`, `machines`, `subcontract`, `other`…). */
-  category: string;
-  label: string;
-  amountMinor: number;
-  /** Modul původu (`sklad`, `dochazka`…), aby šlo rozpadnout součet. */
-  source: string;
-  /**
-   * Stabilní id zdroje (id časového záznamu, výdejky, jízdy, řádku faktury…). Podle `(source, ref)` se náklad páruje
-   * na oddíl rozpočtu (`cost_allocation`). Poskytovatel vrací řádky na úrovni záznamu, ne jen součet kategorie.
-   */
-  ref?: string;
-  /** Datum vzniku nákladu (`YYYY-MM-DD`). */
-  date?: string;
-  /** Dodavatel (text) a odkaz na doklad v aplikaci, pokud je zdroj doklad (přijatá faktura). */
-  supplier?: string;
-  href?: string;
-  /**
-   * Vlastní párování zdroje (řádek přijaté faktury nese oddíl rozpočtu přímo). Párování nastavené v `cost_allocation`
-   * má přednost. Objednávka, ke které náklad patří, snižuje její otevřený závazek.
-   */
-  sectionId?: string | null;
-  itemId?: string | null;
-  orderId?: string | null;
-};
-```
-
-### CostProvider
-
-type · `packages/core/src/modules/server.ts`
-
-_Bez popisu._
-
-```ts
-type CostProvider = {
-  key: string;
-  costs: (ctx: Ctx, jobId: string, deps: ModuleDeps) => Promise<CostLine[]>;
-};
-```
-
 ### DashboardMetricDef
 
 type · `packages/core/src/modules/server.ts`
@@ -349,41 +274,6 @@ type DashboardMetricResult =
     };
 ```
 
-### DiaryPrefill
-
-type · `packages/core/src/modules/server.ts`
-
-Předvyplnění zápisu do stavebního deníku z jiných modulů (docházka, stroje, sklad za daný den).
-
-```ts
-type DiaryPrefill = Partial<{
-  people: string;
-  work: string;
-  machines: string;
-  materials: string;
-  /** Strukturovaně (deník je z nich skládá do řádků): pracovníci s hodinami z docházky. */
-  workers: { userId?: string | null; name: string; hours: number | null }[];
-  machineRows: { name: string; hours: number | null; note?: string | null }[];
-  /** Množství jako desetinný řetězec. */
-  materialRows: { name: string; qty: string; unit: string }[];
-}>;
-```
-
-### DiaryPrefillProvider
-
-type · `packages/core/src/modules/server.ts`
-
-_Bez popisu._
-
-```ts
-type DiaryPrefillProvider = (
-  ctx: Ctx,
-  jobId: string,
-  date: string,
-  deps: ModuleDeps,
-) => Promise<DiaryPrefill>;
-```
-
 ### EventEmitter
 
 type · `packages/core/src/extensions/events.ts`
@@ -392,20 +282,6 @@ _Bez popisu._
 
 ```ts
 type EventEmitter = <K extends EventName>(name: K, payload: EventMap[K]) => Promise<void>;
-```
-
-### JobInvoicingProvider
-
-type · `packages/core/src/modules/server.ts`
-
-Kolik z zakázky je vyfakturováno a uhrazeno (bez DPH). Dodává modul Fakturace; zakázky ho nesmí importovat
-(fakturace závisí na zakázkách), proto jde o poskytovatele, stejně jako u nákladů.
-
-```ts
-type JobInvoicingProvider = (
-  ctx: Ctx,
-  jobId: string,
-) => Promise<{ invoicedMinor: number; paidMinor: number }>;
 ```
 
 ### ModuleDeps
@@ -427,10 +303,8 @@ type ModuleDeps = {
   baseURL: string;
   /** Oznámí událost rozšířením klienta (chyba rozšíření nesmí zrušit akci). */
   emit: <K extends EventName>(name: K, payload: EventMap[K]) => Promise<void>;
-  /** Poskytovatelé zapnutých modulů (zakázky z nich skládají ekonomiku, kalendář vrstvy). */
-  costProviders: readonly CostProvider[];
+  /** Poskytovatelé zapnutých modulů (kalendářní vrstvy). */
   calendarLayers: readonly CalendarLayerProvider[];
-  diaryPrefill: readonly DiaryPrefillProvider[];
 };
 ```
 
@@ -471,16 +345,12 @@ Co modul nabízí běžícímu systému na serveru. Žádný modul tohle nečte 
 type ModuleServer = {
   entities?: readonly EntityDef[];
   commands?: readonly CommandDef[];
-  costProviders?: readonly CostProvider[];
   attention?: readonly AttentionProvider[];
   widgets?: readonly WidgetProvider[];
   /** Pojmenované metriky pro vlastní nástěnky (viz `DashboardMetricDef`). */
   dashboardMetrics?: readonly DashboardMetricDef[];
   calendarLayers?: readonly CalendarLayerProvider[];
-  diaryPrefill?: readonly DiaryPrefillProvider[];
   jobs?: readonly ModuleJob[];
-  /** Kolik je vyfakturováno a uhrazeno na zakázku (souhrn zakázky; dodává Fakturace). */
-  jobInvoicing?: readonly JobInvoicingProvider[];
   /** Hooky přechodu fáze záznamu (zakázky): kontroly a automatické akce, které zná tento modul. */
   phaseHooks?: readonly PhaseTransitionHook[];
   /** Blokace smazání: záznamy tohoto modulu, které odkazují na firmu, osobu nebo zakázku (viz `DeleteBlocker`). */

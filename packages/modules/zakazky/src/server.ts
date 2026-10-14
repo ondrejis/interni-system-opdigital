@@ -1,22 +1,12 @@
 import { defineModuleServer, mergeServers } from "@rebar/core/module-server";
-import { area as approvals } from "./approvals";
-import { area as budget } from "./budget";
-import { area as changes } from "./changes";
-import { area as costs } from "./costs";
 import { area as lifecycle } from "./lifecycle";
-import { area as orders } from "./orders";
-import { area as schedule } from "./schedule";
-import { area as share } from "./share";
-import { area as statements } from "./statements";
 import { area as templates } from "./templates";
-import { area as terminal } from "./terminal";
 import { commands } from "./commands";
 import { deleteBlockers } from "./delete-blockers";
-import { dashboardMetrics } from "./metrics";
 import { and, eq, or, sql } from "drizzle-orm";
 import { defineEntity } from "@rebar/core/entities";
 import { nextNumber } from "@rebar/core/numbering";
-import { HEALTH_CHOICES, PHASE_CHOICES } from "./lifecycle/phases";
+import { PHASE_CHOICES } from "./lifecycle/phases";
 import {
   JOB_PIPELINE,
   afterJobCreate,
@@ -32,12 +22,8 @@ export { JOB_PIPELINE } from "./lifecycle/transitions";
 export const LOST_REASON_LOOKUP = "job.lost_reason";
 /** Číselník zdrojů obchodu (odkud zakázka přišla; seed v manifestu). */
 export const SOURCE_LOOKUP = "job.source";
-const ECONOMICS = "zakazky.economics";
+const FINANCE = "zakazky.finance";
 
-const VAT_MODE_CHOICES = [
-  { value: "standard", label: "Standardní", color: "gray" },
-  { value: "reverse_charge", label: "Přenesená daňová povinnost", color: "purple" },
-];
 const COLOR_CHOICES = [
   ["gray", "Šedá"],
   ["blue", "Modrá"],
@@ -154,40 +140,6 @@ export const jobEntity = defineEntity({
       defaultVisible: true,
     },
     {
-      key: "sumContract",
-      // v poptávce a nabídce cena nabídky z rozpočtu (smluvní cena vznikne výhrou), shodně s hlavičkou detailu
-      label: "Cena (smluvní / nabídky)",
-      type: "currency",
-      field: "sumContractMinor",
-      readonly: true,
-      permission: ECONOMICS,
-      aggregate: ["sum"],
-      width: 190,
-      defaultVisible: true,
-    },
-    {
-      key: "sumMarginPct",
-      label: "Marže %",
-      type: "number",
-      field: "sumMarginPct",
-      unit: "percent",
-      readonly: true,
-      permission: ECONOMICS,
-      width: 110,
-      defaultVisible: true,
-    },
-    {
-      key: "sumDrawdownPct",
-      label: "Čerpání rozpočtu %",
-      type: "number",
-      field: "sumDrawdownPct",
-      unit: "percent",
-      readonly: true,
-      permission: ECONOMICS,
-      width: 150,
-      defaultVisible: true,
-    },
-    {
       key: "endDate",
       label: "Termín",
       type: "date",
@@ -196,54 +148,15 @@ export const jobEntity = defineEntity({
       defaultVisible: true,
     },
     {
-      key: "sumHealth",
-      label: "Semafor",
-      type: "select",
-      field: "sumHealth",
-      choices: HEALTH_CHOICES,
-      readonly: true,
-      width: 110,
-      defaultVisible: true,
-    },
-    {
       key: "value",
-      label: "Původní smluvní cena",
+      label: "Hodnota",
       min: 0,
       type: "currency",
       field: "valueMinor",
-      permission: ECONOMICS,
+      permission: FINANCE,
       aggregate: ["sum"],
       width: 170,
-    },
-    {
-      key: "sumCost",
-      label: "Náklady",
-      type: "currency",
-      field: "sumCostMinor",
-      readonly: true,
-      permission: ECONOMICS,
-      aggregate: ["sum"],
-      width: 140,
-    },
-    {
-      key: "sumInvoiced",
-      label: "Fakturováno",
-      type: "currency",
-      field: "sumInvoicedMinor",
-      readonly: true,
-      permission: ECONOMICS,
-      aggregate: ["sum"],
-      width: 140,
-    },
-    {
-      key: "sumPaid",
-      label: "Uhrazeno",
-      type: "currency",
-      field: "sumPaidMinor",
-      readonly: true,
-      permission: ECONOMICS,
-      aggregate: ["sum"],
-      width: 140,
+      defaultVisible: true,
     },
     {
       key: "startDate",
@@ -261,46 +174,6 @@ export const jobEntity = defineEntity({
       width: 200,
     },
     { key: "address", label: "Adresa stavby", type: "text", field: "address", width: 240 },
-    {
-      key: "siteLat",
-      label: "Zeměpisná šířka",
-      type: "number",
-      field: "siteLat",
-      min: -90,
-      max: 90,
-      width: 130,
-    },
-    {
-      key: "siteLng",
-      label: "Zeměpisná délka",
-      type: "number",
-      field: "siteLng",
-      min: -180,
-      max: 180,
-      width: 130,
-    },
-    {
-      key: "vatMode",
-      // režim DPH rozhoduje o faktuře (přenesená daňová povinnost = doklad bez DPH): patří k ekonomice jako zádržné
-      permission: ECONOMICS,
-      label: "Režim DPH",
-      type: "select",
-      field: "vatMode",
-      choices: VAT_MODE_CHOICES,
-      default: "standard",
-      width: 190,
-    },
-    {
-      key: "retentionBp",
-      permission: "zakazky.economics",
-      label: "Zádržné",
-      min: 0,
-      max: 10_000,
-      type: "number",
-      field: "retentionBp",
-      unit: "percent_bp",
-      width: 110,
-    },
     {
       key: "warrantyMonths",
       label: "Délka záruky (měsíce)",
@@ -376,7 +249,7 @@ export const jobEntity = defineEntity({
       type: "currency",
       field: "crmWeightedMinor",
       readonly: true,
-      permission: ECONOMICS,
+      permission: FINANCE,
       aggregate: ["sum"],
       width: 150,
     },
@@ -506,33 +379,13 @@ export const jobEntity = defineEntity({
 
 export const entities = [jobEntity];
 export { job, jobMember };
-export * from "./economics";
 export * as lifecycleApi from "./lifecycle/api";
-export * as budgetApi from "./budget/api";
 export * as templatesApi from "./templates/api";
-export * as costsApi from "./costs/api";
-export * as ordersApi from "./orders/api";
-export { orderEntity } from "./orders/entity";
-export * as changesApi from "./changes/api";
-export * as statementsApi from "./statements/api";
-export * as approvalsApi from "./approvals/api";
-export * as shareApi from "./share/api";
-export { JOB_TEAM_AUDIENCES, notifyJobTeam } from "./team";
 export * from "./commands";
 
 /** Základ modulu (zakázka, tým, legacy příkazy) a oblasti ADR 015, každá ve své složce se svým vlastníkem. */
 export const server = mergeServers(
   defineModuleServer({ entities, commands, deleteBlockers }),
   lifecycle,
-  budget,
   templates,
-  costs,
-  orders,
-  changes,
-  statements,
-  approvals,
-  schedule,
-  share,
-  terminal,
-  { dashboardMetrics },
 );

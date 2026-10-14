@@ -5,6 +5,5 @@ export * from "./config";
 export * from "./files";
 export { audit } from "./common";
 export * from "./views";
-export * from "./terminal";
 export * from "./dashboards";
 export * from "./exports";

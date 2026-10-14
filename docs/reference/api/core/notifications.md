@@ -41,7 +41,7 @@ Vstupní bod `@rebar/core/notifications` (soubor `packages/core/src/notification
 | [`snoozeNotification`](#snoozenotification) | function | Odložení upozornění (akce „Odložit“ na push): stejné upozornění se za zadanou dobu připomene znovu. Smí jen majitel upozornění. Vrací, zda bylo odloženo. |  |
 | [`stripMoney`](#stripmoney) | function | Text bez částek: „VP-1 Odsávání: +52 000 Kč“ → „VP-1 Odsávání“, „K fakturaci 393 960 Kč“ → „K fakturaci“. |  |
 | [`tagOf`](#tagof) | function |  |  |
-| [`usersWithPermission`](collab.md#userswithpermission) | function | Aktivní uživatelé, kteří mají dané oprávnění (v kterémkoli rozsahu), a majitelé (systémová role má vždy všechna). Pro upozornění typu „schválená vícepráce → fakturace“. | v `@rebar/core/collab` |
+| [`usersWithPermission`](collab.md#userswithpermission) | function | Aktivní uživatelé, kteří mají dané oprávnění (v kterémkoli rozsahu), a majitelé (systémová role má vždy všechna). Pro upozornění typu „schválená platba → fakturace“. | v `@rebar/core/collab` |
 | [`usersWithRole`](#userswithrole) | function | Aktivní uživatelé s danou rolí (podle klíče role). |  |
 | [`validateEventDefs`](#validateeventdefs) | function | Zkontroluje definice událostí (klíče, parametry v šablonách, příjemci). Vrací seznam problémů. |  |
 | [`validateNotificationsConfig`](#validatenotificationsconfig) | function | Zkontroluje sekci `notifications` v konfiguraci klienta proti katalogu (neznámá událost, příjemce, parametr v textu). |  |
@@ -56,7 +56,7 @@ Vstupní bod `@rebar/core/notifications` (soubor `packages/core/src/notification
 | [`DEFAULT_DIGEST_TIMES`](#default_digest_times) | const |  |  |
 | [`DEFAULT_QUIET_HOURS`](#default_quiet_hours) | const |  |  |
 | [`MAX_ATTEMPTS`](#max_attempts) | const |  |  |
-| [`MONEY_PERMISSIONS`](#money_permissions) | const | Oprávnění, kterému patří peníze v textech upozornění: kdo nemá žádné z nich (mistr, montér), částky neuvidí. Odpovídá pravidlu zakázek (`zakazky.economics`) a faktur (`fakturace.read`). |  |
+| [`MONEY_PERMISSIONS`](#money_permissions) | const | Oprávnění, kterému patří peníze v textech upozornění: kdo nemá žádné z nich (mistr, montér), částky neuvidí. Jádro nezná moduly: peníze patří oprávnění `finance.read` (modul Finance); dokud neexistuje, vidí částky jen vlastník. |  |
 | [`NOTIFY_CHANNEL`](#notify_channel) | const | Kanál, na který worker poslouchá (LISTEN), aby odeslal čerstvá upozornění hned, ne až při minutovém průchodu. |  |
 | [`RETRY_BACKOFF_SECONDS`](#retry_backoff_seconds) | const | Po každém neúspěšném pokusu se čeká déle; po posledním je doručení „failed“. |  |
 | [`SEVERITY_LABELS`](#severity_labels) | const |  |  |
@@ -573,7 +573,7 @@ const MAX_ATTEMPTS: number
 const · `packages/core/src/notifications/money.ts`
 
 Oprávnění, kterému patří peníze v textech upozornění: kdo nemá žádné z nich (mistr, montér), částky neuvidí.
-Odpovídá pravidlu zakázek (`zakazky.economics`) a faktur (`fakturace.read`).
+Jádro nezná moduly: peníze patří oprávnění `finance.read` (modul Finance); dokud neexistuje, vidí částky jen vlastník.
 
 ```ts
 const MONEY_PERMISSIONS: readonly string[]

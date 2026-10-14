@@ -35,7 +35,7 @@ import { ALL_MODULES } from "../apps/web/src/modules";
  * Worker: zpracovává úlohy na pozadí (e-maily, náhledy fotek, úklid, heartbeat). Běží jako samostatný proces
  * téže instalace; fronta je v Postgresu. Lokálně `pnpm worker`.
  */
-const slug = process.env.CLIENT ?? "demo";
+const slug = process.env.CLIENT ?? "opsys";
 const root = path.resolve(import.meta.dirname, "..");
 const config = (
   (await import(pathToFileURL(path.join(root, "clients", slug, "config.ts")).href)) as {

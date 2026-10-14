@@ -23,20 +23,12 @@ import {
 } from "@rebar/ui";
 import { ChevronDown, ChevronRight, LayoutTemplate, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { useCmd } from "../budget/use-cmd";
-import { amount, plural } from "../budget/ui-format";
-import type { SectionTemplate, TemplatePayload } from "./payload";
+import { plural, useCmd } from "../ui-shared";
+import type { TemplatePayload } from "./payload";
 
 /** UI oblasti „templates“: stránka Šablony zakázek a akce „Uložit jako šablonu“. Klientský kód: žádné importy serverových částí. */
 
-type Summary = {
-  sections: number;
-  items: number;
-  tasks: number;
-  roles: number;
-  hasBudget: boolean;
-  withPrices: boolean;
-};
+type Summary = { tasks: number; roles: number };
 type TemplateRow = {
   id: string;
   name: string;
@@ -50,42 +42,8 @@ function Outline({ id }: { id: string }) {
   const q = useCommandQuery<TemplateFull>("zakazky.template.get", { id });
   if (q.isLoading || !q.data) return <Skeleton className="h-16" />;
   const p = q.data.payload;
-  const walk = (s: SectionTemplate, depth: number): React.ReactNode => (
-    <li key={`${s.title}-${depth}`}>
-      <div className="flex items-baseline gap-2" style={{ paddingLeft: depth * 16 }}>
-        <span className="font-medium">{s.title}</span>
-        <span className="text-sm text-faint">
-          {plural(s.items.length, "položka", "položky", "položek")}
-        </span>
-      </div>
-      {s.items.length > 0 && (
-        <ul className="text-sm text-muted" style={{ paddingLeft: depth * 16 + 12 }}>
-          {s.items.slice(0, 6).map((i, n) => (
-            <li key={n} className="flex gap-2">
-              <span className="truncate">{i.title}</span>
-              {p.budget?.withPrices && i.unitPriceMinor > 0 && (
-                <span className="tabular shrink-0 text-faint">
-                  {i.quantity} {i.unit} × {amount(i.unitPriceMinor)} Kč
-                </span>
-              )}
-            </li>
-          ))}
-          {s.items.length > 6 && <li className="text-faint">… a dalších {s.items.length - 6}</li>}
-        </ul>
-      )}
-      {s.children.length > 0 && <ul>{s.children.map((c) => walk(c, depth + 1))}</ul>}
-    </li>
-  );
   return (
     <div className="space-y-3 border-t border-line px-3 py-3 text-base">
-      {p.budget?.objects.map((o, n) => (
-        <div key={n}>
-          {!o.isDefault && (
-            <p className="mb-1 font-semibold">{[o.code, o.title].filter(Boolean).join(" ")}</p>
-          )}
-          <ul className="space-y-1">{o.sections.map((s) => walk(s, 0))}</ul>
-        </div>
-      ))}
       {p.tasks.length > 0 && (
         <div>
           <p className="mb-1 text-sm font-medium uppercase tracking-wide text-faint">Úkoly</p>
@@ -135,18 +93,11 @@ function TemplateItem({ t }: { t: TemplateRow }) {
           {t.description && <p className="truncate text-sm text-muted">{t.description}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          {s.hasBudget && (
-            <Chip>
-              {plural(s.sections, "oddíl", "oddíly", "oddílů")} ·{" "}
-              {plural(s.items, "položka", "položky", "položek")}
-            </Chip>
-          )}
-          {s.hasBudget && s.withPrices && <Chip color="blue">s cenami</Chip>}
           {s.tasks > 0 && <Chip>{plural(s.tasks, "úkol", "úkoly", "úkolů")}</Chip>}
           {s.roles > 0 && <Chip>{plural(s.roles, "role", "role", "rolí")}</Chip>}
         </div>
         <span className="text-sm text-faint">{formatDate(t.createdAt)}</span>
-        {can("zakazky.budget") && (
+        {can("zakazky.write") && (
           <div className="flex gap-1">
             <IconButton
               label={`Upravit šablonu ${t.name}`}
@@ -234,8 +185,8 @@ function TemplatesPage() {
       <div>
         <h1 className="text-lg font-semibold">Šablony zakázek</h1>
         <p className="text-base text-muted">
-          Kostra rozpočtu, úkoly a role týmu pro opakované zakázky. Novou šablonu vytvoříte na
-          detailu hotové zakázky akcí „Uložit jako šablonu“.
+          Úkoly a role týmu pro opakované zakázky. Novou šablonu vytvoříte na detailu hotové zakázky
+          akcí „Uložit jako šablonu“.
         </p>
       </div>
       {q.isLoading ? (
@@ -244,7 +195,7 @@ function TemplatesPage() {
         <EmptyState
           icon={<LayoutTemplate />}
           title="Zatím žádné šablony"
-          description="Otevřete zakázku, jejíž rozpočet se hodí do dalších, a zvolte „Uložit jako šablonu“."
+          description="Otevřete zakázku, která se hodí jako vzor, a zvolte „Uložit jako šablonu“."
         />
       ) : (
         <ul className="space-y-2" data-testid="template-list">
@@ -266,12 +217,9 @@ function SaveTemplateForm({
   title: string;
   close: () => void;
 }) {
-  const can = useCan();
   const save = useCmd<Record<string, unknown>, { id: string }>("zakazky.template.createFromJob");
   const [name, setName] = useState(title);
   const [description, setDescription] = useState("");
-  const [budget, setBudget] = useState(true);
-  const [prices, setPrices] = useState(false);
   const [tasks, setTasks] = useState(true);
   const [roles, setRoles] = useState(true);
   const check = (label: string, checked: boolean, set: (v: boolean) => void, disabled = false) => (
@@ -289,8 +237,6 @@ function SaveTemplateForm({
           jobId,
           name,
           description,
-          includeBudget: budget,
-          withPrices: budget && prices,
           includeTasks: tasks,
           includeRoles: roles,
         });
@@ -307,10 +253,6 @@ function SaveTemplateForm({
         <Input value={description} onChange={(e) => setDescription(e.target.value)} />
       </Field>
       <div className="mb-4 space-y-2">
-        {check("Kostra rozpočtu (oddíly a položky)", budget, setBudget, !can("zakazky.economics"))}
-        <div className="pl-6">
-          {check("včetně cen a nákladů", prices, setPrices, !budget || !can("zakazky.economics"))}
-        </div>
         {check("Otevřené úkoly zakázky", tasks, setTasks)}
         {check("Role v týmu (bez konkrétních lidí)", roles, setRoles)}
       </div>
@@ -336,7 +278,7 @@ export const actions: RecordAction[] = [
   {
     id: "save-as-template",
     label: "Uložit jako šablonu",
-    permission: "zakazky.budget",
+    permission: "zakazky.write",
     dialog: {
       title: "Uložit jako šablonu",
       render: ({ id, row, close }) => (

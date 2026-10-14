@@ -151,7 +151,7 @@ export const QuickAddDealDialog: ComponentType<QuickAddProps> = (props) => {
     let cancelled = false;
     const t = setTimeout(() => {
       api
-        .command<unknown, DuplicateMatch>("crm.contact.duplicates", q)
+        .command<unknown, DuplicateMatch>("kontakty.duplicates", q)
         .then((r) => !cancelled && setDupes(r.companies.length || r.persons.length ? r : null))
         .catch(() => !cancelled && setDupes(null));
     }, 350);

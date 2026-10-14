@@ -3,7 +3,7 @@
 # (tajemství v .env se zachovají, existující uživatel se nevytváří znovu).
 #
 #   sudo ./scripts/install.sh --domain system.klient.cz --acme-email info@klient.cz \
-#        --client demo --image ghcr.io/ondrejis/stavebni-system-core-demo --backup-image ghcr.io/ondrejis/stavebni-system-core-backup \
+#        --client opsys --image ghcr.io/ondrejis/stavebni-system-core-opsys --backup-image ghcr.io/ondrejis/stavebni-system-core-backup \
 #        --version v1.0.0 --owner-email majitel@klient.cz --owner-name "Jan Novák" \
 #        --restic-repository s3:https://s3.eu-central-1.amazonaws.com/zalohy-klient --aws-key … --aws-secret … \
 #        --ghcr-user ondrejis --ghcr-token …
@@ -89,7 +89,7 @@ ask() { # ask PROMPT VAR [default]
 }
 ask "Adresa systému (např. system.klient.cz)" domain
 ask "E-mail pro certifikát a upozornění Let's Encrypt" acme_email
-ask "Klient (složka v clients/)" client demo
+ask "Klient (složka v clients/)" client opsys
 ask "Image aplikace (bez tagu)" image
 ask "Image zálohování (bez tagu)" backup_image
 ask "Verze (např. v1.0.0)" version

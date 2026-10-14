@@ -11,10 +11,20 @@ Rozcestník ke všemu v `docs/`. Každý dokument je tu uveden; test `tests/docs
 
 Co systém je, jak je postavený a jak se upravuje pro klienta.
 
-- [Core interních firemních systémů na míru](../README.md) (`README.md`)
+- [OPSYS: interní systém agentury OP Digital](../README.md) (`README.md`)
 - [Architektura](ARCHITECTURE.md) (`docs/ARCHITECTURE.md`)
 - [Úpravy pro klienta](CUSTOMIZATION.md) (`docs/CUSTOMIZATION.md`)
-- [Mobilní terminál řemeslníka](TERMINAL.md) (`docs/TERMINAL.md`)
+
+## OPSYS: zadání, rozbor jádra a rozběh
+
+Pracovní dokumenty projektu OPSYS (interní systém agentury): zadání, analýzy jádra a modulů, digest specifikace, plán a log rozběhu. Specifikace od zadavatele je v `docs/specifikace/`.
+
+- [OPSYS — společné zadání pro všechny agenty (čti jako první)](opsys/00-ZADANI.md) (`docs/opsys/00-ZADANI.md`)
+- [A: Inventura jádra pro OPSYS](opsys/A-core-inventura.md) (`docs/opsys/A-core-inventura.md`)
+- [OPSYS – B: audit modulů jádra Rebar vůči specifikaci](opsys/B-audit-modulu.md) (`docs/opsys/B-audit-modulu.md`)
+- [OPSYS – digest specifikace (C)](opsys/C-digest-specifikace.md) (`docs/opsys/C-digest-specifikace.md`)
+- [D – Plán, kontrakty a rozdělení práce OPSYS (ZÁVAZNÉ)](opsys/D-plan-a-kontrakty.md) (`docs/opsys/D-plan-a-kontrakty.md`)
+- [OPSYS – E: log rozběhu (odstranění stavebních modulů, klient opsys, lokální vývoj)](opsys/E-rozbehovy-log.md) (`docs/opsys/E-rozbehovy-log.md`)
 
 ## Provoz a bezpečnost
 
@@ -50,11 +60,7 @@ Jak každý modul funguje: účel, role, toky, stavy, pravidla, integrace a omez
 - [Kontakty](moduly/kontakty.md) (`docs/moduly/kontakty.md`)
 - [Zakázky](moduly/zakazky.md) (`docs/moduly/zakazky.md`)
 - [Poptávky](moduly/poptavky.md) (`docs/moduly/poptavky.md`)
-- [Realizace](moduly/realizace.md) (`docs/moduly/realizace.md`)
-- [Fakturace](moduly/fakturace.md) (`docs/moduly/fakturace.md`)
 - [Docházka](moduly/dochazka.md) (`docs/moduly/dochazka.md`)
-- [Sklad](moduly/sklad.md) (`docs/moduly/sklad.md`)
-- [Stroje a vozidla](moduly/stroje.md) (`docs/moduly/stroje.md`)
 - [Kalendář](moduly/kalendar.md) (`docs/moduly/kalendar.md`)
 
 ## Reference (generovaná z kódu)
@@ -112,3 +118,9 @@ Proč je věc udělaná tak, jak je. Každé rozhodnutí má vlastní číslovan
 - [Vlastní nástěnky](DASHBOARDY.md) (`docs/DASHBOARDY.md`)
 - [Exporty](EXPORTY.md) (`docs/EXPORTY.md`)
 - [Upozornění: push, zvoneček a e-mail](NOTIFICATIONS.md) (`docs/NOTIFICATIONS.md`)
+- [OPSIS – Logická specifikace funkcí](specifikace/00-logicka-specifikace-funkci.md) (`docs/specifikace/00-logicka-specifikace-funkci.md`)
+- [OPSIS 00 – Přehled, rozhodnutí a fáze](specifikace/10-prehled-rozhodnuti-faze.md) (`docs/specifikace/10-prehled-rozhodnuti-faze.md`)
+- [OPSIS 01 – Architektura a tech stack](specifikace/11-architektura-tech-stack.md) (`docs/specifikace/11-architektura-tech-stack.md`)
+- [OPSIS 02 – Datový model](specifikace/12-datovy-model.md) (`docs/specifikace/12-datovy-model.md`)
+- [OPSIS 03 – Funkční specifikace](specifikace/13-funkcni-specifikace.md) (`docs/specifikace/13-funkcni-specifikace.md`)
+- [OPSIS 04 – Design systém](specifikace/14-design-system.md) (`docs/specifikace/14-design-system.md`)

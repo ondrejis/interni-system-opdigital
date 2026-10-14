@@ -39,11 +39,10 @@ Proměnné mimo validační schéma aplikace (migrace, seed, testy, výkonové a
 | `BUNDLE_BUDGET_KB` |  | `scripts/bundle-report.mjs` |
 | `CI` |  | `apps/web/playwright.config.ts` |
 | `CLIENT` | Vyber klienta: složka v clients/ (při buildu i za běhu). Image se staví per klient. | `apps/web/next.config.ts`, `apps/web/src/server/bootstrap.ts`, `scripts/db-migrate.ts`, `scripts/db-seed.ts` a dalších 3 |
-| `CRAWL_BASE_URL` |  | `apps/web/e2e-crawl/notifikace-predvolby.crawl.spec.ts`, `apps/web/e2e-crawl/notifikace-sw.crawl.spec.ts`, `apps/web/e2e-crawl/platforma-prihlaseni.crawl.spec.ts`, `apps/web/e2e-crawl/pristupnost.crawl.spec.ts` a dalších 3 |
+| `CRAWL_BASE_URL` |  | `apps/web/e2e-crawl/platforma-prihlaseni.crawl.spec.ts`, `apps/web/e2e-crawl/ucet-heslo.crawl.spec.ts`, `apps/web/playwright.crawl.config.ts` |
 | `CRAWL_EMAIL` |  | `apps/web/e2e-crawl/login.setup.ts` |
 | `CRAWL_OUTPUT_DIR` |  | `apps/web/playwright.crawl.config.ts` |
 | `CRAWL_PASSWORD` |  | `apps/web/e2e-crawl/login.setup.ts` |
-| `CRAWL_SHOTS` |  | `apps/web/e2e-crawl/fakturace-email.crawl.spec.ts`, `apps/web/e2e-crawl/fakturace-email.mobile.spec.ts` |
 | `DATABASE_APP_ROLE` |  | `scripts/db-migrate.ts` |
 | `DATABASE_MIGRATE_URL` | Migrace běží jako samostatný krok pod vlastníkem schématu (pnpm db:migrate), nikdy za běhu aplikace | `scripts/db-migrate.ts`, `scripts/demo-seed.ts` |
 | `DEMO_SEED_ALLOW_PRODUCTION` |  | `scripts/demo-seed.ts` |
@@ -53,7 +52,7 @@ Proměnné mimo validační schéma aplikace (migrace, seed, testy, výkonové a
 | `E2E_APP_PASSWORD` |  | `apps/web/e2e/auth.setup.ts`, `apps/web/e2e/global-setup.ts` |
 | `E2E_EMAIL` |  | `apps/web/e2e/auth.spec.ts`, `apps/web/e2e/global-setup.ts` |
 | `E2E_PASSWORD` |  | `apps/web/e2e/auth.spec.ts`, `apps/web/e2e/global-setup.ts` |
-| `E2E_SHOTS` |  | `apps/web/e2e-crawl/dashboardy-mobil.mobile.spec.ts`, `apps/web/e2e-crawl/dashboardy-sestaveni.crawl.spec.ts`, `apps/web/e2e-crawl/exporty-mobil.mobile.spec.ts`, `apps/web/e2e/entities.spec.ts` a dalších 2 |
+| `E2E_SHOTS` |  | `apps/web/e2e-crawl/dashboardy-mobil.mobile.spec.ts`, `apps/web/e2e-crawl/dashboardy-sestaveni.crawl.spec.ts`, `apps/web/e2e-crawl/exporty-mobil.mobile.spec.ts`, `apps/web/e2e/entities.spec.ts` a dalších 1 |
 | `E2E_SHUFFLE_READY` |  | `apps/web/playwright.shuffle.config.ts` |
 | `GITHUB_STEP_SUMMARY` |  | `scripts/bundle-report.mjs` |
 | `NEXT_DIST_DIR` |  | `apps/web/next.config.ts`, `scripts/bundle-report.mjs` |
@@ -67,6 +66,7 @@ Proměnné mimo validační schéma aplikace (migrace, seed, testy, výkonové a
 | `PERF_DB_HOST` |  | `scripts/perf-check.ts` |
 | `PERF_DB_NAME` |  | `scripts/perf-check.ts` |
 | `PERF_MIGRATE_URL` |  | `scripts/perf-check.ts` |
+| `REBAR_PG_PORT` |  | `scripts/perf-check.ts` |
 | `TZ` |  | `packages/core/src/time/dates.test.ts` |
 | `UI_SHOWCASE` |  | `apps/web/src/app/ui/page.tsx` |
 
@@ -87,23 +87,12 @@ Typovaná a validovaná Zodem při startu (`clientConfigSchema`, `defineClientCo
 | `locale.locale` | text | ne |  | výchozí `"cs-CZ"` |  |
 | `locale.timezone` | text | ne |  | výchozí `"Europe/Prague"` |  |
 | `locale.currency` | text | ne |  | délka 3; výchozí `"CZK"` |  |
-| `modules` | pole (enum) | ano | `kontakty`, `zakazky`, `poptavky`, `realizace`, `fakturace`, `dochazka`, `sklad`, `stroje`, `kalendar` | počet ≥ 1 | Zapnuté moduly. Závislosti kontroluje `resolveModules`. |
+| `modules` | pole (enum) | ano | `kontakty`, `zakazky`, `poptavky`, `dochazka`, `kalendar` | počet ≥ 1 | Zapnuté moduly. Závislosti kontroluje `resolveModules`. |
 | `security` | objekt | ne |  | výchozí `{}` |  |
 | `security.idleTimeoutMinutes` | celé číslo | ne |  | hodnota 5–1440; výchozí `480` | Odhlášení po neaktivitě (minuty). |
 | `security.require2faRoles` | pole (text) | ne |  | výchozí `["owner","admin"]` | Klíče rolí, pro které je 2FA povinné. |
-| `terminal` | objekt | ne |  | výchozí `{}` | Mobilní terminál řemeslníka: role, výchozí dlaždice a volby (správce je v Nastavení může přepsat). |
-| `terminal.enabled` | ano/ne | ne |  | výchozí `true` |  |
-| `terminal.roles` | pole (text) | ne |  | výchozí `["worker"]` |  |
-| `terminal.tiles` | pole objektů | ne |  | výchozí `[{"widget":"dochazka.clock","enabled":true},{"widget":"zakazky.today","enable…` |  |
-| `terminal.tiles[].widget` | text | ano |  | vzor `^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$` |  |
-| `terminal.tiles[].enabled` | ano/ne | ne |  | výchozí `true` |  |
-| `terminal.tiles[].label` | text | ne |  | délka 1–40 |  |
-| `terminal.attendance` | objekt | ne |  | výchozí `{}` |  |
-| `terminal.attendance.requireJob` | ano/ne | ne |  | výchozí `false` |  |
-| `terminal.attendance.allowJobChange` | ano/ne | ne |  | výchozí `true` |  |
-| `terminal.attendance.showHours` | ano/ne | ne |  | výchozí `true` |  |
-| `terminal.diary` | objekt | ne |  | výchozí `{}` |  |
-| `terminal.diary.requirePhoto` | ano/ne | ne |  | výchozí `false` |  |
+| `navigation` | objekt | ne |  | výchozí `{}` | Navigace: pořadí sekcí postranního panelu (sekce, které tu nejsou, jdou za nimi v pořadí modulů). |
+| `navigation.groupOrder` | pole (text) | ne |  | výchozí `[]` |  |
 | `notifications` | objekt | ne |  | výchozí `{}` | Pravidla upozornění klienta: výchozí kanály, příjemci a texty událostí, tiché hodiny, časy shrnutí. Správce je dál upravuje v Nastavení; klíče událostí jsou v katalogu (`docs/NOTIFICATIONS.md`). |
 | `notifications.events` | slovník (klíč → hodnota) | ne |  | výchozí `{}` |  |
 | `notifications.events.*` | objekt | ne |  |  |  |

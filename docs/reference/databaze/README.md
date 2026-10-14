@@ -9,17 +9,13 @@ Jedna databáze PostgreSQL. Každý balíček (jádro, každý modul) vlastní s
 
 | Balíček | Tabulek | Migrací | Dokument |
 | --- | --- | --- | --- |
-| Jádro | 40 | 12 | [jadro.md](jadro.md) |
+| Jádro | 39 | 13 | [jadro.md](jadro.md) |
 | Modul Kontakty | 3 | 3 | [kontakty.md](kontakty.md) |
-| Modul Zakázky | 21 | 13 | [zakazky.md](zakazky.md) |
+| Modul Zakázky | 5 | 1 | [zakazky.md](zakazky.md) |
 | Modul CRM | 7 | 3 | [poptavky.md](poptavky.md) |
-| Modul Realizace | 5 | 2 | [realizace.md](realizace.md) |
-| Modul Fakturace | 6 | 6 | [fakturace.md](fakturace.md) |
 | Modul Docházka | 2 | 2 | [dochazka.md](dochazka.md) |
-| Modul Sklad | 9 | 2 | [sklad.md](sklad.md) |
-| Modul Stroje a vozidla | 7 | 1 | [stroje.md](stroje.md) |
 | Modul Kalendář | 6 | 1 | [kalendar.md](kalendar.md) |
 
-Celkem tabulek: 106, 45 migrací.
+Celkem tabulek: 62, 23 migrací.
 
 Tabulky fronty úloh (pg-boss) zakládá krok migrací (`installQueues`) ve schématu knihovny; v tomto přehledu nejsou.

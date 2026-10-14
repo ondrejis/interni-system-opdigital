@@ -76,7 +76,7 @@ test("firma: založení, inline editace města, hledání bez diakritiky, filtr 
   expectClean(c, "filtr a pohled");
 });
 
-test("osoba patří k firmě; firma ukáže osoby, zakázky a faktury", async ({ page }) => {
+test("osoba patří k firmě; firma ukáže osoby a zakázky", async ({ page }) => {
   test.setTimeout(120_000);
   const c = collectErrors(page);
   await visit(page, "/kontakty/osoby", c);
@@ -115,7 +115,6 @@ test("osoba patří k firmě; firma ukáže osoby, zakázky a faktury", async ({
   await expect(view.getByRole("heading", { name: company })).toBeVisible();
   await view.getByRole("tab", { name: "Zakázky" }).click();
   await expect(view).toContainText(job);
-  await view.getByRole("tab", { name: "Faktury" }).click();
   await view.getByRole("tab", { name: "Poptávky" }).click();
   await view.getByRole("tab", { name: "Úkoly" }).click();
   await view.getByRole("tab", { name: "Soubory" }).click();

@@ -1,10 +1,10 @@
 # ADR 023: Mobilní terminál řemeslníka
 
-- Stav: přijato (2026-10-10)
+- Stav: nahrazeno (2026-10-14): terminál řemeslníka byl při rozběhu OPSYS odstraněn (viz docs/opsys/E-rozbehovy-log.md); původně přijato 2026-10-10
 - Kontext: [ADR 006](006-vrstvy-balicku.md) (moduly se neznají), [ADR 007](007-opravneni-v-datove-vrstve.md) (oprávnění v datové vrstvě),
   [ADR 012](012-moduly-prikazy-a-poskytovatele.md) (příkazy a poskytovatelé), [ADR 013](013-push-a-pwa.md) (PWA, fotky z terénu),
   [ADR 019](019-konfigurace-v-administraci.md) (konfigurace v administraci), [ADR 021](021-kontrola-roli-mobilu-a-pristupnosti.md) (role a mobil).
-  Popis a návod: [TERMINAL](../TERMINAL.md).
+  Popis a návod (`TERMINAL.md`) byl odstraněn spolu s terminálem.
 
 ## Kontext
 
@@ -54,5 +54,5 @@ Cena: „studený start“ bez signálu terminál nenačte; už otevřený termi
 - Nová tabulka `terminal_op` (migrace `0008_terminal_op`), čištění starších než 60 dní probíhá příležitostně při zápisu.
 - Přibývají příkazy `core.tasks.*`, `dochazka.terminal.summary`, `zakazky.terminal.sites`, `realizace.terminal.*`, `sklad.terminal.items`; předpona `core` je povolená v testu modulů.
 - Příkazy docházky přijímají volitelné `at`.
-- Nová dlaždice = manifest + UI + (případně) příkaz modulu, bez zásahu do jádra ([TERMINAL](../TERMINAL.md), kapitola 4).
+- Nová dlaždice = manifest + UI + (případně) příkaz modulu, bez zásahu do jádra (`docs/TERMINAL.md` (odstraněno), kapitola 4).
 - Kontaktní osoba zakázky (jméno a telefon) a kolegové z týmu se řemeslníkovi na zakázce ukazují i bez oprávnění `kontakty.read`; je to zadání terminálu, viz otevřená otázka T2.

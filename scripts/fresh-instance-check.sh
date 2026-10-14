@@ -24,7 +24,7 @@ fi
 PORT="${FRESH_PORT:-3102}"
 DB="${FRESH_DB:-rebar_fresh}"
 case "$DB" in rebar|rebar_dev|rebar_e2e|rebar_test) echo "FRESH_DB=$DB je vyhrazená databáze, zvolte jiný název"; exit 1 ;; esac
-PSQL="${PG_BIN:-/opt/homebrew/opt/postgresql@17/bin}/psql -h localhost -p 5433 -U postgres -v ON_ERROR_STOP=1 -qAt -d postgres"
+PSQL="${PG_BIN:-/opt/homebrew/opt/postgresql@17/bin}/psql -h localhost -p ${REBAR_PG_PORT:-5434} -U postgres -v ON_ERROR_STOP=1 -qAt -d postgres"
 
 # uložené relace demo uživatelů z jiné databáze by v čerstvé instanci neplatily
 rm -f apps/web/e2e-crawl/.auth/localhost_"$PORT"-*.json
@@ -40,10 +40,10 @@ if [ -f .env.local ]; then
     [ -z "$v" ] || export "$k=$v"
   done
 fi
-export DATABASE_URL="postgres://rebar_app:app@localhost:5433/$DB"
-export DATABASE_MIGRATE_URL="postgres://rebar_migrator:migrator@localhost:5433/$DB"
+export DATABASE_URL="postgres://rebar_app:app@localhost:${REBAR_PG_PORT:-5434}/$DB"
+export DATABASE_MIGRATE_URL="postgres://rebar_migrator:migrator@localhost:${REBAR_PG_PORT:-5434}/$DB"
 export FILES_DIR="$(mktemp -d)"
-export CLIENT=demo
+export CLIENT=opsys
 export APP_URL="http://localhost:$PORT"
 export APP_ALLOW_HTTP=1
 
@@ -76,8 +76,8 @@ done
 
 echo "== procházecí testy proti čerstvé instanci"
 export CRAWL_BASE_URL="http://localhost:$PORT"
-export CRAWL_EMAIL="majitel@demo-firma.example"
-export CRAWL_PASSWORD="Demo-heslo-2026"
+export CRAWL_EMAIL="majitel@demo.opsys.example"
+export CRAWL_PASSWORD="Opsys-demo-2026"
 export CRAWL_OUTPUT_DIR="${CRAWL_OUTPUT_DIR:-test-results-fresh}"
 # v CI běží prohlížeč v UTC (runner), server v Europe/Prague; napodobíme to i lokálně (FRESH_BROWSER_TZ přepíše)
 set +e

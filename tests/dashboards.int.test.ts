@@ -75,31 +75,31 @@ const OURS = {
 };
 
 describe("agregace entity: oprávnění a rozsah řádků", () => {
-  it("majitel spočítá zakázky a součet smluvních cen; mistr vidí jen své zakázky", async () => {
+  it("majitel spočítá zakázky a součet hodnot; externista vidí jen své zakázky", async () => {
     const e = await jobEntity();
     const all = await aggregateRecords(P().owner.ctx, f.registry, e, { fn: "count" });
-    const mine = await aggregateRecords(P().foremanA.ctx, f.registry, e, { fn: "count" });
+    const mine = await aggregateRecords(P().externistaA.ctx, f.registry, e, { fn: "count" });
     expect(all.total.count).toBeGreaterThanOrEqual(2);
     expect(mine.total.count).toBe(1);
     const sum = await aggregateRecords(P().owner.ctx, f.registry, e, {
       fn: "sum",
-      attr: "sumContract",
+      attr: "value",
       filters: { op: "and", conditions: [{ attr: "title", op: "equals", value: "Zakázka A" }] },
     });
-    expect(sum.total.value).toBe(MONEY.contract);
+    expect(sum.total.value).toBe(MONEY.value);
   });
 
-  it("součet atributu skrytého oprávněním mistr ani montér nedostane (neexistuje pro ně)", async () => {
+  it("součet atributu skrytého oprávněním externista nedostane (neexistuje pro něj)", async () => {
     const e = await jobEntity();
-    for (const who of [P().foremanA, P().workerA]) {
+    for (const who of [P().externistaA]) {
       await expect(
-        aggregateRecords(who.ctx, f.registry, e, { fn: "sum", attr: "sumContract" }),
+        aggregateRecords(who.ctx, f.registry, e, { fn: "sum", attr: "value" }),
       ).rejects.toBeInstanceOf(UserError);
       await expect(
         aggregateRecords(who.ctx, f.registry, e, {
           fn: "count",
           groupBy: { attr: "stage" },
-          filters: { op: "and", conditions: [{ attr: "sumCost", op: "gt", value: 1 }] },
+          filters: { op: "and", conditions: [{ attr: "value", op: "gt", value: 1 }] },
         }),
       ).rejects.toBeInstanceOf(UserError);
     }
@@ -119,7 +119,7 @@ describe("agregace entity: oprávnění a rozsah řádků", () => {
       filters: OURS,
       limit: 50,
     });
-    expect(byManager.groups.map((g) => g.label)).toContain(P().foremanA.name);
+    expect(byManager.groups.map((g) => g.label)).toContain(P().externistaA.name);
     const byMonth = await aggregateRecords(P().owner.ctx, f.registry, e, {
       fn: "count",
       groupBy: { attr: "startDate", bucket: "month" },
@@ -159,10 +159,10 @@ describe("agregace entity: oprávnění a rozsah řádků", () => {
     const e = await jobEntity();
     const avg = await aggregateRecords(P().owner.ctx, f.registry, e, {
       fn: "avg",
-      attr: "sumContract",
+      attr: "value",
       filters: { op: "and", conditions: [{ attr: "title", op: "equals", value: "Zakázka A" }] },
     });
-    expect(avg.total.value).toBe(MONEY.contract);
+    expect(avg.total.value).toBe(MONEY.value);
     const min = await aggregateRecords(P().owner.ctx, f.registry, e, {
       fn: "min",
       attr: "startDate",
@@ -186,32 +186,32 @@ describe("agregace entity: oprávnění a rozsah řádků", () => {
 describe("evaluateWidget: oprávnění ani úprava definice nic neodemkne", () => {
   const sumWidget = () =>
     widget({
-      source: { kind: "entity", entity: "job", agg: { fn: "sum", attr: "sumContract" } },
+      source: { kind: "entity", entity: "job", agg: { fn: "sum", attr: "value" } },
     });
 
-  it("majitel dostane součet, mistr chybu a v odpovědi nejsou peníze", async () => {
+  it("majitel dostane součet, externista chybu a v odpovědi nejsou peníze", async () => {
     const ok = await evaluateWidget(P().owner.ctx, env, sumWidget(), { period: "all" });
     expect(ok.ok).toBe(true);
-    const bad = await evaluateWidget(P().foremanA.ctx, env, sumWidget(), { period: "all" });
+    const bad = await evaluateWidget(P().externistaA.ctx, env, sumWidget(), { period: "all" });
     expect(bad.ok).toBe(false);
-    expect(JSON.stringify(bad)).not.toContain(String(MONEY.contract));
-    const worker = await evaluateWidget(P().workerA.ctx, env, sumWidget(), { period: "all" });
+    expect(JSON.stringify(bad)).not.toContain(String(MONEY.value));
+    const worker = await evaluateWidget(P().externistaA.ctx, env, sumWidget(), { period: "all" });
     expect(worker.ok).toBe(false);
   });
 
-  it("seznam záznamů a graf mistra: jen jeho zakázky, bez sloupců s cenou", async () => {
+  it("seznam záznamů a graf externisty: jen jeho zakázky, bez sloupců s cenou", async () => {
     const list = await evaluateWidget(
-      P().foremanA.ctx,
+      P().externistaA.ctx,
       env,
       widget({
         type: "table",
-        source: { kind: "records", entity: "job", columns: ["title", "sumContract"] },
+        source: { kind: "records", entity: "job", columns: ["title", "value"] },
       }),
       { period: "all" },
     );
     expect(list.ok).toBe(false);
     const ok = await evaluateWidget(
-      P().foremanA.ctx,
+      P().externistaA.ctx,
       env,
       widget({
         type: "table",
@@ -248,18 +248,18 @@ describe("evaluateWidget: oprávnění ani úprava definice nic neodemkne", () =
       label: "Tajná",
       format: "money",
       shape: "scalar",
-      permissions: ["zakazky.economics"],
+      permissions: ["zakazky.finance"],
       compute: async () => ({ kind: "scalar", value: 777 }),
     });
     const e2: DashboardEnv = { ...env, metrics: new Map([[secret.key, secret]]) };
     const w = widget({ source: { kind: "metric", metric: secret.key } });
     const ok = await evaluateWidget(P().owner.ctx, e2, w, { period: "all" });
     expect(ok.ok && ok.result.kind === "kpi" && ok.result.value).toBe(777);
-    const no = await evaluateWidget(P().foremanA.ctx, e2, w, { period: "all" });
+    const no = await evaluateWidget(P().externistaA.ctx, e2, w, { period: "all" });
     expect(no).toMatchObject({ ok: false, code: "forbidden" });
-    expect(sourceCatalog(P().foremanA.ctx, e2).metrics).toHaveLength(0);
+    expect(sourceCatalog(P().externistaA.ctx, e2).metrics).toHaveLength(0);
     expect(sourceCatalog(P().owner.ctx, e2).metrics).toHaveLength(1);
-    expect(sourceCatalog(P().foremanA.ctx, e2).entities.some((x) => x.key === "job")).toBe(true);
+    expect(sourceCatalog(P().externistaA.ctx, e2).entities.some((x) => x.key === "job")).toBe(true);
   });
 
   it("srovnání období: scalar metrika se vyhodnotí dvakrát (aktuální a předchozí období)", async () => {
@@ -302,7 +302,7 @@ describe("evaluateWidget: oprávnění ani úprava definice nic neodemkne", () =
     expect(a.ok).toBe(true);
     const again = await evaluateWidget(P().owner.ctx, cached, w, { period: "all" });
     expect(again).toBe(a); // z mezipaměti
-    const b = await evaluateWidget(P().foremanA.ctx, cached, w, { period: "all" });
+    const b = await evaluateWidget(P().externistaA.ctx, cached, w, { period: "all" });
     expect(b.ok).toBe(false);
     clearDashboardCache();
   });
@@ -340,7 +340,7 @@ describe("evaluateWidget: oprávnění ani úprava definice nic neodemkne", () =
       widget({
         source: {
           kind: "entity",
-          entity: "defect",
+          entity: "job",
           agg: { fn: "count" },
         },
       }),
@@ -434,7 +434,7 @@ describe("druhy widgetů", () => {
         type: "table",
         source: {
           ...entity,
-          agg: { fn: "sum", attr: "sumContract" },
+          agg: { fn: "sum", attr: "value" },
           groupBy: { attr: "manager" },
           limit: 3,
         },

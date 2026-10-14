@@ -52,68 +52,33 @@ Katalog zapnutých modulů se skládá při startu (`collectNotificationEvents`)
 
 <!-- katalog:start -->
 
-| Klíč                             | Název                                   | Komu (výchozí)                                                                            | Kudy           | Příznaky                     |
-| -------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------- | -------------- | ---------------------------- |
-| `task.assigned`                  | Přidělen úkol                           | Ten, komu je úkol přidělen                                                                | push, zvoneček |                              |
-| `task.due_changed`               | Změna termínu úkolu                     | Ten, komu je úkol přidělen                                                                | push, zvoneček | slučuje                      |
-| `task.done`                      | Úkol splněn                             | Ten, kdo úkol zadal                                                                       | zvoneček       |                              |
-| `task.due_today`                 | Úkoly na dnešek                         | Ten, komu jsou úkoly přiděleny                                                            | push, zvoneček | plánované, odložit           |
-| `comment.mention`                | Zmínka v komentáři                      | Označený uživatel                                                                         | push, zvoneček |                              |
-| `inquiry.new`                    | Nová poptávka                           | `perm:poptavky.write`                                                                     | push, zvoneček |                              |
-| `inquiry.assigned`               | Přidělena poptávka                      | Obchodník, kterému je poptávka přidělena                                                  | push, zvoneček |                              |
-| `crm.activity_assigned`          | Přidělena aktivita                      | Ten, komu je aktivita přidělena                                                           | push, zvoneček |                              |
-| `crm.activities_today`           | Aktivity na dnešek                      | Ten, komu jsou aktivity přiděleny                                                         | push, zvoneček | plánované, odložit           |
-| `crm.deals_without_activity`     | Zakázky bez další aktivity              | Vedoucí zakázky (obchodník)                                                               | zvoneček       | plánované, odložit           |
-| `crm.deals_rotting`              | Zakázky, které hnijí                    | Vedoucí zakázky (obchodník)                                                               | push, zvoneček | plánované                    |
-| `crm.deal_stage`                 | Sledovaná zakázka: změna stavu          | Ti, kdo zakázku sledují                                                                   | zvoneček       |                              |
-| `crm.deal_won`                   | Sledovaná zakázka: vyhráno              | Ti, kdo zakázku sledují                                                                   | push, zvoneček |                              |
-| `crm.deal_lost`                  | Sledovaná zakázka: prohráno             | Ti, kdo zakázku sledují                                                                   | push, zvoneček |                              |
-| `job.team`                       | Přidání do týmu zakázky                 | Ten, kdo byl přidán do týmu                                                               | push, zvoneček |                              |
-| `approval.request`               | Doklad čeká na schválení                | Ti, kdo smějí o dokladu rozhodnout                                                        | push, zvoneček | odložit                      |
-| `approval.approved`              | Váš doklad byl schválen                 | Ten, kdo doklad poslal ke schválení                                                       | push, zvoneček |                              |
-| `approval.rejected`              | Váš doklad byl zamítnut                 | Ten, kdo doklad poslal ke schválení                                                       | push, zvoneček |                              |
-| `job.statement.approved`         | Soupis prací schválen                   | Vedoucí a tým zakázky, `perm:fakturace.write`                                             | push, zvoneček |                              |
-| `job.statement.rejected`         | Soupis prací zamítnut                   | Vedoucí a tým zakázky, Další zainteresovaní (odpovědný, fakturace…)                       | push, zvoneček |                              |
-| `job.change.approved`            | Vícepráce schválena                     | Vedoucí a tým zakázky, `perm:fakturace.write`                                             | push, zvoneček |                              |
-| `job.change.rejected`            | Vícepráce zamítnuta                     | Vedoucí a tým zakázky, Další zainteresovaní (odpovědný, fakturace…)                       | push, zvoneček |                              |
-| `zakazky.starts_today`           | Zakázka dnes začíná                     | Vedoucí a tým zakázky                                                                     | push, zvoneček | plánované, odložit           |
-| `job.schedule`                   | Změna harmonogramu                      | Vedoucí a tým zakázky, Další zainteresovaní (odpovědný za fázi)                           | push, zvoneček | slučuje                      |
-| `realizace.phase_added`          | Nová fáze harmonogramu                  | Vedoucí a tým zakázky, Další zainteresovaní (odpovědný za fázi)                           | push, zvoneček | slučuje                      |
-| `realizace.phase_done`           | Fáze dokončena                          | Vedoucí a tým zakázky, Další zainteresovaní (odpovědný za fázi)                           | zvoneček       |                              |
-| `job.diary`                      | Zahájena realizace                      | Vedoucí a tým zakázky, Další zainteresovaní (odpovědný za fázi)                           | push, zvoneček |                              |
-| `job.handover`                   | Předáno zákazníkovi                     | Vedoucí a tým zakázky, Další zainteresovaní (odpovědný za fázi)                           | push, zvoneček |                              |
-| `defect.new`                     | Nová vada                               | Vedoucí a tým zakázky, Ten, kdo má vadu řešit                                             | push, zvoneček |                              |
-| `defect.assigned`                | Přidělena vada k řešení                 | Ten, kdo má vadu řešit                                                                    | push, zvoneček |                              |
-| `realizace.today`                | Dnes na stavbě                          | Vedoucí, člen týmu nebo odpovědný za fázi, která dnes běží                                | push, zvoneček | plánované, odložit           |
-| `realizace.phase_starts`         | Fáze začíná                             | Odpovědný za fázi, Vedoucí a tým zakázky                                                  | push, zvoneček | plánované                    |
-| `realizace.phase_deadline`       | Blíží se konec fáze                     | Odpovědný za fázi, Vedoucí zakázky                                                        | push, zvoneček | plánované, odložit           |
-| `realizace.phase_overdue`        | Fáze po termínu                         | Odpovědný za fázi, Vedoucí zakázky                                                        | push, zvoneček | naléhavé, plánované, odložit |
-| `realizace.diary_missing`        | Chybí zápis do deníku                   | Vedoucí a tým zakázky                                                                     | push, zvoneček | plánované, odložit           |
-| `invoice.overdue`                | Faktura po splatnosti                   | `perm:fakturace.write`                                                                    | push, zvoneček |                              |
-| `invoice.due_soon`               | Faktura brzy po splatnosti              | `perm:fakturace.write`                                                                    | push, zvoneček | plánované                    |
-| `invoice.paid`                   | Faktura zaplacena                       | Ten, kdo fakturu založil, Vedoucí zakázky, ke které faktura patří, `perm:fakturace.write` | zvoneček       |                              |
-| `received_invoice.overdue`       | Přijatá faktura po splatnosti           | `perm:fakturace.write`                                                                    | push, zvoneček |                              |
-| `invoice.mail_failed`            | E-mail s fakturou se nepodařilo odeslat | Ten, kdo e-mail odeslal                                                                   | push, zvoneček |                              |
-| `time.submitted`                 | Docházka ke schválení                   | `perm:dochazka.approve`                                                                   | push, zvoneček |                              |
-| `time.approved`                  | Docházka schválena                      | Zaměstnanec, jehož výkaz byl schválen                                                     | push, zvoneček |                              |
-| `time.returned`                  | Docházka vrácena k opravě               | Zaměstnanec, jehož výkaz byl vrácen                                                       | push, zvoneček |                              |
-| `time.reminder`                  | Připomínka docházky                     | Zaměstnanec bez dnešního záznamu                                                          | push, zvoneček | plánované, odložit           |
-| `dochazka.missing_clock_in`      | Chybějící příchod                       | Zaměstnanec bez dnešního záznamu                                                          | push, zvoneček | plánované, odložit           |
-| `dochazka.forgot_clock_out`      | Zapomenutý odchod                       | Zaměstnanec s běžící píchačkou                                                            | push, zvoneček | naléhavé, plánované, odložit |
-| `dochazka.forgot_clock_out_team` | Zapomenutý odchod (vedoucí)             | Schvalovatelé s rozsahem „vše“                                                            | zvoneček       | plánované                    |
-| `sklad.low`                      | Materiál pod minimem                    | `perm:sklad.write`                                                                        | push, zvoneček |                              |
-| `stroje.deadline`                | Blíží se termín stroje                  | Osoba odpovědná za stroj, `perm:stroje.write`                                             | push, zvoneček | plánované                    |
-| `stroje.deadline_urgent`         | Termín stroje je za dveřmi              | Osoba odpovědná za stroj, `perm:stroje.write`                                             | push, zvoneček | naléhavé, plánované, odložit |
-| `stroje.fuel`                    | Neobvyklá spotřeba                      | `perm:stroje.write`                                                                       | push, zvoneček |                              |
-| `stroje.reservation`             | Stroj je pro vás rezervovaný            | Obsluha, které je stroj rezervován                                                        | push, zvoneček |                              |
-| `stroje.reservation_tomorrow`    | Zítra máte rezervovaný stroj            | Obsluha, které je stroj rezervován                                                        | push, zvoneček | plánované                    |
-| `stroje.defect`                  | Nahlášena závada                        | Řešitel závady, Osoba odpovědná za stroj                                                  | push, zvoneček |                              |
-| `stroje.defect_blocking`         | Stroj mimo provoz                       | Řešitel závady, Osoba odpovědná za stroj, `perm:stroje.write`                             | push, zvoneček | naléhavé                     |
-| `stroje.defect_resolved`         | Závada opravena                         | Ten, kdo závadu nahlásil                                                                  | push, zvoneček |                              |
-| `kalendar.invite`                | Pozvánka na událost                     | Nově pozvaný účastník                                                                     | push, zvoneček |                              |
-| `kalendar.changed`               | Změna termínu události                  | Účastník, který byl pozvaný už dřív                                                       | push, zvoneček | slučuje                      |
-| `kalendar.cancelled`             | Zrušená událost                         | Pozvaný účastník                                                                          | push, zvoneček |                              |
-| `kalendar.reminder`              | Připomenutí události                    | Organizátor a pozvaní účastníci                                                           | push, zvoneček | plánované, odložit           |
+| Klíč                             | Název                          | Komu (výchozí)                           | Kudy           | Příznaky                     |
+| -------------------------------- | ------------------------------ | ---------------------------------------- | -------------- | ---------------------------- |
+| `task.assigned`                  | Přidělen úkol                  | Ten, komu je úkol přidělen               | push, zvoneček |                              |
+| `task.due_changed`               | Změna termínu úkolu            | Ten, komu je úkol přidělen               | push, zvoneček | slučuje                      |
+| `task.done`                      | Úkol splněn                    | Ten, kdo úkol zadal                      | zvoneček       |                              |
+| `task.due_today`                 | Úkoly na dnešek                | Ten, komu jsou úkoly přiděleny           | push, zvoneček | plánované, odložit           |
+| `comment.mention`                | Zmínka v komentáři             | Označený uživatel                        | push, zvoneček |                              |
+| `inquiry.new`                    | Nová poptávka                  | `perm:poptavky.write`                    | push, zvoneček |                              |
+| `inquiry.assigned`               | Přidělena poptávka             | Obchodník, kterému je poptávka přidělena | push, zvoneček |                              |
+| `crm.activity_assigned`          | Přidělena aktivita             | Ten, komu je aktivita přidělena          | push, zvoneček |                              |
+| `crm.activities_today`           | Aktivity na dnešek             | Ten, komu jsou aktivity přiděleny        | push, zvoneček | plánované, odložit           |
+| `crm.deals_without_activity`     | Zakázky bez další aktivity     | Vedoucí zakázky (obchodník)              | zvoneček       | plánované, odložit           |
+| `crm.deals_rotting`              | Zakázky, které hnijí           | Vedoucí zakázky (obchodník)              | push, zvoneček | plánované                    |
+| `crm.deal_stage`                 | Sledovaná zakázka: změna stavu | Ti, kdo zakázku sledují                  | zvoneček       |                              |
+| `crm.deal_won`                   | Sledovaná zakázka: vyhráno     | Ti, kdo zakázku sledují                  | push, zvoneček |                              |
+| `crm.deal_lost`                  | Sledovaná zakázka: prohráno    | Ti, kdo zakázku sledují                  | push, zvoneček |                              |
+| `time.submitted`                 | Docházka ke schválení          | `perm:dochazka.approve`                  | push, zvoneček |                              |
+| `time.approved`                  | Docházka schválena             | Zaměstnanec, jehož výkaz byl schválen    | push, zvoneček |                              |
+| `time.returned`                  | Docházka vrácena k opravě      | Zaměstnanec, jehož výkaz byl vrácen      | push, zvoneček |                              |
+| `time.reminder`                  | Připomínka docházky            | Zaměstnanec bez dnešního záznamu         | push, zvoneček | plánované, odložit           |
+| `dochazka.missing_clock_in`      | Chybějící příchod              | Zaměstnanec bez dnešního záznamu         | push, zvoneček | plánované, odložit           |
+| `dochazka.forgot_clock_out`      | Zapomenutý odchod              | Zaměstnanec s běžící píchačkou           | push, zvoneček | naléhavé, plánované, odložit |
+| `dochazka.forgot_clock_out_team` | Zapomenutý odchod (vedoucí)    | Schvalovatelé s rozsahem „vše“           | zvoneček       | plánované                    |
+| `kalendar.invite`                | Pozvánka na událost            | Nově pozvaný účastník                    | push, zvoneček |                              |
+| `kalendar.changed`               | Změna termínu události         | Účastník, který byl pozvaný už dřív      | push, zvoneček | slučuje                      |
+| `kalendar.cancelled`             | Zrušená událost                | Pozvaný účastník                         | push, zvoneček |                              |
+| `kalendar.reminder`              | Připomenutí události           | Organizátor a pozvaní účastníci          | push, zvoneček | plánované, odložit           |
 
 <!-- katalog:end -->
 

@@ -7,7 +7,6 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { getServices } from "./services";
-import { isTerminalOnly } from "./terminal";
 
 /** Kontext přihlášeného uživatele pro stránky a server actions (jednou za požadavek). */
 export const getCtx = cache(async (): Promise<Ctx | null> => {
@@ -22,17 +21,12 @@ export const getCtx = cache(async (): Promise<Ctx | null> => {
 });
 
 /**
- * Pro stránky: nepřihlášeného pošle na přihlášení, uživatele s povinným, ale nenastaveným 2FA na jeho nastavení a uživatele
- * s rolí jen pro terminál řemeslníka na terminál (`/t`). Terminál a stránky vlastního účtu to vypínají `allowTerminalOnly`.
+ * Pro stránky: nepřihlášeného pošle na přihlášení a uživatele s povinným, ale nenastaveným 2FA na jeho nastavení.
  */
-export async function requireCtx(
-  opts: { allowRestricted?: boolean; allowTerminalOnly?: boolean } = {},
-): Promise<Ctx> {
+export async function requireCtx(opts: { allowRestricted?: boolean } = {}): Promise<Ctx> {
   const ctx = await getCtx();
   if (!ctx) redirect("/prihlaseni");
   if (ctx.actor.restriction && !opts.allowRestricted) redirect("/nastaveni/zabezpeceni");
-  if (!opts.allowTerminalOnly && !ctx.actor.restriction && (await isTerminalOnly(ctx)))
-    redirect("/t");
   return ctx;
 }
 
@@ -42,7 +36,7 @@ export async function requireCtx(
  */
 export async function requireCan(
   permission: string | readonly string[],
-  opts: { allowRestricted?: boolean; allowTerminalOnly?: boolean } = {},
+  opts: { allowRestricted?: boolean } = {},
 ): Promise<Ctx> {
   const ctx = await requireCtx(opts);
   if (![permission].flat().some((k) => can(ctx, k))) notFound();

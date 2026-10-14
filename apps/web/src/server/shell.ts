@@ -6,7 +6,6 @@ import { can, scopeOf } from "@rebar/core/rbac";
 import type { Ctx } from "@rebar/core/rbac";
 import type { NavItem } from "@rebar/core";
 import { getServices } from "./services";
-import { getTerminalState } from "./terminal";
 
 export type ShellNavItem = {
   href: string;
@@ -23,6 +22,8 @@ export type ShellData = {
   entityPaths: Record<string, string>;
   /** Entity, které smí aktér zakládat (akce „Nový…“ v paletě). */
   creatable: { key: string; label: string; listPath: string }[];
+  /** Položky spodní lišty mobilní navigace (z manifestů, `bottom: true`; jen co uživatel smí vidět). */
+  bottom: ShellNavItem[];
   /** Id zapnutých modulů a oprávnění přihlášeného (UI skrývá prvky; server kontroluje vždy). */
   enabledModules: string[];
   permissions: string[];
@@ -31,11 +32,7 @@ export type ShellData = {
 /** Navigace podle zapnutých modulů a oprávnění aktéra, počty v Inboxu a oblíbené pohledy. */
 export async function loadShell(ctx: Ctx): Promise<ShellData> {
   const { runtime, registry } = getServices();
-  const [unread, tasks, terminal] = await Promise.all([
-    unreadCount(ctx),
-    listMyTasks(ctx),
-    getTerminalState(ctx),
-  ]);
+  const [unread, tasks] = await Promise.all([unreadCount(ctx), listMyTasks(ctx)]);
 
   const nav = collectNav(runtime.modules).filter(
     (n) => n.permission === undefined || [n.permission].flat().some((p) => can(ctx, p)),
@@ -50,7 +47,7 @@ export async function loadShell(ctx: Ctx): Promise<ShellData> {
     )
   ).flat();
 
-  const sections: ShellData["sections"] = groupNav(nav);
+  const sections: ShellData["sections"] = groupNav(nav, runtime.config.navigation.groupOrder);
   if (favorites.length)
     sections.push({
       heading: "Pohledy",
@@ -64,13 +61,13 @@ export async function loadShell(ctx: Ctx): Promise<ShellData> {
   return {
     enabledModules: runtime.modules.map((m) => m.id),
     permissions: [...ctx.actor.permissions.keys()],
+    bottom: nav
+      .filter((n) => n.bottom)
+      .slice(0, 3)
+      .map((n) => ({ href: n.href, label: n.label, icon: n.icon })),
     top: [
       { href: "/inbox", label: "Inbox", icon: "inbox", count: unread },
       { href: "/ukoly", label: "Moje úkoly", icon: "check-square", count: tasks.length },
-      // terminál řemeslníka (náhled „jako řemeslník“, mistr v terénu); roli jen pro terminál sem kancelář nepustí
-      ...(terminal.tiles.length
-        ? [{ href: "/t", label: "Terminál řemeslníka", icon: "smartphone" }]
-        : []),
     ],
     sections,
     entityPaths: Object.fromEntries(registry.all().map((e) => [e.key, e.listPath])),
@@ -80,11 +77,13 @@ export async function loadShell(ctx: Ctx): Promise<ShellData> {
   };
 }
 
-const GROUP_ORDER = ["Obchod", "Provoz"];
 const DEFAULT_GROUP = "Moduly";
 
 /** Rozdělí položky modulů do sekcí a vedlejší stránky (`parent`) zanoří pod hlavní položku modulu. */
-export function groupNav(nav: readonly NavItem[]): ShellData["sections"] {
+export function groupNav(
+  nav: readonly NavItem[],
+  groupOrder: readonly string[] = [],
+): ShellData["sections"] {
   const byHref = new Map<string, ShellNavItem>();
   const roots: { group: string; item: ShellNavItem }[] = [];
   for (const n of nav) {
@@ -98,9 +97,9 @@ export function groupNav(nav: readonly NavItem[]): ShellData["sections"] {
     else roots.push({ group: n.group ?? DEFAULT_GROUP, item });
   }
   const groups = [...new Set(roots.map((r) => r.group))].sort((a, b) => {
-    const ia = GROUP_ORDER.indexOf(a);
-    const ib = GROUP_ORDER.indexOf(b);
-    return (ia < 0 ? GROUP_ORDER.length : ia) - (ib < 0 ? GROUP_ORDER.length : ib);
+    const ia = groupOrder.indexOf(a);
+    const ib = groupOrder.indexOf(b);
+    return (ia < 0 ? groupOrder.length : ia) - (ib < 0 ? groupOrder.length : ib);
   });
   return groups.map((heading) => ({
     heading,

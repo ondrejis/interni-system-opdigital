@@ -49,18 +49,18 @@ describe("manifesty modulů", () => {
     expect(() => resolveModules([...MODULE_IDS], ALL_MODULES)).not.toThrow();
   });
 
-  it("vypnutí zakázek vyžaduje vypnout i fakturaci a realizaci", () => {
+  it("vypnutí zakázek vyžaduje vypnout i poptávky", () => {
     const without = MODULE_IDS.filter((id) => id !== "zakazky");
     expect(() => resolveModules(without, ALL_MODULES)).toThrow(/zakazky/);
   });
 
-  it("sestava bez skladu nemá ve výsledku žádnou stopu skladu", () => {
+  it("sestava bez kalendáře nemá ve výsledku žádnou stopu kalendáře", () => {
     const enabled = resolveModules(
-      MODULE_IDS.filter((id) => id !== "sklad"),
+      MODULE_IDS.filter((id) => id !== "kalendar"),
       ALL_MODULES,
     );
-    expect(collectNav(enabled).some((n) => n.href.startsWith("/sklad"))).toBe(false);
-    expect(collectPermissions(enabled).some((p) => p.key.startsWith("sklad."))).toBe(false);
+    expect(collectNav(enabled).some((n) => n.href.startsWith("/kalendar"))).toBe(false);
+    expect(collectPermissions(enabled).some((p) => p.key.startsWith("kalendar."))).toBe(false);
   });
 
   it("pořadí MODULE_IDS respektuje závislosti (migrace se spouští v tomto pořadí)", () => {

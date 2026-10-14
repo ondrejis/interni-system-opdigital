@@ -22,20 +22,19 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 - **Popis z manifestu:** Píchačka (příchod, odchod, přestávka), týdenní výkazy hodin na zakázky, schvalování, uzávěrka měsíce, přehledy a připomínka.
 - **Závisí na:** žádném modulu
 - **Entity:** [`time_entry`](../reference/entity/dochazka.md#time_entry)
-- **Příkazy:** [17 příkazů](../reference/prikazy/dochazka.md)
+- **Příkazy:** [16 příkazů](../reference/prikazy/dochazka.md)
 - **Úlohy na pozadí:** `dochazka.reminder` (`30 17 * * 1-5`), `dochazka.missing_clock_in` (`30 8 * * 1-5`), `dochazka.forgot_clock_out` (`*/30 6-21 * * *`)
 - **Nastavení v administraci:** `dochazka`
-- **Dlaždice terminálu:** `dochazka.clock`
 - **Referenční stránky:** [modul](../reference/moduly/dochazka.md), [entity](../reference/entity/dochazka.md), [příkazy](../reference/prikazy/dochazka.md), [databáze](../reference/databaze/dochazka.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 
-| Oprávnění              | Název                  | Výchozí: owner | Výchozí: office | Výchozí: foreman | Výchozí: worker |
-| ---------------------- | ---------------------- | -------------- | --------------- | ---------------- | --------------- |
-| `dochazka.own`         | Zapisuje svou docházku | vše            | vše             | vše              | vše             |
-| `dochazka.read`        | Vidí docházku          | vše            | vše             | moje             |                 |
-| `dochazka.approve`     | Schvaluje docházku     | vše            | vše             | moje             |                 |
-| `dochazka.close_month` | Uzavírá měsíc          | vše            |                 |                  |                 |
+| Oprávnění              | Název                  | Výchozí: owner |
+| ---------------------- | ---------------------- | -------------- |
+| `dochazka.own`         | Zapisuje svou docházku | vše            |
+| `dochazka.read`        | Vidí docházku          | vše            |
+| `dochazka.approve`     | Schvaluje docházku     | vše            |
+| `dochazka.close_month` | Uzavírá měsíc          | vše            |
 
 <!-- docs:generated:end -->
 

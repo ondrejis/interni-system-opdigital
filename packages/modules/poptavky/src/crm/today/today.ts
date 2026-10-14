@@ -22,7 +22,7 @@ const LIMIT = 25;
 /**
  * Data stránky „Moje dnešní práce“ (`crm.today`): (b) moje otevřené obchody bez další aktivity (zhnilé a nejdéle
  * ve stavu první), (c) nové poptávky ve schránce (nejdéle čekající první). Dnešní a zpožděné aktivity bere stránka
- * z komponenty `ActivityList`. Obchody a poptávky se čtou v rozsahu aktéra; cena nabídky jen s `zakazky.economics`.
+ * z komponenty `ActivityList`. Obchody a poptávky se čtou v rozsahu aktéra; cena nabídky jen s `zakazky.finance`.
  */
 export const todayCommand = defineCommand({
   name: "crm.today",
@@ -34,7 +34,7 @@ export const todayCommand = defineCommand({
     const jobScope =
       me && can(ctx, "zakazky.read") ? await tryScopedEntity(ctx, deps, "job") : null;
     if (jobScope && me) {
-      const money = jobScope.entity.byKey.has("sumContract");
+      const money = jobScope.entity.byKey.has("value");
       const where = and(
         jobScope.where,
         openDealWhere({ managerId: me }),
@@ -53,7 +53,7 @@ export const todayCommand = defineCommand({
           stageName: schema.pipelineStage.name,
           stageColor: schema.pipelineStage.color,
           phase: job.phase,
-          value: money ? job.sumContractMinor : sql<number>`0`,
+          value: money ? job.valueMinor : sql<number>`0`,
           rotting: job.crmRotting,
           stageEntered: job.crmStageEnteredAt,
           expected: job.expectedCloseDate,

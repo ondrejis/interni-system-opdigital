@@ -18,5 +18,5 @@ const · `packages/modules/zakazky/src/ui.tsx`
 _Bez popisu._
 
 ```ts
-const ui: { readonly recordTabs: { readonly company: readonly [RecordTab]; readonly person: readonly [RecordTab]; readonly job: RecordTab[]; readonly job_order: RecordTab[]; }; readonly recordActions: { readonly job: import("@rebar/ui").RecordAction…
+const ui: { readonly recordTabs: { readonly company: readonly [RecordTab]; readonly person: readonly [RecordTab]; readonly job: RecordTab[]; }; readonly recordActions: { readonly job: import("@rebar/ui").RecordAction[]; }; readonly recordHeader: { r…
 ```

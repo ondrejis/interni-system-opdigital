@@ -7,6 +7,7 @@ import { consumeRateLimit } from "@rebar/core/http";
 import { defineCommand } from "@rebar/core/module-server";
 import { inTx, UserError } from "@rebar/core/rbac";
 import { POINT_TYPE_LOOKUP } from "./entities";
+import { findContactDuplicates } from "./duplicates";
 import { aresLookup, listContactPoints, mergeContacts, previewMerge, searchContacts } from "./api";
 import { personContactPoint } from "./schema";
 
@@ -43,6 +44,18 @@ export const aresCommand = defineCommand({
       };
     return aresLookup(i.ico);
   },
+});
+
+/** Kontrola duplicit podle IČO, e-mailu a telefonu (zakládání obchodů a rychlé zadání ukážou nalezené záznamy k výběru). */
+export const duplicatesCommand = defineCommand({
+  name: "kontakty.duplicates",
+  permission: "kontakty.read",
+  input: z.object({
+    ico: z.string().trim().max(20).optional(),
+    email: z.string().trim().max(200).optional(),
+    phone: z.string().trim().max(40).optional(),
+  }),
+  handler: (ctx, i) => findContactDuplicates(ctx, i),
 });
 
 const POINT = z.object({
@@ -146,6 +159,7 @@ export const mergeRunCommand = defineCommand({
 export const contactCommands = [
   searchCommand,
   aresCommand,
+  duplicatesCommand,
   personPointsCommand,
   setPersonPointsCommand,
   mergePreviewCommand,

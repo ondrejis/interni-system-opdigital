@@ -28,11 +28,11 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 
-| Oprávnění            | Název                     | Výchozí: owner | Výchozí: office | Výchozí: foreman | Výchozí: worker |
-| -------------------- | ------------------------- | -------------- | --------------- | ---------------- | --------------- |
-| `kalendar.read`      | Vidí kalendář             | vše            | vše             | vše              | moje            |
-| `kalendar.write`     | Upravuje události         | vše            | vše             | moje             |                 |
-| `kalendar.resources` | Spravuje zdroje kalendáře | vše            | vše             |                  |                 |
+| Oprávnění            | Název                     | Výchozí: owner |
+| -------------------- | ------------------------- | -------------- |
+| `kalendar.read`      | Vidí kalendář             | vše            |
+| `kalendar.write`     | Upravuje události         | vše            |
+| `kalendar.resources` | Spravuje zdroje kalendáře | vše            |
 
 <!-- docs:generated:end -->
 

@@ -13,7 +13,7 @@ import {
   resolvePeriod,
 } from "./periods";
 import { resultToTable } from "./result-table";
-import { seedDashboard, standardDashboards } from "./shared";
+import { seedDashboard } from "./shared";
 import type { WidgetResult } from "./types";
 
 const meta = { period: null, generatedAt: "2026-10-10T00:00:00Z" };
@@ -171,22 +171,7 @@ describe("definice nástěnky: validace, verze a migrace", () => {
 });
 
 describe("výchozí sady a převod na tabulku", () => {
-  it("sady podle zapnutých modulů: bez modulu vypadnou jeho widgety, prázdná nástěnka se nezakládá", () => {
-    const full = standardDashboards([
-      "kontakty",
-      "poptavky",
-      "zakazky",
-      "realizace",
-      "fakturace",
-      "dochazka",
-      "stroje",
-    ]);
-    expect(full.map((d) => d.role)).toEqual(["owner", "office", "foreman", "accountant"]);
-    for (const d of full) expect(() => parseDefinition(d.definition)).not.toThrow();
-    const small = standardDashboards(["kontakty"]);
-    expect(small.map((d) => d.role)).toEqual(["office", "foreman"]); // jen bloky bez modulů (pozornost, úkoly)
-    expect(standardDashboards([]).length).toBeLessThanOrEqual(2);
-    expect(full.every((d) => !d.home)).toBe(true); // vzhled Přehledu zůstává
+  it("seedDashboard doplní id a výchozí rozměry widgetů", () => {
     expect(
       seedDashboard({
         key: "a-b",

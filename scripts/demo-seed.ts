@@ -1,14 +1,14 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { ClientConfig } from "@rebar/core";
-import { seedDemo } from "../clients/demo/seed/run";
-import { DEMO_PASSWORD, DEMO_USERS } from "../clients/demo/seed/users";
+import { seedDemo } from "../clients/opsys/seed/run";
+import { DEMO_PASSWORD, DEMO_USERS } from "../clients/opsys/seed/users";
 import { loadEnv } from "../apps/web/src/server/env";
 import { createDemoServices } from "./lib/demo-services";
 
 /**
- * Nasype do databáze realistická demo data stavební firmy (zakázky ve všech fázích, rozpočty, faktury, docházka,
- * sklad, stroje, kalendář…) a založí demo uživatele podle rolí. Vše přes příkazy a entity modulů.
+ * Nasype do databáze minimální demo data OPSYS (demo uživatelé podle rolí, ukázkové firmy a osoby). Vše přes příkazy
+ * a entity modulů.
  *
  *   pnpm demo:seed              nasadí data do prázdné databáze; jinak skončí s vysvětlením
  *   pnpm demo:seed --reset      smaže dřívější demo data (jen když jsou všechna obchodní data označená jako demo) a nasype nová
@@ -16,7 +16,7 @@ import { createDemoServices } from "./lib/demo-services";
  *   pnpm demo:seed --keep-2fa   ponechá povinné 2FA rolí (výchozí: demo uživatelé se přihlašují jen heslem)
  *   pnpm demo:seed --quiet      bez průběžného výpisu
  *
- * Mazání potřebuje DATABASE_MIGRATE_URL (připojení pod vlastníkem schématu). Klient: CLIENT (výchozí „demo“).
+ * Mazání potřebuje DATABASE_MIGRATE_URL (připojení pod vlastníkem schématu). Klient: CLIENT (výchozí „opsys“).
  */
 const args = new Set(process.argv.slice(2));
 const known = new Set(["--reset", "--wipe", "--keep-2fa", "--quiet", "--help", "-h"]);
@@ -27,14 +27,14 @@ for (const a of args)
   }
 if (args.has("--help") || args.has("-h")) {
   console.log(
-    "Použití: pnpm demo:seed [--reset | --wipe] [--keep-2fa] [--quiet]\nPodrobnosti: clients/demo/README.md",
+    "Použití: pnpm demo:seed [--reset | --wipe] [--keep-2fa] [--quiet]\nPodrobnosti: clients/opsys/README.md",
   );
   process.exit(0);
 }
 
-const slug = process.env.CLIENT ?? "demo";
-if (slug !== "demo") {
-  console.error(`Demo data patří jen klientovi „demo“ (CLIENT=${slug}).`);
+const slug = process.env.CLIENT ?? "opsys";
+if (slug !== "opsys") {
+  console.error(`Demo data patří jen klientovi „opsys“ (CLIENT=${slug}).`);
   process.exit(2);
 }
 const root = path.resolve(import.meta.dirname, "..");
@@ -94,7 +94,7 @@ try {
       .map(([k, v]) => `${k}: ${v}`)
       .join(", "),
   );
-  console.log("\nPřihlášení (testovací hodnoty jen pro demo klienta, viz clients/demo/README.md):");
+  console.log("\nPřihlášení (testovací hodnoty jen pro demo data, viz clients/opsys/README.md):");
   for (const u of DEMO_USERS) console.log(`  ${u.email.padEnd(32)} ${u.name} (${u.role})`);
   console.log(`  společné heslo: ${DEMO_PASSWORD}`);
 } catch (err) {

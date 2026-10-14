@@ -109,13 +109,11 @@ Přesné definice a zjednodušení jsou v `description` metrik a v souborech `pa
 V `clients/<slug>/config.ts`:
 
 ```ts
-dashboards: { enabled: true, defaults: standardDashboards(MODULES) },
+dashboards: { enabled: true, defaults: opsysDashboards() }, // sady rolí v clients/<slug>/dashboards.ts (seedDashboard)
 ```
 
 - `enabled: false` nástěnky vypne (přepínač, Nastavení → Nástěnky, trasy).
-- `standardDashboards(moduly)` dodá čtyři výchozí sady pro role: **Majitel** (marže, nevyfakturováno, faktury po splatnosti, cashflow proti plánu, využití lidí a strojů, zakázky podle stavu), **Kancelář** (poptávky, zakázky k fakturaci,
-  faktury po splatnosti, pozornost, úkoly), **Mistr** (dnešní stavby, úkoly, docházka týmu bez cen, otevřené vady) a **Účetní** (přijaté a vydané faktury, splatnosti; role `accountant` je `ACCOUNTANT_ROLE` v `@rebar/core/seed`, klient ji přidá do seedu).
-  Widgety modulů, které klient nemá zapnuté, se vynechají. Žádná sada se neotevírá na úvodní stránce, takže výchozí Přehled zůstává.
+- Výchozí sady rolí jádro nedodává (nezná moduly): klient je skládá v `clients/<slug>/dashboards.ts` přes `seedDashboard` (OPSYS: Majitel a Partner, `clients/opsys/dashboards.ts`). Žádná sada se neotevírá na úvodní stránce, takže výchozí Přehled zůstává.
 - Vlastní sada: `seedDashboard({ key, name, role, home?, defaultPeriod?, widgets: [...] })` (typované, `id` a rozměry se doplní). `home: true` otevře nástěnku roli na úvodní stránce místo Přehledu.
 - Sady se zakládají jednou při instalaci a aktualizaci (`pnpm db:seed`, klíč sady je `seed_key`); co správce upravil nebo smazal, se nepřepisuje. Chybějící role se přeskočí.
 

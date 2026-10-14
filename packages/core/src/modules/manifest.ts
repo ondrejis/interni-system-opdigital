@@ -15,6 +15,8 @@ export type NavItem = {
   group?: string;
   /** Adresa nadřazené položky: tato se zobrazí pod ní jako podpoložka (modul má v panelu jedno místo). */
   parent?: string;
+  /** Položka je kandidátem na spodní lištu mobilní navigace (zobrazí se první tři, které uživatel smí vidět). */
+  bottom?: boolean;
 };
 
 /** Stránka modulu mimo seznamy entit; adresa i oprávnění jsou v manifestu, vykreslení v UI modulu. */
@@ -46,31 +48,6 @@ export type ModuleSeed = {
   views?: readonly SeedViewDef[];
 };
 
-/**
- * Dlaždice (widget) mobilního terminálu řemeslníka, kterou modul nabízí. Jádro konkrétní moduly nezná: dlaždice, které
- * uživatel uvidí, se skládají ze zapnutých modulů, oprávnění role a nastavení klienta (viz `docs/TERMINAL.md`).
- * Vykreslení dlaždice je v UI části modulu (`terminalWidgets`), tady je jen popis.
- */
-export type TerminalWidgetDef = {
-  /** `<modul>.<název>` (prefix musí odpovídat id modulu; `core.` mají jen dlaždice platformy). */
-  key: string;
-  /** Výchozí název dlaždice (správce ho v Nastavení může přejmenovat). */
-  label: string;
-  description: string;
-  icon: string;
-  /** Dlaždice se ukáže (a server ji povolí) jen uživateli s některým z uvedených oprávnění. */
-  permission?: string | readonly string[];
-  /**
-   * Zápisové příkazy, které dlaždice smí posílat přes zápisovou frontu terminálu (funguje i bez signálu, s ochranou proti
-   * dvojímu odeslání). Musí začínat id modulu; jiný příkaz server z terminálu odmítne.
-   */
-  commands?: readonly string[];
-  /** Má celou obrazovku (`/t/w/<key>`) a smí se objevit ve spodní liště. UI modulu pak musí dodat `Page`. */
-  page?: boolean;
-  /** Dlaždice, kterou klient v `config.ts` ani správce v Nastavení výslovně neuvedl, je zapnutá (výchozí `true`); `false` ji nechá vypnutou. */
-  defaultEnabled?: boolean;
-};
-
 export type ModuleManifest = {
   id: ModuleId;
   name: string;
@@ -87,8 +64,6 @@ export type ModuleManifest = {
   /** Události upozornění modulu (katalog, ze kterého čerpá nastavení klienta i předvolby uživatelů). */
   notifications?: readonly AnyEventDef[];
   seed?: ModuleSeed;
-  /** Dlaždice mobilního terminálu řemeslníka (UI je v `terminalWidgets` UI části modulu). */
-  terminalWidgets?: readonly TerminalWidgetDef[];
 };
 
 export function defineModule<const M extends ModuleManifest>(manifest: M): M {

@@ -1,9 +1,9 @@
-import { ACCOUNTANT_ROLE, DEFAULT_ROLES, defineSeed } from "@rebar/core/seed";
+import { DEFAULT_ROLES, defineSeed } from "@rebar/core/seed";
 
 /**
  * Výchozí data klienta (role, pipeline, číselníky, číselné řady). Při instalaci a aktualizaci se doplní jen to,
- * co chybí — co správce změnil v administraci, se nepřepisuje.
+ * co chybí — co správce změnil v administraci, se nepřepisuje. Další role přidejte sem (`RoleDef`).
  */
 export default defineSeed({
-  roles: [...DEFAULT_ROLES, ACCOUNTANT_ROLE],
+  roles: [...DEFAULT_ROLES],
 });

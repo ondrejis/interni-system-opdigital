@@ -60,7 +60,6 @@ import {
   updateSeriesPattern,
 } from "@rebar/core/numbering";
 import { PermissionError, UserError } from "@rebar/core/rbac";
-import { DEFAULT_ROLES } from "@rebar/core/seed";
 import { connectAppDb, makeUser } from "@rebar/core/testing";
 import { company } from "@rebar/kontakty/schema";
 import { companyEntity } from "@rebar/kontakty/server";
@@ -77,16 +76,26 @@ import { jobEntity } from "@rebar/zakazky/server";
 const app = connectAppDb();
 afterAll(() => app.close());
 const tag = () => randomBytes(4).toString("hex");
-const permsOf = (roleKey: string) =>
-  Object.entries(DEFAULT_ROLES.find((r) => r.key === roleKey)!.permissions ?? {}) as [
-    string,
-    "all" | "own",
-  ][];
+/** Oprávnění provozních rolí OPSYS bez správy systému (výchozí role klienta `opsys`). */
+const ROLE_PERMS: Record<string, [string, "all" | "own"][]> = {
+  partner: [
+    ["kontakty.read", "all"],
+    ["kontakty.write", "all"],
+    ["zakazky.read", "all"],
+    ["zakazky.write", "all"],
+    ["dashboards.write", "all"],
+  ],
+  externista: [
+    ["zakazky.read", "own"],
+    ["dochazka.own", "all"],
+  ],
+};
+const permsOf = (roleKey: string) => ROLE_PERMS[roleKey]!;
 
 const admin = () => makeUser(app.db, [["settings.manage", "all"]]);
 
 describe("oprávnění: konfiguraci smí měnit jen settings.manage", () => {
-  it("kancelář, mistr ani montér nic z konfigurace nezmění (ani nic neodešle server akce)", async () => {
+  it("partner ani externista nic z konfigurace nezmění (ani nic neodešle server akce)", async () => {
     const t = tag();
     const pipelineId = await ensurePipeline(app.db, {
       entityType: `cfgp_${t}`,
@@ -96,7 +105,7 @@ describe("oprávnění: konfiguraci smí měnit jen settings.manage", () => {
     });
     await ensureLookup(app.db, { key: `cfg.perm_${t}`, name: "Test", items: [] });
     await ensureSeries(app.db, [defineSeries({ key: `cfg.perm_${t}`, pattern: "P{NNN}" })]);
-    for (const role of ["office", "foreman", "worker"]) {
+    for (const role of ["partner", "externista"]) {
       const u = await makeUser(app.db, permsOf(role));
       const denied = async (p: Promise<unknown>) =>
         await expect(p).rejects.toThrow(PermissionError);

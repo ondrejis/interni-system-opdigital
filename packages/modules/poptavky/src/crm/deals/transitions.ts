@@ -6,7 +6,7 @@ import type { ModuleDeps } from "@rebar/core/module-server";
 import { inTx, NotFoundError, UserError } from "@rebar/core/rbac";
 import type { Ctx } from "@rebar/core/rbac";
 import { PHASES, allowedNext, isPhaseKey, transitionProblem } from "@rebar/zakazky/phases";
-import { budgetItem, budgetVersion, job, jobStageHistory } from "@rebar/zakazky/schema";
+import { job, jobStageHistory } from "@rebar/zakazky/schema";
 import { LOST_REASON_LOOKUP, lifecycleApi } from "@rebar/zakazky/server";
 import { isOpenDeal } from "../logic";
 import { recomputeJobCrm } from "./recompute";
@@ -39,7 +39,7 @@ export type DealResult = { jobId: string; phase: string; stageId: string };
 
 /**
  * Výhra: obchod (zakázka ve fázi poptávka nebo nabídka) přejde z kteréhokoli stavu do první přípravy. Probíhají
- * kontroly a akce hooků přechodu (odeslaná nabídka, zamčení nabídky a kopie do realizace, pravidla kvality polí).
+ * kontroly a akce hooků přechodu (pravidla kvality polí).
  */
 export async function winDeal(ctx: Ctx, jobId: string, deps: DealDeps): Promise<DealResult> {
   return inTx(ctx, async (c) => {
@@ -149,24 +149,6 @@ export async function reopenDeal(ctx: Ctx, jobId: string, deps: DealDeps): Promi
         `Zakázku ve fázi ${phaseLabel(row.phase)} už znovu otevřít nejde. Vyhraný obchod jde vrátit jen do zahájení realizace.`,
       );
     }
-    // vyhraná nabídka je zamčená a zkopírovaná do realizace; znovu ji vyhrát by nešlo (úpravy jdou přes změny ZBV)
-    const [copied] = await c.db
-      .select({ id: budgetItem.id })
-      .from(budgetItem)
-      .innerJoin(budgetVersion, eq(budgetVersion.id, budgetItem.versionId))
-      .where(
-        and(
-          eq(budgetVersion.jobId, jobId),
-          eq(budgetVersion.kind, "realization"),
-          isNull(budgetVersion.deletedAt),
-          isNull(budgetItem.deletedAt),
-        ),
-      )
-      .limit(1);
-    if (copied)
-      throw new UserError(
-        "Zakázka už má rozpočet realizace zkopírovaný z vyhrané nabídky, proto ji nejde znovu otevřít. Změny rozsahu se vedou jako vícepráce a méněpráce.",
-      );
     const target = await reopenTarget(c, row);
     await updateJob(c, deps, jobId, { stage: target.id });
     await recordAudit(c, {

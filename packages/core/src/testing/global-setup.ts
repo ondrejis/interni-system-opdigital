@@ -13,7 +13,7 @@ import { coreJobs } from "../jobs/core-jobs";
  */
 export default async function setup(project: TestProject) {
   const env = process.env;
-  const host = env.REBAR_TEST_DB_HOST ?? "localhost:5433";
+  const host = env.REBAR_TEST_DB_HOST ?? `localhost:${env.REBAR_PG_PORT ?? 5434}`;
   const db = env.REBAR_TEST_DB_NAME ?? "rebar_test";
   const urls: TestDbUrls = {
     admin: env.REBAR_TEST_ADMIN_URL ?? `postgres://postgres@${host}/postgres`,

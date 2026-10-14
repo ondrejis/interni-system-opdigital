@@ -9,13 +9,9 @@
   "dependencies": {
     "@rebar/core": "workspace:*",
     "@rebar/dochazka": "workspace:*",
-    "@rebar/fakturace": "workspace:*",
     "@rebar/kalendar": "workspace:*",
     "@rebar/kontakty": "workspace:*",
     "@rebar/poptavky": "workspace:*",
-    "@rebar/realizace": "workspace:*",
-    "@rebar/sklad": "workspace:*",
-    "@rebar/stroje": "workspace:*",
     "@rebar/zakazky": "workspace:*",
     "drizzle-orm": "^0.45.3",
     "postgres": "^3.4.9"

@@ -80,7 +80,7 @@ const PERMS: [string, "all" | "own"][] = [
   ["poptavky.convert", "all"],
 ];
 const boss = (name?: string) =>
-  makeUser(app.db, [...PERMS, ["zakazky.economics", "all"], ["settings.manage", "all"]], { name });
+  makeUser(app.db, [...PERMS, ["zakazky.finance", "all"], ["settings.manage", "all"]], { name });
 /** Obchodník bez práva na peníze. */
 const foreman = () => makeUser(app.db, [...PERMS]);
 type User = Awaited<ReturnType<typeof boss>>;
@@ -516,11 +516,11 @@ describe("metriky nástěnek", () => {
     expect((all as { value: number }).value).toBeGreaterThanOrEqual(1);
   });
 
-  it("peněžní metriky vyžadují zakazky.economics a nikdy nevrátí víc, než smí aktér", async () => {
+  it("peněžní metriky vyžadují zakazky.finance a nikdy nevrátí víc, než smí aktér", async () => {
     const f = await foreman();
     await mkJob(f, f);
     for (const k of ["poptavky.pipeline_value", "poptavky.pipeline_weighted"]) {
-      expect(metric(k).permissions).toContain("zakazky.economics");
+      expect(metric(k).permissions).toContain("zakazky.finance");
       await expect(metric(k).compute(f.ctx, input(), deps())).rejects.toThrow(/oprávnění/);
     }
     // počty peníze nepotřebují a čtou jen obchody v rozsahu aktéra (jen moje)
@@ -530,7 +530,7 @@ describe("metriky nástěnek", () => {
     ]);
     await mkJob(own, f);
     await mkJob(f, f);
-    expect(metric("poptavky.no_next_activity").permissions).not.toContain("zakazky.economics");
+    expect(metric("poptavky.no_next_activity").permissions).not.toContain("zakazky.finance");
     const r = await metric("poptavky.no_next_activity").compute(own.ctx, input(), deps());
     expect(r).toEqual({ kind: "scalar", value: 1 });
   });

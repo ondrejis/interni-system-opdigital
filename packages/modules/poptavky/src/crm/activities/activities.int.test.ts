@@ -45,7 +45,6 @@ const deps = () =>
   ({
     registry,
     baseURL: "http://localhost",
-    costProviders: [],
     calendarLayers: [],
     diaryPrefill: [],
     emit: async () => {},
@@ -84,7 +83,7 @@ const office = (name?: string) =>
       ["poptavky.write", "all"],
       ["zakazky.read", "all"],
       ["zakazky.write", "all"],
-      ["zakazky.economics", "all"],
+      ["zakazky.finance", "all"],
       ["kontakty.read", "all"],
       ["kontakty.write", "all"],
     ],
@@ -656,7 +655,7 @@ describe("další kroky, poznámky a časová osa", () => {
 
   it("v časové ose zakázky se bez oprávnění k cenám nezobrazí změna částky", async () => {
     const boss = await office();
-    const me = await seller(); // bez zakazky.economics
+    const me = await seller(); // bez zakazky.finance
     const j = await mkJob(me);
     const jobE = await resolveEntity(app.db, jobEntity);
     await updateRecord(boss.ctx, registry, jobE, j.id, { value: 987_654_00 });

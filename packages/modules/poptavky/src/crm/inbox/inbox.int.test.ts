@@ -19,7 +19,7 @@ import { UserError } from "@rebar/core/rbac";
 import { connectAppDb, makeUser } from "@rebar/core/testing";
 import { manifest as kontaktyManifest } from "@rebar/kontakty";
 import { company, person } from "@rebar/kontakty/schema";
-import { companyEntity, personEntity } from "@rebar/kontakty/server";
+import { companyEntity, findContactDuplicates, personEntity } from "@rebar/kontakty/server";
 import { manifest as zakazkyManifest } from "@rebar/zakazky";
 import { job, jobParticipant } from "@rebar/zakazky/schema";
 import { jobEntity, server as zakazkyServer } from "@rebar/zakazky/server";
@@ -34,7 +34,6 @@ import {
 import { crmHooks } from "../hooks";
 import { ensureCrmDefaults } from "../seed";
 import {
-  duplicatesCommand,
   importCommand,
   overviewCommand,
   participantAddCommand,
@@ -87,7 +86,7 @@ const boss = () =>
       "poptavky.intake",
       "zakazky.read",
       "zakazky.write",
-      "zakazky.economics",
+      "zakazky.finance",
       "kontakty.read",
       "kontakty.write",
     ),
@@ -335,11 +334,7 @@ describe("kvalifikace poptávky: údaje nové firmy, UTM, náhled duplicit", () 
     const preview = await qualifyPreviewCommand.handler(u.ctx, { id: row.id }, deps());
     expect(preview.inquiry.contactEmail).toBe(`znamy-${t}@example.cz`);
     expect(preview.duplicates.persons.map((p) => p.name)).toContain(`Známý ${t}`);
-    const dupes = await duplicatesCommand.handler(
-      u.ctx,
-      { email: `ZNAMY-${t}@example.cz` },
-      deps(),
-    );
+    const dupes = await findContactDuplicates(u.ctx, { email: `ZNAMY-${t}@example.cz` });
     expect(dupes.persons).toHaveLength(1);
     const blind = await makeUser(app.db, all("poptavky.read", "poptavky.convert"));
     await expect(
@@ -576,7 +571,7 @@ describe("účastníci zakázky", () => {
 });
 
 describe("přehled obchodu firmy a osoby", () => {
-  it("zakázky firmy s fází a stavem, souhrn; částky jen s `zakazky.economics`", async () => {
+  it("zakázky firmy s fází a stavem, souhrn; částky jen s `zakazky.finance`", async () => {
     const u = await boss();
     const t = tag();
     const a = await quickAddCommand.handler(

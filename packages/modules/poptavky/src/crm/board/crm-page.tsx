@@ -104,7 +104,7 @@ function DealCounter({ owner }: { owner: string }) {
   const summary = useEntitySummary("job", params);
   if (!summary.data) return <span className="h-5 w-24" aria-hidden />;
   const { total, totals } = summary.data;
-  const value = totals.sumContract;
+  const value = totals.value;
   return (
     <span className="tabular text-sm text-muted" data-testid="deal-counter">
       {total} {pluralDeals(total)}

@@ -4,12 +4,12 @@ const OPEN = ["inquiry", "offer"];
 const open = { attr: "phase", op: "is_any_of", value: OPEN } as const;
 const notArchived = { attr: "crmArchivedAt", op: "empty" } as const;
 
-/** Sloupce obchodních pohledů (bez peněz je atribut pro uživatele bez `zakazky.economics` prostě vynechán). */
+/** Sloupce obchodních pohledů (bez peněz je atribut pro uživatele bez `zakazky.finance` prostě vynechán). */
 const DEAL_COLUMNS = [
   "title",
   "company",
   "stage",
-  "sumContract",
+  "value",
   "crmWeighted",
   "expectedCloseDate",
   "crmNextActivityAt",
@@ -96,7 +96,7 @@ export const CRM_VIEWS: readonly SeedViewDef[] = [
       columns: [
         "title",
         "company",
-        "sumContract",
+        "value",
         "lostReason",
         "crmLostNote",
         "phaseChangedAt",

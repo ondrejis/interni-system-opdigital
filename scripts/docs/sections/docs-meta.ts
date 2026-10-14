@@ -46,9 +46,6 @@ export async function moduleBlock(rt: Runtime, id: string): Promise<string> {
       ? `- **Nastavení v administraci:** ${settings.map((s) => code(s.key)).join(", ")}`
       : "",
     notif.length ? `- **Upozornění:** ${notif.map((n) => code(n.kind)).join(", ")}` : "",
-    m.terminalWidgets?.length
-      ? `- **Dlaždice terminálu:** ${m.terminalWidgets.map((w) => code(w.key)).join(", ")}`
-      : "",
     `- **Referenční stránky:** ${[ref(`moduly/${id}.md`, "modul"), server?.entities.length ? ref(`entity/${id}.md`, "entity") : "", commandsOf(server).length ? ref(`prikazy/${id}.md`, "příkazy") : "", ref(`databaze/${id}.md`, "databáze")].filter(Boolean).join(", ")}`,
   ].filter(Boolean);
 
@@ -110,7 +107,20 @@ const GROUPS: { title: string; blurb: string; files: string[] }[] = [
   {
     title: "Začínáme a architektura",
     blurb: "Co systém je, jak je postavený a jak se upravuje pro klienta.",
-    files: ["README.md", "docs/ARCHITECTURE.md", "docs/CUSTOMIZATION.md", "docs/TERMINAL.md"],
+    files: ["README.md", "docs/ARCHITECTURE.md", "docs/CUSTOMIZATION.md"],
+  },
+  {
+    title: "OPSYS: zadání, rozbor jádra a rozběh",
+    blurb:
+      "Pracovní dokumenty projektu OPSYS (interní systém agentury): zadání, analýzy jádra a modulů, digest specifikace, plán a log rozběhu. Specifikace od zadavatele je v `docs/specifikace/`.",
+    files: [
+      "docs/opsys/00-ZADANI.md",
+      "docs/opsys/A-core-inventura.md",
+      "docs/opsys/B-audit-modulu.md",
+      "docs/opsys/C-digest-specifikace.md",
+      "docs/opsys/D-plan-a-kontrakty.md",
+      "docs/opsys/E-rozbehovy-log.md",
+    ],
   },
   {
     title: "Provoz a bezpečnost",

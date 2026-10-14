@@ -11,8 +11,7 @@ import { canReadMailLinks, latestMailUrl } from "./platforma-helpers";
 import { collectErrors, expectClean, visit } from "./helpers";
 
 /**
- * Procházka: Můj účet. Hermeticky pod vlastním uživatelem (role Mistr: kancelářské rozhraní bez správy; montér by se po
- * přihlášení přesměroval do terminálu, viz docs/TERMINAL.md): majitel ho pozve, uživatel si změní profil, heslo (špatné
+ * Procházka: Můj účet. Hermeticky pod vlastním uživatelem (role Partner: kancelářské rozhraní bez správy): majitel ho pozve, uživatel si změní profil, heslo (špatné
  * současné heslo, stejné heslo, nesouhlasící potvrzení, ostatní zařízení se odhlásí), odhlásí ostatní zařízení, zapne 2FA
  * a vygeneruje nové záložní kódy; majitel mu pak v Uživatelích vytvoří odkaz pro nové heslo a odhlásí ho všude.
  * Heslo demo uživatelů ani majitele se nemění. Odkazy z pozvánky se čtou z fronty e-mailů (viz `platforma-helpers.ts`).
@@ -95,7 +94,10 @@ test("pozvánka: majitel pozve uživatele a ten se poprvé přihlásí", async (
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("E-mail").fill(email);
   await dialog.getByRole("button", { name: "Vyberte roli…" }).click();
-  await page.getByRole("option", { name: /Mistr/ }).first().click();
+  await page
+    .getByRole("option", { name: /Partner/ })
+    .first()
+    .click();
   await dialog.getByRole("button", { name: "Odeslat pozvánku" }).click();
   await expect(page.locator("main li").filter({ hasText: email })).toBeVisible();
 

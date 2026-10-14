@@ -1,40 +1,45 @@
-# Core interních firemních systémů na míru
+# OPSYS: interní systém agentury OP Digital
 
-Produkční jádro, na kterém se staví systémy pro jednotlivé firmy (poptávka → zakázka → realizace → faktura, docházka, sklad, stroje, kalendář).
-Klienta upravujeme konfigurací, vlastními poli a rozšířeními, nikdy forkem jádra. Vzniká z dema (`opdigital-knowledge-base/demo/`), které se nemění.
+OPSYS je interní systém agentury OP Digital pro Ondřeje (vlastník) a Patrika (partner). Staví se z jádra `rebar` (Next.js + Drizzle +
+PostgreSQL, pnpm monorepo), které se nepřepisuje: co specifikace nechce, se odstraní, co chce, se v jádru postaví podle jeho vzorů.
+Klient `clients/opsys` je jediná instance (`branding.name = "OPSYS"`); zadání a rozbor jsou v [docs/opsys/](docs/opsys/00-ZADANI.md).
 
-> `rebar` je **interní pracovní název**. Klientům se nezobrazuje (UI, e-maily, PDF, URL, chyby). Viditelný název systému je vždy `branding.name` z konfigurace klienta.
+> **Stav (rozběh):** stavební moduly jádra (stroje, sklad, realizace, fakturace), rozpočty a náklady zakázek, schvalování, sdílení
+> s investorem a terminál řemeslníka jsou odstraněné. Zůstaly kontakty, zakázky (jen kostra), poptávky (CRM), docházka a kalendář; ty se
+> přepracovávají podle specifikace. Průběh a odchylky: [docs/opsys/E-rozbehovy-log.md](docs/opsys/E-rozbehovy-log.md).
+
+> `rebar` je **interní pracovní název** jádra (obor balíčků `@rebar/*`, databáze `rebar_dev`). Uživatelům se nezobrazuje (UI, e-maily, PDF, URL, chyby). Viditelný název systému je vždy `branding.name` z konfigurace klienta.
 
 ## Dokumentace
 
-| Dokument                                                                                                 | Pro koho a o čem                                                                                         |
-| -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                                                             | přehled systému, moduly, tok dat a požadavku, datový model, nasazení (diagramy)                          |
-| [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md)                                                           | 4 úrovně úprav pro klienta, jak napsat rozšíření, jak přidat modul, jak založit klienta                  |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                                                                 | nová instance na VPS krok za krokem (DNS, instalace, e-mail, zálohy, první přihlášení)                   |
-| [docs/RUNBOOK.md](docs/RUNBOOK.md)                                                                       | provoz: aktualizace, rollback, obnova, výpadek, plný disk, rotace tajemství, incident, předání klientovi |
-| [docs/SECURITY.md](docs/SECURITY.md)                                                                     | model hrozeb, oprávnění, 2FA, audit, tajemství, síť, zálohy, hlášení incidentu                           |
-| [docs/TERMINAL.md](docs/TERMINAL.md)                                                                     | mobilní terminál řemeslníka: dlaždice z modulů, konfigurace klienta, offline fronta, PWA                 |
-| [docs/DASHBOARDY.md](docs/DASHBOARDY.md)                                                                 | vlastní nástěnky: widgety, datové zdroje a oprávnění, metriky modulů, výchozí sady klienta, TV režim     |
-| [docs/EXPORTY.md](docs/EXPORTY.md)                                                                       | exporty seznamů (CSV, XLSX, PDF), fronta, šablony, plány, exporty z nástěnek, ISDOC a podklady DPH       |
-| [docs/PERFORMANCE.md](docs/PERFORMANCE.md)                                                               | výkonové cíle a jejich měření (1 vCPU / 4 GB)                                                            |
-| [CHANGELOG.md](CHANGELOG.md)                                                                             | historie změn                                                                                            |
-| [docs/adr/](docs/adr/)                                                                                   | rozhodnutí o architektuře (ADR 001–027)                                                                  |
-| [docs/AUDIT.md](docs/AUDIT.md)                                                                           | audit dema (fáze 0): co převzít, přepsat, zahodit                                                        |
-| [docs/OPEN-QUESTIONS.md](docs/OPEN-QUESTIONS.md)                                                         | otevřené a rozhodnuté otázky (např. Q5 licence a předání)                                                |
-| [docs/ZAKAZKA.md](docs/ZAKAZKA.md), [docs/CRM.md](docs/CRM.md), [docs/UI-SPACING.md](docs/UI-SPACING.md) | pracovní dokumenty: modul Zakázky, CRM (obchod nad zakázkou), systém mezer v UI                          |
-| [docs/INDEX.md](docs/INDEX.md)                                                                           | rozcestník ke všem dokumentům                                                                            |
-| [docs/reference/](docs/reference/README.md)                                                              | reference generovaná z kódu (entity, příkazy, oprávnění, databáze, trasy, API); neupravuje se ručně      |
-| [docs/moduly/](docs/moduly/_sablona.md)                                                                  | vyprávěcí dokumentace modulů (toky, stavy, pravidla, omezení)                                            |
-| [docs/DOCS-PROCES.md](docs/DOCS-PROCES.md)                                                               | jak se dokumentace udržuje přesná: definice „hotovo“, kontrola driftu, týdenní audit                     |
+| Dokument                                                                                                 | Pro koho a o čem                                                                                                   |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                                                             | přehled systému, moduly, tok dat a požadavku, datový model, nasazení (diagramy)                                    |
+| [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md)                                                           | 4 úrovně úprav pro klienta, jak napsat rozšíření, jak přidat modul, jak založit klienta                            |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                                                                 | nová instance na VPS krok za krokem (DNS, instalace, e-mail, zálohy, první přihlášení)                             |
+| [docs/RUNBOOK.md](docs/RUNBOOK.md)                                                                       | provoz: aktualizace, rollback, obnova, výpadek, plný disk, rotace tajemství, incident, předání klientovi           |
+| [docs/SECURITY.md](docs/SECURITY.md)                                                                     | model hrozeb, oprávnění, 2FA, audit, tajemství, síť, zálohy, hlášení incidentu                                     |
+| [docs/DASHBOARDY.md](docs/DASHBOARDY.md)                                                                 | vlastní nástěnky: widgety, datové zdroje a oprávnění, metriky modulů, výchozí sady klienta, TV režim               |
+| [docs/EXPORTY.md](docs/EXPORTY.md)                                                                       | exporty seznamů (CSV, XLSX, PDF), fronta, šablony, plány, exporty z nástěnek, ISDOC a podklady DPH                 |
+| [docs/PERFORMANCE.md](docs/PERFORMANCE.md)                                                               | výkonové cíle a jejich měření (1 vCPU / 4 GB)                                                                      |
+| [CHANGELOG.md](CHANGELOG.md)                                                                             | historie změn                                                                                                      |
+| [docs/adr/](docs/adr/)                                                                                   | rozhodnutí o architektuře (ADR 001–027)                                                                            |
+| [docs/AUDIT.md](docs/AUDIT.md)                                                                           | audit dema (fáze 0): co převzít, přepsat, zahodit                                                                  |
+| [docs/OPEN-QUESTIONS.md](docs/OPEN-QUESTIONS.md)                                                         | otevřené a rozhodnuté otázky (např. Q5 licence a předání)                                                          |
+| [docs/ZAKAZKA.md](docs/ZAKAZKA.md), [docs/CRM.md](docs/CRM.md), [docs/UI-SPACING.md](docs/UI-SPACING.md) | pracovní dokumenty: modul Zakázky, CRM (obchod nad zakázkou), systém mezer v UI                                    |
+| [docs/opsys/](docs/opsys/00-ZADANI.md)                                                                   | OPSYS: zadání, rozbor jádra, audit modulů, digest specifikace, plán a [log rozběhu](docs/opsys/E-rozbehovy-log.md) |
+| [docs/INDEX.md](docs/INDEX.md)                                                                           | rozcestník ke všem dokumentům                                                                                      |
+| [docs/reference/](docs/reference/README.md)                                                              | reference generovaná z kódu (entity, příkazy, oprávnění, databáze, trasy, API); neupravuje se ručně                |
+| [docs/moduly/](docs/moduly/_sablona.md)                                                                  | vyprávěcí dokumentace modulů (toky, stavy, pravidla, omezení)                                                      |
+| [docs/DOCS-PROCES.md](docs/DOCS-PROCES.md)                                                               | jak se dokumentace udržuje přesná: definice „hotovo“, kontrola driftu, týdenní audit                               |
 
 ## Rychlý start (vývoj)
 
-Vyžaduje Node ≥ 22, pnpm (`corepack enable`) a PostgreSQL 17 (lokálně `pnpm db:up` spustí oddělený cluster na portu 5433; na macOS s Homebrew `postgresql@17`).
+Vyžaduje Node ≥ 22, pnpm (`corepack enable`) a PostgreSQL 17 (lokálně `pnpm db:up` spustí oddělený cluster OPSYS na portu 5434 v `~/.local/share/opsys-pg17`; na macOS s Homebrew `postgresql@17`. Port, adresář a socket jdou změnit proměnnými `REBAR_PG_PORT`, `REBAR_PG_DATA`, `REBAR_PG_SOCKET_DIR`).
 
 ```bash
 pnpm install
-pnpm db:up                                   # databáze rebar_dev, rebar_test, rebar_e2e
+pnpm db:up                                   # cluster OPSYS na portu 5434: databáze rebar_dev, rebar_test, rebar_e2e
 cp .env.example .env.local                   # upravit hodnoty (AUTH_SECRET, APP_ENCRYPTION_KEY, OWNER_*)
 ln -s ../../.env.local apps/web/.env.local
 pnpm db:migrate                              # migrace, práva aplikační role, fronty
@@ -45,20 +50,20 @@ pnpm worker                                  # v druhém terminálu: e-maily, n�
 
 Přihlášení: e-mail a heslo z `OWNER_EMAIL` / `OWNER_PASSWORD` v `.env.local`. Majitel má povinné 2FA (QR kód do autentikační aplikace při prvním přihlášení).
 Bez nastaveného SMTP se e-maily (pozvánky, reset hesla) vypisují v konzoli workeru včetně odkazu.
-Ukázkový klient `clients/demo` je výchozí (`CLIENT=demo`). Realistická demo data (zakázky ve všech fázích, faktury, docházka, sklad…) nasype `pnpm demo:seed` do prázdné databáze; přihlášení k demo uživatelům podle rolí popisuje [clients/demo/README.md](clients/demo/README.md).
+Klient `clients/opsys` je výchozí (`CLIENT=opsys`). Minimální demo data (tři uživatelé podle rolí a ukázkové firmy) nasype `pnpm demo:seed` do prázdné databáze; popis je v [clients/opsys/README.md](clients/opsys/README.md).
 
 ## Příkazy
 
 | Příkaz                                         | Co dělá                                                                                                            |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `pnpm install`                                 | závislosti                                                                                                         |
-| `pnpm db:up` / `pnpm db:down`                  | lokální PostgreSQL 17 (databáze `rebar_dev`, `rebar_test`, `rebar_e2e`)                                            |
+| `pnpm db:up` / `pnpm db:down`                  | lokální PostgreSQL 17 na portu 5434 (databáze `rebar_dev`, `rebar_test`, `rebar_e2e`)                              |
 | `pnpm db:migrate`                              | migrace + práva aplikační role + fronty (pod uživatelem migrací)                                                   |
 | `pnpm db:seed`                                 | výchozí data klienta a první uživatel z `OWNER_*`                                                                  |
 | `pnpm db:generate`                             | nová migrace jádra z úprav schématu (moduly: `pnpm --filter @rebar/<id> db:generate`)                              |
 | `pnpm db:reset`                                | smaže celý lokální cluster (všechny vývojové a testovací databáze) a vytvoří ho znovu                              |
-| `pnpm demo:seed`                               | realistická demo data stavební firmy a demo uživatelé podle rolí (jen klient `demo`; `--help`)                     |
-| `pnpm dev`                                     | vývojový server (`CLIENT=demo` výchozí)                                                                            |
+| `pnpm demo:seed`                               | minimální demo data OPSYS: demo uživatelé podle rolí a ukázkové firmy (jen klient `opsys`; `--help`)               |
+| `pnpm dev`                                     | vývojový server (`CLIENT=opsys` výchozí)                                                                           |
 | `pnpm worker`                                  | úlohy na pozadí (e-maily, náhledy, úklid, heartbeat)                                                               |
 | `pnpm build`                                   | produkční build (standalone) pro klienta `CLIENT`                                                                  |
 | `pnpm check`                                   | formátování + lint + typecheck + dokumentace z kódu + testy (jednotkové i proti DB) + kontrola konfigurací klientů |
@@ -83,7 +88,7 @@ Integrační testy používají databázi `rebar_test`; paralelní běhy odděl�
 apps/web/                 Next.js aplikace (shell, routing, skládá moduly)
 packages/core/            platforma: konfigurace, moduly, DB, auth + 2FA, oprávnění, audit, soubory, fronta, e-mail, health (viz ADR 007–009)
 packages/ui/              design system a data-driven UI (tabulka, kanban, detail záznamu)
-packages/modules/<id>/    kontakty · poptavky · zakazky · realizace · fakturace · dochazka · sklad · stroje · kalendar
+packages/modules/<id>/    kontakty · zakazky · poptavky · dochazka · kalendar (stav po rozběhu; další moduly podle docs/opsys/D-plan-a-kontrakty.md)
 clients/_template/        šablona klienta (vždy platná)
 clients/<slug>/           config.ts · branding/ · seed/ · extensions/
 deploy/                   Docker, compose, Caddy, install/update/backup/restore skripty (viz docs/DEPLOYMENT.md)

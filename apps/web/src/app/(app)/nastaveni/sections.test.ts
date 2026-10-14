@@ -1,5 +1,5 @@
 import { createCtx, type Actor, type Scope } from "@rebar/core/rbac";
-import { DEFAULT_ROLES } from "@rebar/core/seed";
+import opsysSeed from "../../../../../../clients/opsys/seed/index";
 import { describe, expect, it } from "vitest";
 import { allowedSections, SETTINGS_SECTIONS } from "./sections";
 
@@ -36,9 +36,9 @@ describe("sekce Nastavení podle oprávnění", () => {
     for (const href of CONFIG) expect(seen).toContain(href);
   });
 
-  it("kancelář, mistr a montér konfiguraci nevidí, jen vlastní účet", () => {
-    for (const key of ["office", "foreman", "worker"]) {
-      const role = DEFAULT_ROLES.find((r) => r.key === key)!;
+  it("partner a externista konfiguraci nevidí, jen vlastní účet", () => {
+    for (const key of ["partner", "externista"]) {
+      const role = (opsysSeed.roles ?? []).find((r) => r.key === key)!;
       const seen = hrefs(ctxFor((role.permissions ?? {}) as Record<string, Scope>));
       for (const href of CONFIG) expect(seen, `${key} nesmí vidět ${href}`).not.toContain(href);
       expect(seen).toContain("/nastaveni/zabezpeceni");

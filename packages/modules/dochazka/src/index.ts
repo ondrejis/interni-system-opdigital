@@ -14,6 +14,7 @@ export const manifest = defineModule({
       icon: "clock",
       permission: ["dochazka.own", "dochazka.read"],
       group: "Provoz",
+      bottom: true,
     },
   ],
   pages: [{ path: "/dochazka", title: "Docházka", permission: ["dochazka.own", "dochazka.read"] }],
@@ -33,21 +34,4 @@ export const manifest = defineModule({
   ],
   entities: ["time_entry"],
   notifications: dochazkaNotifications,
-  terminalWidgets: [
-    {
-      key: "dochazka.clock",
-      label: "Docházka",
-      description:
-        "Příchod, přestávka a odchod na jedno ťuknutí, s výběrem zakázky a dnešními hodinami.",
-      icon: "clock",
-      permission: "dochazka.own",
-      commands: [
-        "dochazka.clock.in",
-        "dochazka.clock.break",
-        "dochazka.clock.out",
-        "dochazka.submitWeek",
-      ],
-      page: true,
-    },
-  ],
 });

@@ -8,7 +8,6 @@ export type SectionIcon =
   | "bell"
   | "lock"
   | "user"
-  | "approval"
   | "workflow"
   | "lists"
   | "fields"
@@ -47,13 +46,6 @@ export const SETTINGS_SECTIONS = [
     permission: "roles.manage",
   },
   {
-    href: "/nastaveni/schvalovani",
-    label: "Schvalování",
-    icon: "approval",
-    group: "Správa systému",
-    permission: "zakazky.approve_all",
-  },
-  {
     href: "/nastaveni/pravidla-upozorneni",
     label: "Pravidla upozornění",
     icon: "bell",
@@ -74,14 +66,6 @@ export const SETTINGS_SECTIONS = [
     icon: "mail",
     group: "Správa systému",
     permission: "settings.manage",
-  },
-  {
-    href: "/fakturace/nastaveni",
-    label: "Faktury a dokumenty",
-    icon: "receipt",
-    group: "Správa systému",
-    permission: "settings.manage",
-    module: "fakturace",
   },
   {
     href: "/nastaveni/stavy",
@@ -123,13 +107,6 @@ export const SETTINGS_SECTIONS = [
     href: "/nastaveni/dph",
     label: "Sazby DPH",
     icon: "percent",
-    group: "Konfigurace",
-    permission: "settings.manage",
-  },
-  {
-    href: "/nastaveni/terminal",
-    label: "Terminál řemeslníka",
-    icon: "phone",
     group: "Konfigurace",
     permission: "settings.manage",
   },

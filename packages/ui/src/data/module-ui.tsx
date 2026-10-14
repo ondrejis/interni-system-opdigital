@@ -9,7 +9,6 @@ import type {
   StageDescriptor,
 } from "@rebar/core/shared";
 import { createContext, useContext, useMemo, type ComponentType, type ReactNode } from "react";
-import type { TerminalWidgetUi } from "../terminal/types";
 import type { EntityApi } from "./api";
 
 /** Záložka na detailu záznamu, kterou nabízí modul (např. Materiál na zakázce). */
@@ -227,8 +226,6 @@ export type ModuleUi = {
   /** Základní záložky, které se u entity nezobrazují (`activity`, `tasks`, `files`). */
   hiddenCoreTabs?: Record<string, readonly ("activity" | "tasks" | "files")[]>;
   pages?: readonly ModulePage[];
-  /** UI dlaždic terminálu řemeslníka podle klíče z `manifest.terminalWidgets` (např. `dochazka.clock`). */
-  terminalWidgets?: Record<string, TerminalWidgetUi>;
 };
 
 export function defineModuleUi<const U extends ModuleUi>(ui: U): U {

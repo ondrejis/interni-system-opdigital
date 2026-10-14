@@ -2,7 +2,6 @@ import { PageHeader } from "@rebar/ui";
 import type { ReactNode } from "react";
 import { requireCtx } from "@/server/request";
 import { getServices } from "@/server/services";
-import { isTerminalOnly } from "@/server/terminal";
 import { allowedSections, type SettingsFeature } from "./sections";
 import { SettingsNav } from "./settings-nav";
 
@@ -10,10 +9,8 @@ export const dynamic = "force-dynamic";
 
 /** Nastavení: vlevo oddíly podle oprávnění, vpravo obsah. Uživatel s nenastaveným 2FA vidí jen obsah (stránka zabezpečení). */
 export default async function SettingsLayout({ children }: { children: ReactNode }) {
-  const ctx = await requireCtx({ allowRestricted: true, allowTerminalOnly: true });
+  const ctx = await requireCtx({ allowRestricted: true });
   if (ctx.actor.restriction) return <>{children}</>;
-  // role jen pro terminál vidí jen stránky vlastního účtu, bez bočního panelu Nastavení (ostatní stránky ji přesměrují na /t)
-  if (await isTerminalOnly(ctx)) return <>{children}</>;
   const enabled = new Set(getServices().runtime.modules.map((m) => m.id));
   // funkce vypnuté v konfiguraci klienta (nástěnky, exporty) se v nabídce nenabízejí
   const { config } = getServices().runtime;

@@ -28,10 +28,8 @@ export type ModuleDeps = {
   baseURL: string;
   /** Oznámí událost rozšířením klienta (chyba rozšíření nesmí zrušit akci). */
   emit: <K extends EventName>(name: K, payload: EventMap[K]) => Promise<void>;
-  /** Poskytovatelé zapnutých modulů (zakázky z nich skládají ekonomiku, kalendář vrstvy). */
-  costProviders: readonly CostProvider[];
+  /** Poskytovatelé zapnutých modulů (kalendářní vrstvy). */
   calendarLayers: readonly CalendarLayerProvider[];
-  diaryPrefill: readonly DiaryPrefillProvider[];
 };
 
 /**
@@ -51,65 +49,6 @@ export function defineCommand<S extends ZodType, R>(def: CommandDef<S, R>): Comm
   return def;
 }
 
-/** Jeden řádek nákladů zakázky. Sklad, stroje a docházka je dodávají; zakázky je jen sečtou. */
-export type CostLine = {
-  /** Kategorie ekonomiky (`material`, `labor`, `machines`, `subcontract`, `other`…). */
-  category: string;
-  label: string;
-  amountMinor: number;
-  /** Modul původu (`sklad`, `dochazka`…), aby šlo rozpadnout součet. */
-  source: string;
-  /**
-   * Stabilní id zdroje (id časového záznamu, výdejky, jízdy, řádku faktury…). Podle `(source, ref)` se náklad páruje
-   * na oddíl rozpočtu (`cost_allocation`). Poskytovatel vrací řádky na úrovni záznamu, ne jen součet kategorie.
-   */
-  ref?: string;
-  /** Datum vzniku nákladu (`YYYY-MM-DD`). */
-  date?: string;
-  /** Dodavatel (text) a odkaz na doklad v aplikaci, pokud je zdroj doklad (přijatá faktura). */
-  supplier?: string;
-  href?: string;
-  /**
-   * Vlastní párování zdroje (řádek přijaté faktury nese oddíl rozpočtu přímo). Párování nastavené v `cost_allocation`
-   * má přednost. Objednávka, ke které náklad patří, snižuje její otevřený závazek.
-   */
-  sectionId?: string | null;
-  itemId?: string | null;
-  orderId?: string | null;
-};
-
-export type CostProvider = {
-  key: string;
-  costs: (ctx: Ctx, jobId: string, deps: ModuleDeps) => Promise<CostLine[]>;
-};
-
-/**
- * Kolik z zakázky je vyfakturováno a uhrazeno (bez DPH). Dodává modul Fakturace; zakázky ho nesmí importovat
- * (fakturace závisí na zakázkách), proto jde o poskytovatele, stejně jako u nákladů.
- */
-export type JobInvoicingProvider = (
-  ctx: Ctx,
-  jobId: string,
-) => Promise<{ invoicedMinor: number; paidMinor: number }>;
-
-const fin = globalThis as {
-  __jobFinance?: { costProviders: CostProvider[]; invoicing: JobInvoicingProvider[] };
-}; // globálně: Next bundluje route handlery zvlášť
-
-/**
- * Zaregistruje poskytovatele zapnutých modulů pro přepočet souhrnu zakázky (`recomputeJobSummary` nemá `deps`,
- * volají ho příkazy jiných oblastí uvnitř transakce). Volá se při sestavení modulů (web, worker, testy).
- */
-export function setJobFinanceProviders(p: {
-  costProviders: readonly CostProvider[];
-  invoicing: readonly JobInvoicingProvider[];
-}) {
-  fin.__jobFinance = { costProviders: [...p.costProviders], invoicing: [...p.invoicing] };
-}
-export function getJobFinanceProviders() {
-  return fin.__jobFinance ?? { costProviders: [], invoicing: [] };
-}
-
 /** Položka „Vyžaduje pozornost“ na přehledu. */
 export type AttentionItem = {
   id: string;
@@ -122,25 +61,6 @@ export type AttentionItem = {
 };
 
 export type AttentionProvider = (ctx: Ctx, deps: ModuleDeps) => Promise<AttentionItem[]>;
-
-/** Předvyplnění zápisu do stavebního deníku z jiných modulů (docházka, stroje, sklad za daný den). */
-export type DiaryPrefill = Partial<{
-  people: string;
-  work: string;
-  machines: string;
-  materials: string;
-  /** Strukturovaně (deník je z nich skládá do řádků): pracovníci s hodinami z docházky. */
-  workers: { userId?: string | null; name: string; hours: number | null }[];
-  machineRows: { name: string; hours: number | null; note?: string | null }[];
-  /** Množství jako desetinný řetězec. */
-  materialRows: { name: string; qty: string; unit: string }[];
-}>;
-export type DiaryPrefillProvider = (
-  ctx: Ctx,
-  jobId: string,
-  date: string,
-  deps: ModuleDeps,
-) => Promise<DiaryPrefill>;
 
 /** Dlaždice přehledu: modul dodá data, UI dlaždici vykreslí podle `kind`. */
 export type WidgetData = {
@@ -257,16 +177,12 @@ export function defineModuleJob<S extends ZodType>(def: JobDef<S, ModuleJobDeps>
 export type ModuleServer = {
   entities?: readonly EntityDef[];
   commands?: readonly CommandDef[];
-  costProviders?: readonly CostProvider[];
   attention?: readonly AttentionProvider[];
   widgets?: readonly WidgetProvider[];
   /** Pojmenované metriky pro vlastní nástěnky (viz `DashboardMetricDef`). */
   dashboardMetrics?: readonly DashboardMetricDef[];
   calendarLayers?: readonly CalendarLayerProvider[];
-  diaryPrefill?: readonly DiaryPrefillProvider[];
   jobs?: readonly ModuleJob[];
-  /** Kolik je vyfakturováno a uhrazeno na zakázku (souhrn zakázky; dodává Fakturace). */
-  jobInvoicing?: readonly JobInvoicingProvider[];
   /** Hooky přechodu fáze záznamu (zakázky): kontroly a automatické akce, které zná tento modul. */
   phaseHooks?: readonly PhaseTransitionHook[];
   /** Blokace smazání: záznamy tohoto modulu, které odkazují na firmu, osobu nebo zakázku (viz `DeleteBlocker`). */
@@ -290,16 +206,13 @@ export function mergeServers(...parts: readonly ModuleServer[]): ModuleServer {
   const keys = [
     "entities",
     "commands",
-    "costProviders",
     "attention",
     "widgets",
     "dashboardMetrics",
     "calendarLayers",
-    "diaryPrefill",
     "jobs",
     "phaseHooks",
     "deleteBlockers",
-    "jobInvoicing",
     "ensure",
   ] as const;
   const out: Record<string, unknown[]> = {};

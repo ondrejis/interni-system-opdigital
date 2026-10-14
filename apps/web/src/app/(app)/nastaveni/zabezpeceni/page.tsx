@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Zabezpečení účtu" };
 
 export default async function SecurityPage() {
-  const ctx = await requireCtx({ allowRestricted: true, allowTerminalOnly: true });
+  const ctx = await requireCtx({ allowRestricted: true });
   const account = await getAccount(ctx);
   return (
     <SettingsPage

@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX "received_invoice_dup_uq" ON "received_invoice" USING btree ("supplier_id",lower(btrim("number"))) WHERE "received_invoice"."deleted_at" is null;

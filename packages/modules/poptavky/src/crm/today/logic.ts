@@ -11,7 +11,7 @@ export type TodayDeal = {
   stageName: string | null;
   stageColor: string | null;
   phase: string;
-  /** Cena nabídky v haléřích; `null` bez oprávnění `zakazky.economics`. */
+  /** Cena nabídky v haléřích; `null` bez oprávnění `zakazky.finance`. */
   valueMinor: number | null;
   rotting: boolean;
   /** Dny v aktuálním stavu. */

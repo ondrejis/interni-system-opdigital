@@ -5,13 +5,6 @@
 export { MODULE_IDS } from "./ids";
 export type { ModuleId } from "./ids";
 export { defineModule, CORE_PERMISSIONS } from "./manifest";
-export type {
-  ModuleManifest,
-  ModuleSeed,
-  NavItem,
-  PageDef,
-  PermissionDef,
-  TerminalWidgetDef,
-} from "./manifest";
+export type { ModuleManifest, ModuleSeed, NavItem, PageDef, PermissionDef } from "./manifest";
 export { defineNotificationEvent } from "../notifications/types";
 export type { AnyEventDef, NotificationEventDef } from "../notifications/types";

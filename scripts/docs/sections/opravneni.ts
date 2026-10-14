@@ -29,8 +29,6 @@ export function permissionsDoc(rt: Runtime): Record<string, string> {
   for (const m of rt.manifests) {
     for (const n of m.nav) for (const k of asArray(n.permission)) use(k).nav.push(n.href);
     for (const p of m.pages ?? []) for (const k of asArray(p.permission)) use(k).nav.push(p.path);
-    for (const w of m.terminalWidgets ?? [])
-      for (const k of asArray(w.permission)) use(k).other.push(`dlaždice terminálu ${w.key}`);
     const server = rt.servers.get(m.id);
     for (const e of server?.entities ?? []) {
       for (const [op, key] of Object.entries(e.permissions))

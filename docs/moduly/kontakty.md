@@ -22,16 +22,16 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 - **Popis z manifestu:** Firmy a osoby: typ, hierarchie, štítky, více telefonů a e-mailů, doplnění z ARES, kontrola duplicit a jejich sloučení.
 - **Závisí na:** žádném modulu
 - **Entity:** [`company`](../reference/entity/kontakty.md#company), [`person`](../reference/entity/kontakty.md#person)
-- **Příkazy:** [6 příkazů](../reference/prikazy/kontakty.md)
+- **Příkazy:** [7 příkazů](../reference/prikazy/kontakty.md)
 - **Referenční stránky:** [modul](../reference/moduly/kontakty.md), [entity](../reference/entity/kontakty.md), [příkazy](../reference/prikazy/kontakty.md), [databáze](../reference/databaze/kontakty.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 
-| Oprávnění        | Název                       | Výchozí: owner | Výchozí: office | Výchozí: foreman | Výchozí: worker |
-| ---------------- | --------------------------- | -------------- | --------------- | ---------------- | --------------- |
-| `kontakty.read`  | Vidí kontakty               | vše            | vše             | vše              |                 |
-| `kontakty.write` | Upravuje kontakty           | vše            | vše             |                  |                 |
-| `kontakty.merge` | Slučuje duplicitní kontakty | vše            |                 |                  |                 |
+| Oprávnění        | Název                       | Výchozí: owner |
+| ---------------- | --------------------------- | -------------- |
+| `kontakty.read`  | Vidí kontakty               | vše            |
+| `kontakty.write` | Upravuje kontakty           | vše            |
+| `kontakty.merge` | Slučuje duplicitní kontakty | vše            |
 
 <!-- docs:generated:end -->
 

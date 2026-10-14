@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core/manifest` (soubor `packages/core/src/modules/public.ts`). Exportů: 13, z toho s popisem 6.
+Vstupní bod `@rebar/core/manifest` (soubor `packages/core/src/modules/public.ts`). Exportů: 12, z toho s popisem 5.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
@@ -21,7 +21,6 @@ Vstupní bod `@rebar/core/manifest` (soubor `packages/core/src/modules/public.ts
 | [`NotificationEventDef`](#notificationeventdef) | type |  |  |
 | [`PageDef`](#pagedef) | type | Stránka modulu mimo seznamy entit; adresa i oprávnění jsou v manifestu, vykreslení v UI modulu. |  |
 | [`PermissionDef`](#permissiondef) | type |  |  |
-| [`TerminalWidgetDef`](#terminalwidgetdef) | type | Dlaždice (widget) mobilního terminálu řemeslníka, kterou modul nabízí. Jádro konkrétní moduly nezná: dlaždice, které uživatel uvidí, se skládají ze zapnutých modulů, oprávnění role a nastavení klienta (viz `docs/TERMINAL.md`). Vykreslení dlaždice je v UI části modulu (`terminalWidgets`), tady je jen popis. |  |
 
 ### defineModule
 
@@ -60,7 +59,7 @@ const · `packages/core/src/modules/ids.ts`
 Identifikátory modulů. Jediný zdroj pravdy — konfigurace klienta se validuje proti tomuto seznamu.
 
 ```ts
-const MODULE_IDS: readonly ["kontakty", "zakazky", "poptavky", "realizace", "fakturace", "dochazka", "sklad", "stroje", "kalendar"]
+const MODULE_IDS: readonly ["kontakty", "zakazky", "poptavky", "dochazka", "kalendar"]
 ```
 
 ### AnyEventDef
@@ -106,8 +105,6 @@ type ModuleManifest = {
   /** Události upozornění modulu (katalog, ze kterého čerpá nastavení klienta i předvolby uživatelů). */
   notifications?: readonly AnyEventDef[];
   seed?: ModuleSeed;
-  /** Dlaždice mobilního terminálu řemeslníka (UI je v `terminalWidgets` UI části modulu). */
-  terminalWidgets?: readonly TerminalWidgetDef[];
 };
 ```
 
@@ -145,6 +142,8 @@ type NavItem = {
   group?: string;
   /** Adresa nadřazené položky: tato se zobrazí pod ní jako podpoložka (modul má v panelu jedno místo). */
   parent?: string;
+  /** Položka je kandidátem na spodní lištu mobilní navigace (zobrazí se první tři, které uživatel smí vidět). */
+  bottom?: boolean;
 };
 ```
 
@@ -225,35 +224,5 @@ type PermissionDef = {
   key: string;
   label: string;
   description?: string;
-};
-```
-
-### TerminalWidgetDef
-
-type · `packages/core/src/modules/manifest.ts`
-
-Dlaždice (widget) mobilního terminálu řemeslníka, kterou modul nabízí. Jádro konkrétní moduly nezná: dlaždice, které
-uživatel uvidí, se skládají ze zapnutých modulů, oprávnění role a nastavení klienta (viz `docs/TERMINAL.md`).
-Vykreslení dlaždice je v UI části modulu (`terminalWidgets`), tady je jen popis.
-
-```ts
-type TerminalWidgetDef = {
-  /** `<modul>.<název>` (prefix musí odpovídat id modulu; `core.` mají jen dlaždice platformy). */
-  key: string;
-  /** Výchozí název dlaždice (správce ho v Nastavení může přejmenovat). */
-  label: string;
-  description: string;
-  icon: string;
-  /** Dlaždice se ukáže (a server ji povolí) jen uživateli s některým z uvedených oprávnění. */
-  permission?: string | readonly string[];
-  /**
-   * Zápisové příkazy, které dlaždice smí posílat přes zápisovou frontu terminálu (funguje i bez signálu, s ochranou proti
-   * dvojímu odeslání). Musí začínat id modulu; jiný příkaz server z terminálu odmítne.
-   */
-  commands?: readonly string[];
-  /** Má celou obrazovku (`/t/w/<key>`) a smí se objevit ve spodní liště. UI modulu pak musí dodat `Page`. */
-  page?: boolean;
-  /** Dlaždice, kterou klient v `config.ts` ani správce v Nastavení výslovně neuvedl, je zapnutá (výchozí `true`); `false` ji nechá vypnutou. */
-  defaultEnabled?: boolean;
 };
 ```

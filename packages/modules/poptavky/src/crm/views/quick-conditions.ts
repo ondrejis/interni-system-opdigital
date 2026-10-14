@@ -3,7 +3,7 @@ import { OPEN_DEAL_PHASES } from "../logic";
 
 /**
  * Navržené („rychlé“) podmínky filtru seznamu obchodů: jedním klikem přidají hotový chip (hodnota chybí jen u „Hodnota…“,
- * tam se rovnou otevře editor). Nabídne se jen podmínka, jejíž atribut aktér vidí (peníze jen s `zakazky.economics`).
+ * tam se rovnou otevře editor). Nabídne se jen podmínka, jejíž atribut aktér vidí (peníze jen s `zakazky.finance`).
  */
 export const DEAL_QUICK_CONDITIONS: readonly QuickCondition[] = [
   {
@@ -36,6 +36,6 @@ export const DEAL_QUICK_CONDITIONS: readonly QuickCondition[] = [
   {
     id: "value",
     label: "Hodnota je alespoň…",
-    condition: { attr: "sumContract", op: "gte" },
+    condition: { attr: "value", op: "gte" },
   },
 ];

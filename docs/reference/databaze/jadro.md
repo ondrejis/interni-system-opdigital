@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (definice tabulek v `packages/core/src/db/schema` (Drizzle) a žurnál migrací). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Tabulky platformy: uživatelé a role, audit, spolupráce (komentáře, úkoly, upozornění), soubory, nastavení, číselníky, pohledy. Počet tabulek: 40. Konvence sloupců (UUID v7, audit sloupce, měkké mazání, peníze v haléřích) popisují [ADR 002](../../adr/002-konvence-datoveho-modelu.md) a [ADR 003](../../adr/003-penize-a-mnozstvi.md).
+Tabulky platformy: uživatelé a role, audit, spolupráce (komentáře, úkoly, upozornění), soubory, nastavení, číselníky, pohledy. Počet tabulek: 39. Konvence sloupců (UUID v7, audit sloupce, měkké mazání, peníze v haléřích) popisují [ADR 002](../../adr/002-konvence-datoveho-modelu.md) a [ADR 003](../../adr/003-penize-a-mnozstvi.md).
 
 ## Schéma audit
 
@@ -851,28 +851,6 @@ Definice: `packages/core/src/db/schema/identity.ts`.
 | --- | --- | --- |
 | `login_event_user_idx` | `user_id`, `created_at` |  |
 
-## Schéma terminal
-
-Soubor `packages/core/src/db/schema/terminal.ts`. Tabulky: `terminal_op`.
-
-### terminal_op
-
-Zápis odeslaný z mobilního terminálu (i z offline fronty). Identifikátor vytváří zařízení při zápisu, takže stejná akce odeslaná podruhé (opakování po výpadku signálu, dvojí ťuknutí) se nevykoná znovu a vrátí původní výsledek. Řádek vzniká ve stejné transakci jako vlastní zápis (selže-li zápis, řádek nezůstane).
-
-Definice: `packages/core/src/db/schema/terminal.ts`.
-
-| Sloupec | Typ | Může být prázdný | Výchozí | Poznámka |
-| --- | --- | --- | --- | --- |
-| `id` | `uuid` | ne |  | PK |
-| `user_id` | `uuid` | ne |  | → user.id (při smazání: cascade) |
-| `command` | `text` | ne |  |  |
-| `result` | `jsonb` | ano |  |  |
-| `created_at` | `timestamp with time zone` | ne | `now()` |  |
-
-| Index | Sloupce | Druh |
-| --- | --- | --- |
-| `terminal_op_created_idx` | `created_at` |  |
-
 ## Schéma views
 
 Soubor `packages/core/src/db/schema/views.ts`. Tabulky: `saved_view`, `view_favorite`, `search_document`.
@@ -939,7 +917,7 @@ Složený primární klíč: `entity_type`, `entity_id`.
 
 ## Migrace
 
-Složka `packages/core/drizzle`; pouze dopředné a zpětně kompatibilní (expand → contract, [ADR 009](../../adr/009-fronta-uloh-a-migrace.md)). Počet: 12.
+Složka `packages/core/drizzle`; pouze dopředné a zpětně kompatibilní (expand → contract, [ADR 009](../../adr/009-fronta-uloh-a-migrace.md)). Počet: 13.
 
 | Pořadí | Název | Datum | Obsah |
 | --- | --- | --- | --- |
@@ -955,3 +933,4 @@ Složka `packages/core/drizzle`; pouze dopředné a zpětně kompatibilní (expa
 | 9 | `0009_notifications` | 2026-10-09 | CREATE TABLE ×2, ALTER TABLE ×12, CREATE INDEX ×4, CREATE UNIQUE INDEX ×1; tabulky: notification, notification_delivery, notification_pref, push_subscription |
 | 10 | `0010_dashboards_exports` | 2026-10-09 | CREATE TABLE ×6, ALTER TABLE ×16, CREATE UNIQUE INDEX ×3, CREATE INDEX ×9; tabulky: dashboard, dashboard_pref, dashboard_share, export_run, export_schedule, export_template |
 | 11 | `0011_crm_stage_probability` | 2026-10-13 | ALTER TABLE ×2; tabulky: pipeline_stage |
+| 12 | `0012_drop_terminal_op` | 2026-10-14 | DROP TABLE ×1; tabulky: terminal_op |

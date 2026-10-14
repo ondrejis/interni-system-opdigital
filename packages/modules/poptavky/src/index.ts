@@ -18,6 +18,7 @@ export const manifest = defineModule({
       icon: "handshake",
       permission: "poptavky.read",
       group: "Obchod",
+      bottom: true,
     },
     {
       label: "Moje dnešní práce",

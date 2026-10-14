@@ -178,7 +178,7 @@ function Sections({ parts }: { parts: RecordDialogParts }) {
     .find((a) => a.key === "stage")
     ?.stages?.find((s) => s.id === row.stage);
   const stageProbability = stage?.probabilityPct ?? null;
-  const contract = Number(row.sumContract ?? 0);
+  const contract = Number(row.value ?? 0);
   const ownValue = Number(row.value ?? 0);
   const hasValue = entity.attributes.some((a) => a.key === "value");
   const weighted = row.crmWeighted;

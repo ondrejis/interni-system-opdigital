@@ -29,7 +29,7 @@ function · `packages/core/src/custom-fields/definitions.ts`
 _Bez popisu._
 
 ```ts
-async function createFieldDef(ctx: Ctx, raw: z.input<typeof fieldInput>): Promise<{ type: "number" | "email" | "currency" | "date" | "record" | "user" | "select" | "url" | "phone" | "text" | "multiselect" | "checkbox"; label: string; key: string; id: string; options: schema.CustomFieldOptions; createdAt: Date; u…
+async function createFieldDef(ctx: Ctx, raw: z.input<typeof fieldInput>): Promise<{ type: "number" | "email" | "currency" | "date" | "record" | "user" | "select" | "url" | "phone" | "text" | "multiselect" | "checkbox"; key: string; id: string; label: string; options: schema.CustomFieldOptions; createdAt: Date; u…
 ```
 
 ### deleteFieldDef

@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 263, z toho s popisem 169.
+Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 225, z toho s popisem 140.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
@@ -13,11 +13,9 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 263, z t
 | [`AuthShell`](#authshell) | function | Společný rámec přihlášení, zapomenutého hesla, ověření a pozvánky: vlevo formulář, vpravo (od šířky `lg`) brandový panel. Název a barvu bere z brandingu klienta. |  |
 | [`Avatar`](#avatar) | function |  |  |
 | [`BarChart`](#barchart) | function | Sloupcový graf: svislý nebo vodorovný, skládaný nebo seskupený (více řad vedle sebe). Šířka se řídí kontejnerem; popisky kategorií se podle místa zkracují, otáčejí nebo přeskakují. |  |
-| [`BigButton`](#bigbutton) | function | Velké tlačítko pro ovládání jednou rukou (výška 56 px). |  |
 | [`BottomNav`](#bottomnav) | function | Spodní navigace pro práci jednou rukou na telefonu (jen pod šířkou `md`). Každá položka má dotykovou plochu aspoň 56 px na výšku; aktivní položka je zvýrazněná i pro čtečky (`aria-current`). |  |
 | [`BrandMark`](#brandmark) | function | Logo klienta, nebo monogram z jeho názvu. |  |
 | [`Button`](#button) | function |  |  |
-| [`ButtonLink`](#buttonlink) | function | Odkaz vzhledem jako velké tlačítko (telefonát, navigace, otevření obrazovky dlaždice). |  |
 | [`Card`](#card) | function | Karta: povrch s okrajem a jemným stínem (třída `.card` ve `styles.css`). |  |
 | [`CardBody`](#cardbody) | function | Tělo karty: odsazení `p-4`; `flush` je bez něj (seznam nebo řádky polí přes celou šířku karty). |  |
 | [`CardHeader`](#cardheader) | function | Záhlaví karty: pruh s nadpisem (`text-sm font-semibold`), volitelnou ikonou, počtem a akcí vpravo, od těla odděleno jemnou čárou. Nadpis je `h3`, pokud `heading` neurčí jinak. |  |
@@ -58,8 +56,6 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 263, z t
 | [`Icon`](#icon) | function | Ikona podle názvu z manifestu modulu (neznámý název = obecná ikona seznamu). |  |
 | [`IconButton`](#iconbutton) | function | Tlačítko jen s ikonou; `label` je povinný název pro čtečky a tooltip. |  |
 | [`Input`](#input) | function |  |  |
-| [`InstallCard`](#installcard) | function | Instalace na plochu: v prohlížečích s podporou tlačítko, na iPhonu postup přes „Sdílet“. |  |
-| [`JobPicker`](#jobpicker) | function | Výběr zakázky: velké pole s popiskem, předvyplněné poslední nebo jedinou zakázkou. |  |
 | [`Kanban`](#kanban) | function |  |  |
 | [`KanbanInteractive`](#kanbaninteractive) | function | Obal interaktivního prvku na kartě (tlačítko, popover): klik, tah ani klávesa v něm kartu neotevřou ani nepřesunou. Použije ho modul v `footer` karty; sloty `topRight` / `bottomRight` jím jsou obalené samy. |  |
 | [`Kbd`](#kbd) | function |  |  |
@@ -77,12 +73,9 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 263, z t
 | [`PaletteActionsProvider`](#paletteactionsprovider) | function | Drží kontextové akce paletky (Cmd+K), které si registrují zobrazené komponenty (např. otevřený záznam). |  |
 | [`PasswordField`](#passwordfield) | function | Pole pro heslo se zobrazením/skrytím a upozorněním na zapnutý Caps Lock. |  |
 | [`PasswordStrength`](#passwordstrength) | function | Indikátor síly hesla s kontrolním seznamem požadavků. |  |
-| [`PendingBadge`](#pendingbadge) | function | Odznak „čeká na odeslání“ u zápisu, který ještě není potvrzený serverem. |  |
 | [`PhotoDialog`](#photodialog) | function | Fotky z terénu: vybrat zakázku (naposledy použitá je předvyplněná), vyfotit nebo vybrat z galerie, zmenšit a odeslat na pozadí. Fotka se nejdřív uloží do zařízení, takže se neztratí ani bez signálu. |  |
-| [`PhotoPicker`](#photopicker) | function | Výběr fotek: vyfotit nebo z galerie, náhledy s odebráním. Soubory drží volající (`files`). |  |
 | [`PipelineStepper`](#pipelinestepper) | function | Pás fází jako šipky (chevrony) přes celou dostupnou šířku: šířka se dělí úměrně délce názvu (v mini pásu stejně), hotové fáze jsou zeleně, aktuální v barvě akcentu, budoucí šedě. V detailu (`md`) je v segmentu název a pod ním dny ve fázi; dlouhý název se zkrátí a celý je v tooltipu. Klik přesune záznam do fáze, zamčený přechod ukáže důvod v tooltipu. Na úzkém displeji se pás posouvá do stran uvnitř sebe (stránka se nerozšíří) a aktuální fáze se sama vystředí. |  |
 | [`PopoverContent`](#popovercontent) | function |  |  |
-| [`QueuePanel`](#queuepanel) | function | Čekající zápisy a nahrávané fotky. Nic se tu neztratí tiše: potvrzený zápis zmizí sám, konflikt zůstane i s českým důvodem, dokud ho člověk nezkusí znovu nebo výslovně nezahodí. |  |
 | [`RecordDialog`](#recorddialog) | function | Detail záznamu v pop-upu, široký až 1280 px (pod ~1300 px obrazovky téměř celou šířku, na telefonu celou obrazovku). Obsah je `RecordView` v režimu `dialog`: hlavička, pás od modulu (`recordHeader`), záložky i akce modulu fungují jako na stránce záznamu. Seznam pod pop-upem se nepřekresluje, takže filtr, hledání i pozice v nástěnce zůstanou. |  |
 | [`RecordView`](#recordview) | function |  |  |
 | [`RelatedRecords`](#relatedrecords) | function | Související záznamy uvnitř detailu (vady zakázky, osoby firmy…): stejný seznam jako jinde (inline editace, panel, vytvoření), jen s pevným filtrem na rodiče a předvyplněným rodičem při vytvoření. |  |
@@ -96,21 +89,12 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 263, z t
 | [`Sparkline`](#sparkline) | function | Drobná čára pro KPI: tlumená, jen poslední bod v barvě grafu. Přeruší se u `null`. |  |
 | [`TabsList`](#tabslist) | function |  |  |
 | [`TabsTrigger`](#tabstrigger) | function |  |  |
-| [`TasksWidget`](#taskswidget) | function | Moje úkoly: velké řádky, odškrtnutí jedním ťuknutím (funguje i bez signálu, zápis čeká ve frontě). |  |
-| [`TerminalCard`](#terminalcard) | function | Karta dlaždice na úvodní obrazovce terminálu. |  |
-| [`TerminalEmpty`](#terminalempty) | function |  |  |
-| [`TerminalPageHeader`](#terminalpageheader) | function | Nadpis obrazovky dlaždice se šipkou zpět na úvodní obrazovku terminálu. |  |
-| [`TerminalQueueProvider`](#terminalqueueprovider) | function | Jedna fronta pro celý terminál; po každém potvrzeném zápisu zneplatní data, ať se obrazovky obnoví. |  |
-| [`TerminalShell`](#terminalshell) | function | Samostatný rám terminálu řemeslníka: úzký sloupec pro jednu ruku, nahoře stav spojení a fronty zápisů, dole nejvýš pět položek (Dnes, až tři dlaždice, Více). Nezná kancelářskou navigaci; na počítači je sloupec uprostřed (náhled). |  |
 | [`TextField`](#textfield) | function | Pole formuláře pro přihlašovací a účtové stránky: popisek nad polem, ikona, nápověda a chyba pod ním. |  |
 | [`Textarea`](#textarea) | function |  |  |
 | [`ThemeSwitch`](#themeswitch) | function |  |  |
 | [`Toaster`](#toaster) | function | Oznámení vpravo dole. U vratných akcí se používá `undoToast`, potvrzovací dialog jen u nevratných. |  |
 | [`Tooltip`](#tooltip) | function |  |  |
 | [`TooltipProvider`](#tooltipprovider) | function |  |  |
-| [`TouchChoice`](#touchchoice) | function | Přepínač 2–3 možností s velkými tlačítky. |  |
-| [`TouchField`](#touchfield) | function | Pole s popiskem nad ním; popisek je vždy vidět (v terénu se nehádá z placeholderu). |  |
-| [`TouchSelect`](#touchselect) | function | Výběr z možností; nativní výběr se na telefonu otevře systémovým kolečkem, což je nejpohodlnější. |  |
 | [`VatRatesProvider`](#vatratesprovider) | function | Aplikace dodá sazby DPH platné dnes (z Nastavení); moduly je nabízejí u položek dokladů a rozpočtu. |  |
 | [`WidgetBody`](#widgetbody) | function | Obsah widgetu podle druhu výsledku. Výsledek je už filtrovaný oprávněními na serveru; tady se jen zobrazuje. |  |
 | [`WidgetCard`](#widgetcard) | function | Karta widgetu: záhlaví s nabídkou, načítání, chyba (česká hláška), obsah. Načítá se samostatně a souběžně s ostatními. |  |
@@ -121,17 +105,13 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 263, z t
 | [`colorFor`](#colorfor) | function | Stabilní barva avataru podle jména. |  |
 | [`completeFilters`](#completefilters) | function | Je podmínka úplná a smí se poslat na server? Nedokončené chipy se z dotazu vynechají. |  |
 | [`compressImage`](#compressimage) | function | Zmenší fotku z telefonu před odesláním (typicky z 5–10 MB na ~300 kB), aby prošla i slabým signálem. Respektuje otočení z EXIF. Cokoli, co zmenšit nejde (jiný formát, chybí podpora prohlížeče), vrátí beze změny. |  |
-| [`createTerminalQueue`](#createterminalqueue) | function |  |  |
 | [`defineModuleUi`](#definemoduleui) | function |  |  |
 | [`elementToPng`](#elementtopng) | function | Uloží prvek stránky jako obrázek PNG (stažení souboru). |  |
 | [`emptyBoard`](#emptyboard) | function | Prázdná definice nové nástěnky. |  |
 | [`errorToast`](#errortoast) | function |  |  |
 | [`findModulePage`](#findmodulepage) | function |  |  |
-| [`indexedDbOpStore`](#indexeddbopstore) | function | Úložiště v IndexedDB; když není k dispozici (soukromé okno), spadne na paměť (zápisy pak přežijí jen do zavření). |  |
 | [`initials`](#initials) | function |  |  |
 | [`isMac`](#ismac) | function |  |  |
-| [`localToday`](#localtoday) | function | Dnešní datum v české časové zóně (`YYYY-MM-DD`). |  |
-| [`memoryOpStore`](#memoryopstore) | function |  |  |
 | [`modKey`](#modkey) | function |  |  |
 | [`niceScale`](#nicescale) | function | Osa s „hezkými“ hodnotami. Zvládá samé nuly, jedinou hodnotu, záporné hodnoty i velké částky v haléřích. |  |
 | [`niceStep`](#nicestep) | function | Nejbližší „hezký“ krok (1, 2, 5 × 10^k) nad `raw`; u minut navíc časové kroky. |  |
@@ -139,12 +119,10 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 263, z t
 | [`passwordStrength`](#passwordstrength) | function | Jak dobré je heslo: server vyžaduje jen délku, ostatní je doporučení. |  |
 | [`plainValue`](#plainvalue) | function | Text hodnoty pro exporty a hledání (bez formátování komponent). |  |
 | [`readRecordParam`](#readrecordparam) | function | Id záznamu z `?record=` (`null`, když chybí nebo je prázdné). |  |
-| [`reportOutcome`](#reportoutcome) | function | Oznámení podle výsledku zápisu. Vrací `true`, když je zápis uložený (odeslaný, nebo bezpečně čeká na signál). |  |
 | [`runExport`](#runexport) | function | Spustí export na serveru. Malý se rovnou stáhne, velký se zařadí do fronty (odpověď 202) a čeká v „Moje exporty“. |  |
 | [`seriesColor`](#seriescolor) | function | Barva řady podle pořadí (token); od 9. řady neutrální šedá, žádné generované odstíny. |  |
 | [`successToast`](#successtoast) | function |  |  |
 | [`undoToast`](#undotoast) | function | Toast s tlačítkem „Zpět“ (vratná akce; zpětná změna se provede až po kliknutí). |  |
-| [`useActiveJobs`](#useactivejobs) | function | Zakázky, na kterých se pracuje (realizace a předání) a které aktér smí vidět. Poslední načtený seznam se pamatuje v zařízení, takže výběr zakázky funguje i bez signálu. Bez modulu Zakázky je seznam prázdný. |  |
 | [`useCan`](#usecan) | function | Zda má přihlášený uživatel oprávnění (jen pro skrývání prvků UI; server kontroluje vždy). |  |
 | [`useCommandMutation`](#usecommandmutation) | function | Spuštění příkazu modulu; po úspěchu zneplatní uvedené klíče (nebo všechny dotazy příkazů a záznamů). |  |
 | [`useCommandQuery`](#usecommandquery) | function | Dotaz na příkaz modulu (`api.command`) s cache TanStack Query; klíč tvoří jméno a vstup. |  |
@@ -156,7 +134,6 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 263, z t
 | [`useEntitySummary`](#useentitysummary) | function | Počet a součty za celou filtrovanou sadu (patička tabulky); nezávisí na tom, kolik řádků je načteno. |  |
 | [`useHotkeys`](#usehotkeys) | function | Globální klávesové zkratky. Klíče: `mod+k` (Cmd na Macu, Ctrl jinde), `?`, `c`, dvoutlačítkové sekvence `g z` (do 900 ms po sobě). Jednoznakové zkratky se při psaní do pole nespouští; `mod+…` a `Escape` fungují vždy. |  |
 | [`useInvalidateEntity`](#useinvalidateentity) | function |  |  |
-| [`useJobChoice`](#usejobchoice) | function | Naposledy použitá zakázka (předvyplní výběr), nebo jediná dostupná. |  |
 | [`useKanbanExtensions`](#usekanbanextensions) | function | Rozšíření kanbanu od zapnutých modulů pro entitu (první nalezené vyhrává, jako u `recordHeader`). |  |
 | [`useModuleUi`](#usemoduleui) | function |  |  |
 | [`useNav`](#usenav) | function |  |  |
@@ -165,8 +142,6 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 263, z t
 | [`useRecordDialogExt`](#userecorddialogext) | function | Vlastní podoba pop-upu od zapnutých modulů pro entitu (první nalezená vyhrává). |  |
 | [`useRecordExtensions`](#userecordextensions) | function |  |  |
 | [`useRecordParam`](#userecordparam) | function | Otevřený záznam v adrese (`?record=<id>`). Otevření přidá položku do historie, zavření se vrátí (`history.back()`), takže tlačítko Zpět zavře pop-up a filtr i pozice v seznamu zůstanou, protože stránka se nepřekresluje. Odkaz s `?record=` otevře pop-up rovnou (`initial` z adresy ze serveru brání probliknutí). Router aplikace (`history.pushState` je v Next.js propojený s routerem) se nevolá, stránka se nenačítá znovu. |  |
-| [`useSendPhotos`](#usesendphotos) | function | Odešle fotky k zakázce přes frontu nahrávání (uloží se do zařízení dřív, než se zkusí odeslat, takže se neztratí bez signálu). Fotka je zmenšená a připojená k zakázce jako fotka z místa. |  |
-| [`useTerminalQueue`](#useterminalqueue) | function | Fronta zápisů terminálu: odeslání zápisu (s ochranou proti ztrátě i duplicitě) a stav čekajících zápisů. |  |
 | [`useUpdateAttribute`](#useupdateattribute) | function | Inline úprava jednoho atributu. Změna se hned ukáže (optimisticky); když ji server odmítne, vrátí se původní stav a chyba se předá volajícímu (buňka ji ukáže). |  |
 | [`useVatRates`](#usevatrates) | function |  |  |
 | [`vatBpChoices`](#vatbpchoices) | function | Sazby (v setinách procenta) k nabídnutí ve výběru, od nejvyšší. K nabízeným se přidají `extra` (sazby, které už doklad obsahuje, i když dnes neplatí), aby se hodnota řádku neztratila. |  |
@@ -186,15 +161,12 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 263, z t
 | [`PopoverAnchor`](#popoveranchor) | const |  |  |
 | [`PopoverTrigger`](#popovertrigger) | const |  |  |
 | [`RECORD_PARAM`](#record_param) | const | Adresa otevřeného záznamu v pop-upu (`?record=<id>`): čisté funkce bez prohlížeče, aby šly testovat. |  |
-| [`RETRY_DELAYS_S`](#retry_delays_s) | const | Odstupy mezi pokusy v sekundách; po vyčerpání zůstane poslední. |  |
-| [`TOUCH_FIELD`](#touch_field) | const |  |  |
 | [`TYPE_ICONS`](#type_icons) | const | Ikona typu atributu — v záhlaví sloupce, ve filtrech a v panelu atributů. |  |
 | [`Tabs`](#tabs) | const |  |  |
 | [`TabsContent`](#tabscontent) | const |  |  |
 | [`dashKeys`](#dashkeys) | const |  |  |
 | [`entityKeys`](#entitykeys) | const |  |  |
 | [`themeScript`](#themescript) | const | Skript do `<head>`: nastaví téma před vykreslením, aby stránka při načtení nezablikala. |  |
-| [`OpStore`](#opstore) | interface |  |  |
 | [`ActivityResult`](#activityresult) | type |  |  |
 | [`AuthBrand`](#authbrand) | type |  |  |
 | [`BarChartProps`](#barchartprops) | type |  |  |
@@ -219,7 +191,6 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 263, z t
 | [`FileItem`](#fileitem) | type |  |  |
 | [`FilterAttributeGroup`](#filterattributegroup) | type | Skupina atributů v nabídce „Filtr“: modul si ji pro entitu definuje výčtem klíčů (`EntityList` prop `filterGroups`). Atribut, který žádná skupina nezmiňuje, spadne do „Vlastní pole“ (je-li vlastní) nebo do „Ostatní“. |  |
 | [`GaugeProps`](#gaugeprops) | type |  |  |
-| [`JobOption`](#joboption) | type |  |  |
 | [`KanbanCardContext`](#kanbancardcontext) | type | Co dostane rozšíření karty kanbanu: řádek, popisky vazeb a výchozí tělo, které může modul doplnit. |  |
 | [`KanbanCardExtension`](#kanbancardextension) | type | Rozšíření karty kanbanu pro jednu entitu. Vše je nepovinné; co modul nedodá, vypadá jako dřív. Komponenty se vykreslují jako prvky Reactu, takže smí používat hooky (dotaz, popover…). Kliky a tažení uvnitř `topRight` / `bottomRight` kartu neotevírají ani nepřesouvají; ve `footer` je to na modulu (interaktivní prvky obalí `KanbanInteractive`), aby šla celá řádka patičky použít i pro text. |  |
 | [`KanbanColumnContext`](#kanbancolumncontext) | type | Co dostane doplňující řádek v hlavičce sloupce kanbanu (vážený součet, počet po termínu…). |  |
@@ -236,7 +207,6 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 263, z t
 | [`PaletteItem`](#paletteitem) | type |  |  |
 | [`PipelineStage`](#pipelinestage) | type | Čistá logika pásu fází (bez Reactu), aby šla testovat samostatně. |  |
 | [`PipelineStepperProps`](#pipelinestepperprops) | type | Vlastnosti `PipelineStepper`. |  |
-| [`QueuedOp`](#queuedop) | type | Zápisová fronta mobilního terminálu. Každý zápis (příchod, odškrtnutí úkolu, poznámka…) se nejdřív uloží do zařízení (IndexedDB) a teprve pak se odesílá, takže se neztratí při výpadku signálu ani zavření aplikace. Zápis nese vlastní identifikátor (`opId`), který server pamatuje: opakované odeslání téhož zápisu (po výpadku uprostřed požadavku, dvojí ťuknutí, dvě otevřené záložky) nevytvoří duplicitu. |  |
 | [`QuickCondition`](#quickcondition) | type | Navržená („rychlá“) podmínka: nabídne se v nabídce „Filtr“ ve skupině „Návrhy“ a jedním kliknutím přidá hotovou podmínku (chybí-li jí hodnota, rovnou se otevře její editor). Nabídne se jen tehdy, když atribut existuje a smí se filtrovat. |  |
 | [`RecordAction`](#recordaction) | type | Akce v hlavičce detailu (např. „Vytvořit fakturu“, „Převést na zakázku“). |  |
 | [`RecordDialogExt`](#recorddialogext) | type | Vlastní podoba detailu v pop-upu (`RecordDialog`, `EntityList openMode="dialog"`): modul nahradí hlavičku a Přehled a omezí lištu záložek. Stránka záznamu (`/zakazky/<id>`) se tím nemění. Komponenty smějí používat hooky. |  |
@@ -249,20 +219,12 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 263, z t
 | [`RecordTabGroup`](#recordtabgroup) | type | Skupina záložek na detailu (jedna záložka v liště, uvnitř přepínač). |  |
 | [`SavedViewInfo`](#savedviewinfo) | type |  |  |
 | [`SegmentOption`](#segmentoption) | type |  |  |
-| [`SendOp`](#sendop) | type | Odešle jeden zápis na server (server action aplikace); chyby převádí na `SendResult`. |  |
-| [`SendResult`](#sendresult) | type | Výsledek jednoho pokusu o odeslání (přes server action). |  |
 | [`ShellProps`](#shellprops) | type |  |  |
 | [`ShortcutGroup`](#shortcutgroup) | type |  |  |
 | [`SourceCatalog`](#sourcecatalog) | type | Zdroje, ze kterých smí uživatel skládat widgety (entity, metriky) a role pro sdílení. |  |
 | [`SparklineProps`](#sparklineprops) | type |  |  |
 | [`StepState`](#stepstate) | type | Stav jedné fáze v pásu vůči aktuální: hotová, aktuální, budoucí. |  |
-| [`SubmitOutcome`](#submitoutcome) | type | Co se stalo se zápisem hned po pořízení. |  |
 | [`TaskItem`](#taskitem) | type |  |  |
-| [`TerminalClientSettings`](#terminalclientsettings) | type | Volby klienta, které dlaždice potřebují znát v prohlížeči (zbytek konfigurace terminálu zůstává na serveru). |  |
-| [`TerminalNavItem`](#terminalnavitem) | type |  |  |
-| [`TerminalQueue`](#terminalqueue) | type |  |  |
-| [`TerminalWidgetProps`](#terminalwidgetprops) | type |  |  |
-| [`TerminalWidgetUi`](#terminalwidgetui) | type | UI dlaždice terminálu, kterou nabízí modul (`ModuleUi.terminalWidgets[klíč]`). |  |
 | [`TextFieldProps`](#textfieldprops) | type |  |  |
 | [`TimelineItem`](#timelineitem) | type |  |  |
 | [`TopTab`](#toptab) | type | Záložka v liště detailu: samostatná záložka modulu, nebo skupina záložek s přepínačem. |  |
@@ -317,16 +279,6 @@ Sloupcový graf: svislý nebo vodorovný, skládaný nebo seskupený (více řad
 function BarChart({ categories, series, stacked = false, horizontal = false, format, height, ariaLabel, onSelect, className, }: BarChartProps): import("react").JSX.Element
 ```
 
-### BigButton
-
-function · `packages/ui/src/terminal/kit.tsx`
-
-Velké tlačítko pro ovládání jednou rukou (výška 56 px).
-
-```ts
-function BigButton({ variant = "secondary", loading, block = true, className, children, disabled, type = "button", ...rest }: BigButtonProps): import("react").JSX.Element
-```
-
 ### BottomNav
 
 function · `packages/ui/src/shell/bottom-nav.tsx`
@@ -356,16 +308,6 @@ _Bez popisu._
 
 ```ts
 function Button({ className, variant, size, loading, children, disabled, type = "button", ref, ...rest }: ButtonProps): import("react").JSX.Element
-```
-
-### ButtonLink
-
-function · `packages/ui/src/terminal/kit.tsx`
-
-Odkaz vzhledem jako velké tlačítko (telefonát, navigace, otevření obrazovky dlaždice).
-
-```ts
-function ButtonLink({ href, children, variant = "secondary", external, className, ...rest }: { href: string; children: ReactNode; variant?: "primary" | "secondary"; /** Cizí adresa (mapa) se otevře v nové záložce; `tel:` a `mailto:` nikdy. */ external?: boolean; className?: string; } & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "className">): import("react").JSX.Element
 ```
 
 ### Card
@@ -786,26 +728,6 @@ _Bez popisu._
 function Input({ className, ref, ...rest }: InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> }): import("react").JSX.Element
 ```
 
-### InstallCard
-
-function · `packages/ui/src/terminal/more.tsx`
-
-Instalace na plochu: v prohlížečích s podporou tlačítko, na iPhonu postup přes „Sdílet“.
-
-```ts
-function InstallCard(): import("react").JSX.Element | null
-```
-
-### JobPicker
-
-function · `packages/ui/src/terminal/kit.tsx`
-
-Výběr zakázky: velké pole s popiskem, předvyplněné poslední nebo jedinou zakázkou.
-
-```ts
-function JobPicker({ jobs, loading, value, onChange, label = "Zakázka", placeholder = "Vyberte zakázku", optional, }: { jobs: readonly JobOption[]; loading?: boolean; value: string; onChange: (v: string) => void; label?: string; placeholder?: string; optional?: boolean; }): import("react").JSX.Element
-```
-
 ### Kanban
 
 function · `packages/ui/src/data/kanban.tsx`
@@ -982,16 +904,6 @@ Indikátor síly hesla s kontrolním seznamem požadavků.
 function PasswordStrength({ password, id }: { password: string; id?: string }): import("react").JSX.Element
 ```
 
-### PendingBadge
-
-function · `packages/ui/src/terminal/kit.tsx`
-
-Odznak „čeká na odeslání“ u zápisu, který ještě není potvrzený serverem.
-
-```ts
-function PendingBadge({ children = "Čeká na odeslání" }: { children?: ReactNode }): import("react").JSX.Element
-```
-
 ### PhotoDialog
 
 function · `packages/ui/src/data/photo-capture.tsx`
@@ -1001,16 +913,6 @@ na pozadí. Fotka se nejdřív uloží do zařízení, takže se neztratí ani b
 
 ```ts
 function PhotoDialog({ open, onOpenChange, entity = "job", }: { open: boolean; onOpenChange: (o: boolean) => void; entity?: string; }): import("react").JSX.Element
-```
-
-### PhotoPicker
-
-function · `packages/ui/src/terminal/photos.tsx`
-
-Výběr fotek: vyfotit nebo z galerie, náhledy s odebráním. Soubory drží volající (`files`).
-
-```ts
-function PhotoPicker({ files, onChange, }: { files: File[]; onChange: (files: File[]) => void; }): import("react").JSX.Element
 ```
 
 ### PipelineStepper
@@ -1034,17 +936,6 @@ _Bez popisu._
 
 ```ts
 function PopoverContent({ className, align = "start", sideOffset = 6, ...rest }: ComponentProps<typeof P.Content>): import("react").JSX.Element
-```
-
-### QueuePanel
-
-function · `packages/ui/src/terminal/more.tsx`
-
-Čekající zápisy a nahrávané fotky. Nic se tu neztratí tiše: potvrzený zápis zmizí sám, konflikt zůstane i s českým
-důvodem, dokud ho člověk nezkusí znovu nebo výslovně nezahodí.
-
-```ts
-function QueuePanel(): import("react").JSX.Element
 ```
 
 ### RecordDialog
@@ -1183,67 +1074,6 @@ _Bez popisu._
 function TabsTrigger({ className, ...rest }: ComponentProps<typeof TB.Trigger>): import("react").JSX.Element
 ```
 
-### TasksWidget
-
-function · `packages/ui/src/terminal/tasks-widget.tsx`
-
-Moje úkoly: velké řádky, odškrtnutí jedním ťuknutím (funguje i bez signálu, zápis čeká ve frontě).
-
-```ts
-function TasksWidget({ label, variant, pageHref }: TerminalWidgetProps): import("react").JSX.Element
-```
-
-### TerminalCard
-
-function · `packages/ui/src/terminal/kit.tsx`
-
-Karta dlaždice na úvodní obrazovce terminálu.
-
-```ts
-function TerminalCard({ title, icon, href, children, testId, tone = "default", bare, }: { title: string; icon: string; /** Odkaz na celou obrazovku dlaždice („Otevřít“). */ href?: string | null; children: ReactNode; testId?: string; tone?: "default" | "active"; /** Bez záhlaví (obrazovka dlaždice už má vlastní nadpis). */ bare?: boolean; }): import("react").JSX.Element
-```
-
-### TerminalEmpty
-
-function · `packages/ui/src/terminal/kit.tsx`
-
-_Bez popisu._
-
-```ts
-function TerminalEmpty({ children }: { children: ReactNode }): import("react").JSX.Element
-```
-
-### TerminalPageHeader
-
-function · `packages/ui/src/terminal/shell.tsx`
-
-Nadpis obrazovky dlaždice se šipkou zpět na úvodní obrazovku terminálu.
-
-```ts
-function TerminalPageHeader({ title, backHref = "/t", }: { title: string; backHref?: string; }): import("react").JSX.Element
-```
-
-### TerminalQueueProvider
-
-function · `packages/ui/src/terminal/queue-context.tsx`
-
-Jedna fronta pro celý terminál; po každém potvrzeném zápisu zneplatní data, ať se obrazovky obnoví.
-
-```ts
-function TerminalQueueProvider({ userId, send, children, }: { userId: string; send: SendOp; children: ReactNode; }): import("react").JSX.Element
-```
-
-### TerminalShell
-
-function · `packages/ui/src/terminal/shell.tsx`
-
-Samostatný rám terminálu řemeslníka: úzký sloupec pro jednu ruku, nahoře stav spojení a fronty zápisů, dole nejvýš
-pět položek (Dnes, až tři dlaždice, Více). Nezná kancelářskou navigaci; na počítači je sloupec uprostřed (náhled).
-
-```ts
-function TerminalShell({ brand, nav, pathname, banner, children, }: { brand: { name: string; logoUrl: string | null }; nav: readonly TerminalNavItem[]; pathname: string; /** Pruh pod hlavičkou (např. „Náhled jako řemeslník“). */ banner?: ReactNode; children: ReactNode; }): import("react").JSX.Element
-```
-
 ### TextField
 
 function · `packages/ui/src/components/form-controls.tsx`
@@ -1302,36 +1132,6 @@ _Bez popisu._
 
 ```ts
 function TooltipProvider({ children }: { children: ReactNode }): import("react").JSX.Element
-```
-
-### TouchChoice
-
-function · `packages/ui/src/terminal/kit.tsx`
-
-Přepínač 2–3 možností s velkými tlačítky.
-
-```ts
-function TouchChoice<T extends string>({ value, onChange, options, label, }: { value: T; onChange: (v: T) => void; options: readonly { value: T; label: string }[]; label: string; }): import("react").JSX.Element
-```
-
-### TouchField
-
-function · `packages/ui/src/terminal/kit.tsx`
-
-Pole s popiskem nad ním; popisek je vždy vidět (v terénu se nehádá z placeholderu).
-
-```ts
-function TouchField({ label, hint, children, }: { label: string; hint?: string | undefined; children: (id: string) => ReactNode; }): import("react").JSX.Element
-```
-
-### TouchSelect
-
-function · `packages/ui/src/terminal/kit.tsx`
-
-Výběr z možností; nativní výběr se na telefonu otevře systémovým kolečkem, což je nejpohodlnější.
-
-```ts
-function TouchSelect({ id, value, onChange, options, placeholder, disabled, "aria-label": ariaLabel, }: { id?: string; value: string; onChange: (v: string) => void; options: readonly { value: string; label: string }[]; placeholder?: string; disabled?: boolean; "aria-label"?: string; }): import("react").JSX.Element
 ```
 
 ### VatRatesProvider
@@ -1436,16 +1236,6 @@ Respektuje otočení z EXIF. Cokoli, co zmenšit nejde (jiný formát, chybí po
 async function compressImage(file: File, opts: { maxSide?: number; quality?: number; keepBelowBytes?: number } = {}): Promise<Blob>
 ```
 
-### createTerminalQueue
-
-function · `packages/ui/src/terminal/queue.ts`
-
-_Bez popisu._
-
-```ts
-function createTerminalQueue(opts: { /** Přihlášený uživatel; fronta vidí a odesílá jen jeho zápisy. */ owner: string; store: OpStore; send: (op: QueuedOp) => Promise<SendResult>; delaysMs?: readonly number[]; now?: () => number; newId?: () => string; schedule?: (fn: () => void, ms: number) => unknown; }): { submit(p: { command: string; input: unknown; label: string; group?: string; stamp?: boolean; }): Promise<SubmitOutcome>; flush: (force?: boolean) => Promise<void>; list: () => Promise<QueuedOp[]>; subscribe(fn: (ops: QueuedOp[]) => void)…
-```
-
 ### defineModuleUi
 
 function · `packages/ui/src/data/module-ui.tsx`
@@ -1496,16 +1286,6 @@ _Bez popisu._
 function findModulePage(modules: ReadonlyMap<string, ModuleUi>, path: string): ModulePage | undefined
 ```
 
-### indexedDbOpStore
-
-function · `packages/ui/src/terminal/queue.ts`
-
-Úložiště v IndexedDB; když není k dispozici (soukromé okno), spadne na paměť (zápisy pak přežijí jen do zavření).
-
-```ts
-function indexedDbOpStore(name = "terminal-ops"): OpStore
-```
-
 ### initials
 
 function · `packages/ui/src/components/badges.tsx`
@@ -1524,26 +1304,6 @@ _Bez popisu._
 
 ```ts
 function isMac(): boolean
-```
-
-### localToday
-
-function · `packages/ui/src/terminal/kit.tsx`
-
-Dnešní datum v české časové zóně (`YYYY-MM-DD`).
-
-```ts
-function localToday(): string
-```
-
-### memoryOpStore
-
-function · `packages/ui/src/terminal/queue.ts`
-
-_Bez popisu._
-
-```ts
-function memoryOpStore(): OpStore
 ```
 
 ### modKey
@@ -1616,16 +1376,6 @@ Id záznamu z `?record=` (`null`, když chybí nebo je prázdné).
 function readRecordParam(search: string): string | null
 ```
 
-### reportOutcome
-
-function · `packages/ui/src/terminal/queue-context.tsx`
-
-Oznámení podle výsledku zápisu. Vrací `true`, když je zápis uložený (odeslaný, nebo bezpečně čeká na signál).
-
-```ts
-function reportOutcome(out: SubmitOutcome, done: string): boolean
-```
-
 ### runExport
 
 function · `packages/ui/src/data/export-dialog.tsx`
@@ -1664,17 +1414,6 @@ Toast s tlačítkem „Zpět“ (vratná akce; zpětná změna se provede až po
 
 ```ts
 function undoToast(message: string, onUndo: () => void | Promise<void>): void
-```
-
-### useActiveJobs
-
-function · `packages/ui/src/terminal/kit.tsx`
-
-Zakázky, na kterých se pracuje (realizace a předání) a které aktér smí vidět. Poslední načtený seznam se pamatuje
-v zařízení, takže výběr zakázky funguje i bez signálu. Bez modulu Zakázky je seznam prázdný.
-
-```ts
-function useActiveJobs(enabled = true): { jobs: JobOption[]; loading: boolean; error: boolean; }
 ```
 
 ### useCan
@@ -1789,16 +1528,6 @@ _Bez popisu._
 function useInvalidateEntity(entity: string): () => Promise<void>
 ```
 
-### useJobChoice
-
-function · `packages/ui/src/terminal/kit.tsx`
-
-Naposledy použitá zakázka (předvyplní výběr), nebo jediná dostupná.
-
-```ts
-function useJobChoice(jobs: readonly JobOption[]): { value: string; set: (v: string) => void; }
-```
-
 ### useKanbanExtensions
 
 function · `packages/ui/src/data/module-ui.tsx`
@@ -1880,27 +1609,6 @@ Odkaz s `?record=` otevře pop-up rovnou (`initial` z adresy ze serveru brání 
 
 ```ts
 function useRecordParam(enabled: boolean, initial?: string | null): { id: string | null; open: (next: string) => void; close: () => void; }
-```
-
-### useSendPhotos
-
-function · `packages/ui/src/terminal/photos.tsx`
-
-Odešle fotky k zakázce přes frontu nahrávání (uloží se do zařízení dřív, než se zkusí odeslat, takže se neztratí bez
-signálu). Fotka je zmenšená a připojená k zakázce jako fotka z místa.
-
-```ts
-function useSendPhotos(): (jobId: string, files: readonly File[], label: string) => Promise<void>
-```
-
-### useTerminalQueue
-
-function · `packages/ui/src/terminal/queue-context.tsx`
-
-Fronta zápisů terminálu: odeslání zápisu (s ochranou proti ztrátě i duplicitě) a stav čekajících zápisů.
-
-```ts
-function useTerminalQueue(): { online: boolean; ops: QueuedOp[]; pending: QueuedOp[]; conflicts: QueuedOp[]; queue: { submit(p: { command: string; input: unknown; label: string; group?: string; stamp?: boolean; }): Promise<SubmitOutcome>; flush: (force?: boolean) => P…
 ```
 
 ### useUpdateAttribute
@@ -2098,26 +1806,6 @@ Adresa otevřeného záznamu v pop-upu (`?record=<id>`): čisté funkce bez proh
 const RECORD_PARAM: "record"
 ```
 
-### RETRY_DELAYS_S
-
-const · `packages/ui/src/terminal/queue.ts`
-
-Odstupy mezi pokusy v sekundách; po vyčerpání zůstane poslední.
-
-```ts
-const RETRY_DELAYS_S: number[]
-```
-
-### TOUCH_FIELD
-
-const · `packages/ui/src/terminal/kit.tsx`
-
-_Bez popisu._
-
-```ts
-const TOUCH_FIELD: "w-full rounded-xl border border-line-strong bg-bg px-3.5 text-[17px] text-fg placeholder:text-faint focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)] disabled:opacity-50"
-```
-
 ### TYPE_ICONS
 
 const · `packages/ui/src/data/type-icons.ts`
@@ -2176,20 +1864,6 @@ Skript do `<head>`: nastaví téma před vykreslením, aby stránka při načten
 
 ```ts
 const themeScript: "try{var t=localStorage.getItem(\"theme\");if(t===\"light\"||t===\"dark\")document.documentElement.setAttribute(\"data-theme\",t)}catch(e){}"
-```
-
-### OpStore
-
-interface · `packages/ui/src/terminal/queue.ts`
-
-_Bez popisu._
-
-```ts
-interface OpStore {
-  all(): Promise<QueuedOp[]>;
-  put(op: QueuedOp): Promise<void>;
-  delete(opId: string): Promise<void>;
-}
 ```
 
 ### ActivityResult
@@ -2641,16 +2315,6 @@ type GaugeProps = {
 };
 ```
 
-### JobOption
-
-type · `packages/ui/src/terminal/kit.tsx`
-
-_Bez popisu._
-
-```ts
-type JobOption = { value: string; label: string };
-```
-
 ### KanbanCardContext
 
 type · `packages/ui/src/data/module-ui.tsx`
@@ -2822,8 +2486,6 @@ type ModuleUi = {
   /** Základní záložky, které se u entity nezobrazují (`activity`, `tasks`, `files`). */
   hiddenCoreTabs?: Record<string, readonly ("activity" | "tasks" | "files")[]>;
   pages?: readonly ModulePage[];
-  /** UI dlaždic terminálu řemeslníka podle klíče z `manifest.terminalWidgets` (např. `dochazka.clock`). */
-  terminalWidgets?: Record<string, TerminalWidgetUi>;
 };
 ```
 
@@ -2959,42 +2621,6 @@ type PipelineStepperProps = {
   /** Popisek pro čtečky obrazovky. */
   label?: string;
   className?: string | undefined;
-};
-```
-
-### QueuedOp
-
-type · `packages/ui/src/terminal/queue.ts`
-
-Zápisová fronta mobilního terminálu. Každý zápis (příchod, odškrtnutí úkolu, poznámka…) se nejdřív uloží do zařízení
-(IndexedDB) a teprve pak se odesílá, takže se neztratí při výpadku signálu ani zavření aplikace. Zápis nese vlastní
-identifikátor (`opId`), který server pamatuje: opakované odeslání téhož zápisu (po výpadku uprostřed požadavku, dvojí
-ťuknutí, dvě otevřené záložky) nevytvoří duplicitu.
-
-Pravidla, která hlídají testy:
-- zápis z fronty zmizí jen po potvrzení serverem nebo na výslovný pokyn člověka (nikdy tiše);
-- dočasná chyba (bez signálu, chyba serveru) se opakuje s rostoucími odstupy;
-- trvalé odmítnutí (konflikt: „Píchačka už běží“, uzamčený zápis, chybějící oprávnění) zápis označí jako konflikt
-  a čeká na rozhodnutí člověka; pořadí zápisů téže skupiny se nikdy neprohodí, zápisy jiných skupin neblokuje.
-
-```ts
-type QueuedOp = {
-  opId: string;
-  /** Komu zápis patří. Sdílený telefon: zápisy jednoho člověka se nikdy neodešlou pod účtem jiného. */
-  userId: string;
-  /** Příkaz, např. `dochazka.clock.in`. */
-  command: string;
-  input: unknown;
-  /** Lidsky čitelný popis pro seznam čekajících zápisů („Příchod“, „Úkol: Objednat spojky“). */
-  label: string;
-  /** Zápisy stejné skupiny se odesílají v pořadí a konflikt jednoho zdrží ostatní (např. `clock`). */
-  group: string;
-  /** Okamžik pořízení na zařízení (ms od epochy). */
-  createdAt: number;
-  tries: number;
-  state: "pending" | "conflict";
-  /** Poslední chyba (u konfliktu důvod, u čekajícího zápisu důvod posledního neúspěšného pokusu). */
-  error: string | null;
 };
 ```
 
@@ -3217,31 +2843,6 @@ type SegmentOption<T extends string> = {
 };
 ```
 
-### SendOp
-
-type · `packages/ui/src/terminal/queue-context.tsx`
-
-Odešle jeden zápis na server (server action aplikace); chyby převádí na `SendResult`.
-
-```ts
-type SendOp = (op: QueuedOp) => Promise<SendResult>;
-```
-
-### SendResult
-
-type · `packages/ui/src/terminal/queue.ts`
-
-Výsledek jednoho pokusu o odeslání (přes server action).
-
-```ts
-type SendResult =
-  | { kind: "ok"; result: unknown; duplicate: boolean }
-  /** Server zápis trvale odmítl (konflikt, oprávnění, neplatná data): nemá smysl opakovat. */
-  | { kind: "rejected"; message: string }
-  /** Dočasná chyba. `network`: bez spojení, ostatní zápisy by dopadly stejně, takže se projde frontu až příště. */
-  | { kind: "retry"; message: string; scope: "network" | "op" };
-```
-
 ### ShellProps
 
 type · `packages/ui/src/shell/app-shell.tsx`
@@ -3319,19 +2920,6 @@ Stav jedné fáze v pásu vůči aktuální: hotová, aktuální, budoucí.
 type StepState = "done" | "current" | "future";
 ```
 
-### SubmitOutcome
-
-type · `packages/ui/src/terminal/queue.ts`
-
-Co se stalo se zápisem hned po pořízení.
-
-```ts
-type SubmitOutcome =
-  | { status: "sent"; result: unknown; duplicate: boolean }
-  | { status: "queued"; message: string | null }
-  | { status: "conflict"; message: string };
-```
-
 ### TaskItem
 
 type · `packages/ui/src/data/api.ts`
@@ -3346,74 +2934,6 @@ type TaskItem = {
   priority: string;
   done: boolean;
   assigneeId: string | null;
-};
-```
-
-### TerminalClientSettings
-
-type · `packages/ui/src/terminal/types.ts`
-
-Volby klienta, které dlaždice potřebují znát v prohlížeči (zbytek konfigurace terminálu zůstává na serveru).
-
-```ts
-type TerminalClientSettings = {
-  attendance: { requireJob: boolean; allowJobChange: boolean; showHours: boolean };
-  diary: { requirePhoto: boolean };
-};
-```
-
-### TerminalNavItem
-
-type · `packages/ui/src/terminal/shell.tsx`
-
-_Bez popisu._
-
-```ts
-type TerminalNavItem = {
-  id: string;
-  label: string;
-  icon: string;
-  href: string;
-};
-```
-
-### TerminalQueue
-
-type · `packages/ui/src/terminal/queue.ts`
-
-_Bez popisu._
-
-```ts
-type TerminalQueue = ReturnType<typeof createTerminalQueue>;
-```
-
-### TerminalWidgetProps
-
-type · `packages/ui/src/terminal/types.ts`
-
-_Bez popisu._
-
-```ts
-type TerminalWidgetProps = {
-  /** Název dlaždice, jak ho nastavil správce. */
-  label: string;
-  settings: TerminalClientSettings;
-  /** `card`: kompaktní karta na úvodní obrazovce; `page`: celá obrazovka dlaždice (jen dlaždice s `page: true`). */
-  variant: "card" | "page";
-  /** Adresa celé obrazovky dlaždice, nebo `null`, když ji nemá. */
-  pageHref: string | null;
-};
-```
-
-### TerminalWidgetUi
-
-type · `packages/ui/src/terminal/types.ts`
-
-UI dlaždice terminálu, kterou nabízí modul (`ModuleUi.terminalWidgets[klíč]`).
-
-```ts
-type TerminalWidgetUi = {
-  Widget: ComponentType<TerminalWidgetProps>;
 };
 ```
 

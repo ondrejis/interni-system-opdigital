@@ -5,29 +5,15 @@ import type { ReactNode } from "react";
 import { requireCtx } from "@/server/request";
 import { getServices } from "@/server/services";
 import { loadShell } from "@/server/shell";
-import { isTerminalOnly } from "@/server/terminal";
 import { AppFrame } from "./app-frame";
 
 export const dynamic = "force-dynamic";
 
 /** Přihlášená část aplikace: postranní panel, hledání (Cmd+K) a zkratky obaluje každou stránku. */
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const ctx = await requireCtx({ allowRestricted: true, allowTerminalOnly: true });
+  const ctx = await requireCtx({ allowRestricted: true });
   // Uživatel s povinným, ale nenastaveným 2FA vidí jen stránku zabezpečení (stránky samy ho jinam nepustí), bez navigace.
   if (ctx.actor.restriction) return <main className="mx-auto max-w-2xl p-6">{children}</main>;
-  // Role jen pro terminál sem smí jen na stránky vlastního účtu (ostatní stránky ji přesměrují na `/t`): bez kancelářské navigace.
-  if (await isTerminalOnly(ctx))
-    return (
-      <main className="mx-auto max-w-2xl p-6">
-        <a
-          href="/t"
-          className="mb-4 inline-flex min-h-11 items-center text-base font-medium text-accent"
-        >
-          ← Zpět do terminálu
-        </a>
-        {children}
-      </main>
-    );
   const [account, shell, branding, vat] = await Promise.all([
     getAccount(ctx),
     loadShell(ctx),

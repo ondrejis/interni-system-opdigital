@@ -133,10 +133,10 @@ export function columnTotals(
   count: number,
   sums: Record<string, number> | undefined,
 ): { count: number; totalMinor: number; weightedMinor: number } | null {
-  if (!sums || sums.sumContract === undefined) return null;
+  if (!sums || sums.value === undefined) return null;
   return {
     count,
-    totalMinor: sums.sumContract ?? 0,
+    totalMinor: sums.value ?? 0,
     weightedMinor: sums.crmWeighted ?? 0,
   };
 }

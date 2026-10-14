@@ -11,7 +11,7 @@ Píchačka (příchod, odchod, přestávka), týdenní výkazy hodin na zakázky
 - **Závisí na:** žádném modulu
 - **Balíček:** `packages/modules/dochazka`
 - **Vyprávěcí dokumentace:** [docs/moduly/dochazka.md](../../moduly/dochazka.md)
-- **Příkazy:** [17 příkazů](../prikazy/dochazka.md)
+- **Příkazy:** [16 příkazů](../prikazy/dochazka.md)
 - **Entity:** [`time_entry`](../entity/dochazka.md#time_entry)
 - **Databáze:** [tabulky a migrace](../databaze/dochazka.md)
 
@@ -38,18 +38,6 @@ Výchozí přidělení rolím je v [opravneni.md](../opravneni.md).
 | `dochazka.approve` | Schvaluje docházku | Také zapisuje za ostatní |
 | `dochazka.close_month` | Uzavírá měsíc |  |
 
-## Dlaždice mobilního terminálu
-
-| Klíč | Název | Oprávnění | Příkazy | Celá obrazovka | Výchozí zapnuto |
-| --- | --- | --- | --- | --- | --- |
-| `dochazka.clock` | Docházka | `dochazka.own` | `dochazka.clock.in`, `dochazka.clock.break`, `dochazka.clock.out`, `dochazka.submitWeek` | ano | ano |
-
-## Rozšíření uživatelského rozhraní
-
-Modul doplňuje obecný detail záznamu (viz [ARCHITECTURE](../../ARCHITECTURE.md)). Podmíněné záložky a karty se ukazují jen u záznamů, pro které funkce `visible` vrátí `true`.
-
-Vykreslení dlaždic mobilního terminálu (viz tabulka dlaždic výše): `dochazka.clock`.
-
 ## Serverová část
 
 ### Úlohy na pozadí
@@ -68,13 +56,9 @@ Souhrn všech úloh: [udalosti-a-ulohy.md](../udalosti-a-ulohy.md).
 | --- | --- | --- |
 | `dochazka.absence` | Absence | `yellow` |
 
-### Poskytovatelé nákladů zakázky
-
-- `dochazka`
-
 ### Poskytovatelé dat
 
-Poskytovatelé jsou funkce, jejichž výstup (položky, dlaždice, hodnoty) závisí na datech a oprávnění uživatele, proto se z kódu nedají vyjmenovat. Počty: položky „Vyžaduje pozornost“: 1 poskytovatelů; dlaždice přehledu: 1 poskytovatelů; předvyplnění stavebního deníku: 1.
+Poskytovatelé jsou funkce, jejichž výstup (položky, dlaždice, hodnoty) závisí na datech a oprávnění uživatele, proto se z kódu nedají vyjmenovat. Počty: položky „Vyžaduje pozornost“: 1 poskytovatelů; dlaždice přehledu: 1 poskytovatelů.
 
 ### dashboardMetrics
 

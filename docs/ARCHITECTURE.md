@@ -6,7 +6,7 @@ nasazení [DEPLOYMENT](DEPLOYMENT.md), bezpečnost [SECURITY](SECURITY.md).
 
 ## 1. Co systém je
 
-Interní firemní systém na míru pro stavební a řemeslné firmy: poptávka → zakázka → realizace → faktura, docházka, sklad, stroje, kalendář.
+Interní firemní systém na míru (v tomto repozitáři OPSYS pro agenturu OP Digital: kontakty, zakázky, poptávky/CRM, docházka, kalendář; původní jádro měl stavební moduly, viz [docs/opsys/B-audit-modulu.md](opsys/B-audit-modulu.md)).
 Je to **jedno jádro** (tento repozitář) a **konfigurace a rozšíření pro každého klienta** (`clients/<slug>/`). Klient nikdy nedostane fork jádra.
 Každý klient má vlastní server a vlastní databázi (single-tenant, [ADR 001](adr/001-klientske-instance.md)).
 
@@ -20,7 +20,7 @@ flowchart TB
   subgraph app["apps/web — Next.js (shell, routing, skládá moduly)"]
     web["server actions · route handlery · stránky"]
   end
-  subgraph mods["packages/modules/* — kontakty · poptavky · zakazky · realizace · fakturace · dochazka · sklad · stroje · kalendar"]
+  subgraph mods["packages/modules/* — kontakty · zakazky · poptavky · dochazka · kalendar"]
     m["manifest · schéma + migrace · server · UI"]
   end
   ui["packages/ui — design system, data-driven UI"]
@@ -75,7 +75,7 @@ Pořadí `MODULE_IDS` (`packages/core/src/modules/ids.ts`) je pořadí závislos
 - `jobs` — úlohy na pozadí (`defineModuleJob`), běží ve workeru;
 - `phaseHooks` — kontroly a automatické akce při přechodu fáze zakázky ([ADR 015](adr/015-zakazka-jako-koren.md), [ADR 016](adr/016-zivotni-cyklus-faze-prechody.md)).
 
-Moduly se mezi sebou **nevolají přímo**: zakázka složí náklady od poskytovatelů, které dodávají sklad, stroje a docházka, a o tom, které z nich jsou zapnuté, rozhoduje aplikace
+Moduly se mezi sebou **nevolají přímo**: kalendář složí vrstvy od poskytovatelů, které dodávají ostatní moduly, a o tom, které z nich jsou zapnuté, rozhoduje aplikace
 (`collectServers` v `apps/web/src/server/modules-server.ts`). Odkazy mezi moduly jsou měkké (uuid bez cizího klíče), cizí klíč mají jen závislosti.
 
 **Háčky fází** jsou dvojí a nepleťte je:
@@ -83,11 +83,9 @@ Moduly se mezi sebou **nevolají přímo**: zakázka složí náklady od poskyto
 - _hooky přechodu fáze_ (`phaseHooks`) — kontroly a automatika uvnitř jádra a modulů, psané v balíčcích modulů;
 - _události pro rozšíření klienta_ (`EventMap` v `packages/core/src/extensions/types.ts`) — jediný způsob, jak kód klienta reaguje na dění v jádru (viz [CUSTOMIZATION](CUSTOMIZATION.md)).
 
-### Terminál řemeslníka
+### Terminál řemeslníka (odstraněn)
 
-Mobilní rozhraní na `/t` (route group `(terminal)`, vlastní rám v `packages/ui/src/terminal/`) pro lidi na stavbě. Moduly do něj přispívají dlaždicemi (`terminalWidgets` v manifestu a v `ModuleUi`),
-jádro (`packages/core/src/terminal/`) je skládá podle zapnutých modulů, oprávnění role a konfigurace klienta (`terminal` v `config.ts`, přepsatelné v Nastavení). Zápisy z terminálu jdou
-frontou v telefonu a serverem jednou (`terminal_op`, `opId`). Role jen pro terminál nesmí do kancelářského rozhraní (`requireCtx`). Podrobně [TERMINAL](TERMINAL.md), důvody [ADR 023](adr/023-terminal-remeslnika.md).
+Mobilní terminál řemeslníka (`/t`, dlaždice modulů, fronta zápisů, tabulka `terminal_op`) byl při rozběhu OPSYS odstraněn, protože ho specifikace nemá. Důvody původního návrhu zůstávají v [ADR 023](adr/023-terminal-remeslnika.md) (označeno jako nahrazeno).
 
 **Nástěnky a exporty.** Uživatel si skládá nástěnky z widgetů nad entitami z registru (`aggregateRecords` staví dotaz přes stejnou podmínku jako seznam, takže oprávnění a rozsah řádků platí i pro součty) a pojmenovanými metrikami modulů (`dashboardMetrics`). Widgety se načítají souběžně přes `/api/dashboards/evaluate`. Exporty seznamů jdou přes jednu cestu (`startExport`), velké přes frontu a Moje exporty, plánované worker spouští idempotentně. Podrobně [DASHBOARDY](DASHBOARDY.md), [EXPORTY](EXPORTY.md), důvody [ADR 025](adr/025-vlastni-nastenky.md) a [ADR 026](adr/026-exporty-fronta-plany.md).
 

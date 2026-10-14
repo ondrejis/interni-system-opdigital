@@ -30,22 +30,11 @@ Entity modulu [Zakázky](../moduly/zakazky.md). Typy atributů vysvětluje [ARCH
 | `phase` | Fáze | select | ne | `inquiry`, `offer`, `preparation`, `execution`, `handover`, `warranty`, `closed`, `lost`, `paused` |  |  | jen pro čtení | `phase` |
 | `stage` | Stav | status | ano | pipeline `job/default` |  |  |  | `stage_id` |
 | `manager` | Odpovědný | user | ne |  |  |  |  | `manager_id` |
-| `sumContract` | Cena (smluvní / nabídky) | currency | ne |  | `zakazky.economics` |  | jen pro čtení, součet | `sum_contract_minor` |
-| `sumMarginPct` | Marže % | number | ne |  | `zakazky.economics` | jednotka percent | jen pro čtení | `sum_margin_pct` |
-| `sumDrawdownPct` | Čerpání rozpočtu % | number | ne |  | `zakazky.economics` | jednotka percent | jen pro čtení | `sum_drawdown_pct` |
 | `endDate` | Termín | date | ne |  |  |  |  | `end_date` |
-| `sumHealth` | Semafor | select | ne | `ok`, `warning`, `danger` |  |  | jen pro čtení | `sum_health` |
-| `value` | Původní smluvní cena | currency | ne |  | `zakazky.economics` | min 0 | součet | `value_minor` |
-| `sumCost` | Náklady | currency | ne |  | `zakazky.economics` |  | jen pro čtení, součet | `sum_cost_minor` |
-| `sumInvoiced` | Fakturováno | currency | ne |  | `zakazky.economics` |  | jen pro čtení, součet | `sum_invoiced_minor` |
-| `sumPaid` | Uhrazeno | currency | ne |  | `zakazky.economics` |  | jen pro čtení, součet | `sum_paid_minor` |
+| `value` | Hodnota | currency | ne |  | `zakazky.finance` | min 0 | součet | `value_minor` |
 | `startDate` | Zahájení | date | ne |  |  |  |  | `start_date` |
 | `person` | Kontaktní osoba | record | ne | vazba na [`person`](kontakty.md#person) |  |  |  | `person_id` |
 | `address` | Adresa stavby | text | ne |  |  |  |  | `address` |
-| `siteLat` | Zeměpisná šířka | number | ne |  |  | min -90, max 90 |  | `site_lat` |
-| `siteLng` | Zeměpisná délka | number | ne |  |  | min -180, max 180 |  | `site_lng` |
-| `vatMode` | Režim DPH | select | ne | `standard`, `reverse_charge` | `zakazky.economics` | výchozí `standard` |  | `vat_mode` |
-| `retentionBp` | Zádržné | number | ne |  | `zakazky.economics` | min 0, max 10000, jednotka percent_bp |  | `retention_bp` |
 | `warrantyMonths` | Délka záruky (měsíce) | number | ne |  |  | min 0, max 600 |  | `warranty_months` |
 | `warrantyUntil` | Záruka do | date | ne |  |  |  |  | `warranty_until` |
 | `color` | Barva | select | ne | `gray`, `blue`, `green`, `orange`, `red`, `purple`, `pink`, `teal`, `yellow`, `indigo` |  |  |  | `color` |
@@ -57,7 +46,7 @@ Entity modulu [Zakázky](../moduly/zakazky.md). Typy atributů vysvětluje [ARCH
 | `sourceInquiry` | Vzniklo z poptávky | record | ne | vazba na [`inquiry`](poptavky.md#inquiry) |  |  |  | `source_inquiry_id` |
 | `description` | Popis | longtext | ne |  |  |  |  | `description` |
 | `expectedCloseDate` | Očekávané uzavření | date | ne |  |  |  |  | `expected_close_date` |
-| `crmWeighted` | Vážená hodnota | currency | ne |  | `zakazky.economics` |  | jen pro čtení, součet | `crm_weighted_minor` |
+| `crmWeighted` | Vážená hodnota | currency | ne |  | `zakazky.finance` |  | jen pro čtení, součet | `crm_weighted_minor` |
 | `crmProbabilityPct` | Pravděpodobnost výhry (ručně) | number | ne |  |  | min 0, max 100, jednotka percent |  | `crm_probability_pct` |
 | `crmSource` | Zdroj obchodu | select | ne | číselník `job.source` |  |  |  | `crm_source` |
 | `crmSourceChannel` | Kanál | text | ne |  |  |  |  | `crm_source_channel` |
@@ -92,32 +81,3 @@ Entity modulu [Zakázky](../moduly/zakazky.md). Typy atributů vysvětluje [ARCH
 | 11 | Uzavřeno | green | done | closed |
 | 12 | Prohráno | red | lost | lost |
 | 13 | Pozastaveno | yellow |  | paused |
-
-## job_order
-
-**Objednávka** (množné číslo: Objednávky). Objednávka dodavateli na zakázku. Zakládá se příkazem na zakázce; po schválení je zamčená.
-
-- **Modul:** [Zakázky](../moduly/zakazky.md)
-- **Tabulka:** `job_order` ([databáze](../databaze/zakazky.md))
-- **Seznam:** `/zakazky/objednavky`, detail `/zakazky/objednavky/<id>`
-- **Oprávnění:** read: `zakazky.economics`, write: `zakazky.budget`
-- **Název záznamu:** `title`, stav (kanban): `status`
-- **Rozsah „jen moje“:** sloupce `created_by`
-- **Vytvoření:** jen příkazy modulu (Objednávku založte na zakázce (záložka Náklady › Objednávky), vždy patří k jedné zakázce.)
-- **Háčky a rozšíření entity:** `beforeUpdate`, `beforeDelete`, `search`
-- **Definice:** `packages/modules/zakazky/src/orders/entity.ts`
-
-### Pole entity `job_order`
-
-| Klíč | Název | Typ | Povinné | Hodnoty a vazby | Oprávnění ke čtení | Omezení | Příznaky | Sloupec v DB |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `number` | Číslo | text | ne |  |  |  | jen pro čtení | `number` |
-| `title` | Název | text | ano |  |  |  |  | `title` |
-| `job` | Zakázka | record | ne | vazba na [`job`](zakazky.md#job) |  |  | jen pro čtení | `job_id` |
-| `supplier` | Dodavatel | record | ne | vazba na [`company`](kontakty.md#company) |  |  |  | `supplier_id` |
-| `supplierName` | Dodavatel (text) | text | ne |  |  |  |  | `supplier_name` |
-| `status` | Stav | select | ne | `draft`, `pending`, `approved`, `received`, `cancelled` |  |  | jen pro čtení | `status` |
-| `total` | Celkem bez DPH | currency | ne |  |  |  | jen pro čtení, součet | `total_minor` |
-| `orderDate` | Objednáno | date | ne |  |  |  |  | `order_date` |
-| `deliveryDate` | Dodání | date | ne |  |  |  |  | `delivery_date` |
-| `note` | Poznámka | longtext | ne |  |  |  |  | `note` |

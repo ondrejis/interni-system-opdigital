@@ -3,12 +3,12 @@
 # Vyžaduje `pnpm db:up`. Screenshoty do složky: E2E_SHOTS=/cesta pnpm test:e2e:local
 # Čistá databáze jako v CI: E2E_FRESH=1 pnpm test:e2e:local (databáze se zahodí a znovu vytvoří; výchozí je zachovat).
 set -e
-export DATABASE_URL="${E2E_DATABASE_URL:-postgres://rebar_app:app@localhost:5433/rebar_e2e}"
-export DATABASE_MIGRATE_URL="${E2E_DATABASE_MIGRATE_URL:-postgres://rebar_migrator:migrator@localhost:5433/rebar_e2e}"
+export DATABASE_URL="${E2E_DATABASE_URL:-postgres://rebar_app:app@localhost:${REBAR_PG_PORT:-5434}/rebar_e2e}"
+export DATABASE_MIGRATE_URL="${E2E_DATABASE_MIGRATE_URL:-postgres://rebar_migrator:migrator@localhost:${REBAR_PG_PORT:-5434}/rebar_e2e}"
 
 if [ "${E2E_FRESH:-}" = "1" ]; then
   PG_BIN="${PG_BIN:-/opt/homebrew/opt/postgresql@17/bin}"
-  ADMIN_URL="${E2E_ADMIN_URL:-postgres://postgres@localhost:${REBAR_PG_PORT:-5433}/postgres}"
+  ADMIN_URL="${E2E_ADMIN_URL:-postgres://postgres@localhost:${REBAR_PG_PORT:-5434}/postgres}"
   PSQL="$PG_BIN/psql"
   [ -x "$PSQL" ] || PSQL="psql"
   echo "E2E_FRESH=1: zahazuji a znovu vytvářím databázi rebar_e2e"

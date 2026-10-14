@@ -81,7 +81,6 @@ test("detail v pop-upu: odkaz, Esc a Zpět; název se upraví na místě", async
   // záložky detailu jsou první pás; další (Aktivita, Poznámka, Hovor) patří panelu práce uvnitř Přehledu
   await expect(dialog(page).getByRole("tablist").first().getByRole("tab")).toHaveText([
     "Přehled",
-    "Rozpočet",
     "Soubory",
   ]);
 

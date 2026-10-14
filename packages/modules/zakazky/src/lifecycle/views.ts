@@ -1,18 +1,7 @@
 import type { SeedViewDef } from "@rebar/core/views";
 
 const active = ["preparation", "execution", "handover"];
-const COLUMNS = [
-  "title",
-  "number",
-  "company",
-  "phase",
-  "manager",
-  "sumContract",
-  "sumMarginPct",
-  "sumDrawdownPct",
-  "endDate",
-  "sumHealth",
-];
+const COLUMNS = ["title", "number", "company", "phase", "manager", "value", "endDate"];
 
 /**
  * Výchozí sdílené pohledy seznamu zakázek (zakládá je seed, jakmile existuje první uživatel).
@@ -44,7 +33,7 @@ export const JOB_VIEWS: readonly SeedViewDef[] = [
       viewType: "table",
       filters: { op: "and", conditions: [{ attr: "phase", op: "is", value: "offer" }] },
       sort: [{ attr: "number", dir: "asc" }],
-      columns: ["title", "number", "company", "manager", "sumContract", "sumMarginPct", "address"],
+      columns: ["title", "number", "company", "manager", "value", "address"],
     },
   },
   {
@@ -83,15 +72,7 @@ export const JOB_VIEWS: readonly SeedViewDef[] = [
       viewType: "table",
       filters: { op: "and", conditions: [{ attr: "phase", op: "is", value: "warranty" }] },
       sort: [{ attr: "warrantyUntil", dir: "asc" }],
-      columns: [
-        "title",
-        "number",
-        "company",
-        "manager",
-        "handoverAt",
-        "warrantyUntil",
-        "retentionBp",
-      ],
+      columns: ["title", "number", "company", "manager", "handoverAt", "warrantyUntil"],
     },
   },
   {
@@ -105,7 +86,7 @@ export const JOB_VIEWS: readonly SeedViewDef[] = [
         conditions: [{ attr: "phase", op: "is_none_of", value: ["lost", "closed"] }],
       },
       group: "stage",
-      cardAttributes: ["company", "sumContract", "endDate"],
+      cardAttributes: ["company", "value", "endDate"],
     },
   },
 ];

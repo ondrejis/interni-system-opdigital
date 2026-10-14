@@ -117,7 +117,7 @@ function QualifyForm({
     let cancelled = false;
     const t = setTimeout(() => {
       api
-        .command<unknown, Duplicates>("crm.contact.duplicates", {
+        .command<unknown, Duplicates>("kontakty.duplicates", {
           ico,
           ...(inq.contactEmail ? { email: inq.contactEmail } : {}),
           ...(inq.contactPhone ? { phone: inq.contactPhone } : {}),

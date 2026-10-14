@@ -27,7 +27,7 @@ widget nese šířku `w` (3/4/6/8/12) a výšku `h` (1–6 řádků), pořadí w
 **Tabulky** `dashboard` (definice, autor, `seed_key`, `default_for_role`, `is_home`), `dashboard_share` (role nebo uživatel) a `dashboard_pref` (osobní pořadí v přepínači); migrace `0010_dashboards_exports`.
 Viditelnost: moje, sdílená s mou rolí nebo se mnou, výchozí pro mou roli. Oprávnění `dashboards.write` (skládat a klonovat vlastní, sdílet své) a `dashboards.manage`
 (výchozí pro roli, cizí nástěnky). Role s příznakem „domů“ otevře nástěnku na úvodní stránce místo klasického Přehledu (za roli jedna, částečný unikátní index). Výchozí sady z `config.ts`
-(`dashboards.defaults`, `standardDashboards`) se zakládají jednou přes `seed_key`; co správce změnil nebo smazal, se nepřepisuje. Žádná sada není domovská, takže výchozí vzhled zůstává.
+(`dashboards.defaults`, sady klienta přes `seedDashboard`) se zakládají jednou přes `seed_key`; co správce změnil nebo smazal, se nepřepisuje. Žádná sada není domovská, takže výchozí vzhled zůstává.
 
 **Vyhodnocení.** Každý widget se načítá samostatným požadavkem `POST /api/dashboards/evaluate` (server actions z jedné stránky běží po jedné; widgety mají jít souběžně). Chyba widgetu je součástí odpovědi
 (`ok: false`, česká věta), nikdy 5xx, takže jeden rozbitý widget nerozbije nástěnku (a na klientovi je navíc error boundary). Dotaz běží v transakci s `statement_timeout` 8 s (`57014` → „trval příliš dlouho“),

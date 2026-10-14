@@ -1,27 +1,14 @@
 "use client";
 
-import { BottomNav, PhotoDialog, usePendingUploads, type BottomItem } from "@rebar/ui";
-import { useState } from "react";
+import { BottomNav, type BottomItem } from "@rebar/ui";
 import type { ShellData } from "@/server/shell";
 
 /**
- * Spodní navigace pro práci v terénu (jen na telefonu): Dnes, nejdůležitější moduly podle oprávnění, Foto a Více.
- * Co uživatel nesmí nebo co není zapnuté, se nezobrazí.
+ * Spodní navigace na telefonu: Dnes, položky modulů označené v manifestu `bottom: true` (už vyfiltrované podle
+ * oprávnění a zapnutých modulů) a Více. Aplikace nezná konkrétní moduly.
  */
-export function bottomItems(shell: Pick<ShellData, "enabledModules" | "permissions">) {
-  const has = (m: string) => shell.enabledModules.includes(m);
-  const can = (...k: string[]) => k.some((x) => shell.permissions.includes(x));
-  const middle: { id: string; label: string; icon: string; href: string }[] = [];
-  if (has("dochazka") && can("dochazka.own", "dochazka.read"))
-    middle.push({ id: "time", label: "Docházka", icon: "clock", href: "/dochazka" });
-  if (has("zakazky") && can("zakazky.read"))
-    middle.push({ id: "jobs", label: "Zakázky", icon: "briefcase", href: "/zakazky" });
-  if (has("sklad") && can("sklad.issue", "sklad.read"))
-    middle.push({ id: "stock", label: "Sklad", icon: "package", href: "/sklad" });
-  if (has("stroje") && can("stroje.log", "stroje.read"))
-    middle.push({ id: "fleet", label: "Stroje", icon: "truck", href: "/stroje" });
-  const photo = has("zakazky") && can("zakazky.read");
-  return { middle: middle.slice(0, photo ? 2 : 3), photo };
+export function bottomItems(shell: Pick<ShellData, "bottom">): BottomItem[] {
+  return shell.bottom.map((n) => ({ id: n.href, label: n.label, icon: n.icon, href: n.href }));
 }
 
 export function MobileBottomNav({
@@ -29,33 +16,14 @@ export function MobileBottomNav({
   pathname,
   openMenu,
 }: {
-  shell: Pick<ShellData, "enabledModules" | "permissions">;
+  shell: Pick<ShellData, "bottom">;
   pathname: string;
   openMenu: () => void;
 }) {
-  const [photos, setPhotos] = useState(false);
-  const pending = usePendingUploads();
-  const { middle, photo } = bottomItems(shell);
   const items: BottomItem[] = [
     { id: "today", label: "Dnes", icon: "house", href: "/" },
-    ...middle,
-    ...(photo
-      ? [
-          {
-            id: "photo",
-            label: "Foto",
-            icon: "camera",
-            onSelect: () => setPhotos(true),
-            badge: pending,
-          },
-        ]
-      : []),
+    ...bottomItems(shell),
     { id: "more", label: "Více", icon: "more", onSelect: openMenu },
   ];
-  return (
-    <>
-      <BottomNav items={items} pathname={pathname} />
-      {photo && <PhotoDialog open={photos} onOpenChange={setPhotos} />}
-    </>
-  );
+  return <BottomNav items={items} pathname={pathname} />;
 }

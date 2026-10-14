@@ -3,14 +3,7 @@ import { recomputeJobCrm } from "./deals/recompute";
 import { checkFieldRules } from "./field-rules";
 
 /** Údaje zakázky, po jejichž změně se přepočítají odvozené hodnoty CRM (stav, cena, pravděpodobnost, archiv). */
-const TRACKED = [
-  "stageId",
-  "phase",
-  "valueMinor",
-  "sumContractMinor",
-  "crmProbabilityPct",
-  "crmArchivedAt",
-] as const;
+const TRACKED = ["stageId", "phase", "valueMinor", "crmProbabilityPct", "crmArchivedAt"] as const;
 
 /**
  * Hook CRM nad zakázkou (`phaseHooks` modulu):

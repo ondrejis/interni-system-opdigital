@@ -3,7 +3,6 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   ClientConfigError,
-  collectPermissions,
   resolveModules,
   type ClientConfig,
   type ModuleManifest,
@@ -14,7 +13,6 @@ import {
   validateEventDefs,
   validateNotificationsConfig,
 } from "@rebar/core/notifications";
-import { validateTerminalSetup } from "@rebar/core/terminal";
 
 export type ClientCheck = { dir: string; ok: boolean; problems: string[] };
 
@@ -44,13 +42,6 @@ export async function checkClients(
         problems.push(`slug „${mod.default.slug}“ neodpovídá názvu složky „${dir}“`);
       }
       resolveModules(mod.default.modules, modules);
-      problems.push(
-        ...validateTerminalSetup(
-          mod.default.terminal,
-          modules,
-          new Set(collectPermissions(modules).map((p) => p.key)),
-        ),
-      );
       const events = [
         ...CORE_NOTIFICATION_EVENTS,
         ...collectNotificationEvents(resolveModules(mod.default.modules, modules)),

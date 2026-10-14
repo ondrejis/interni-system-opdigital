@@ -170,7 +170,7 @@ const · `packages/modules/zakazky/src/lifecycle/phases.ts`
 Možnosti pro atribut typu výběr (`phase`).
 
 ```ts
-const PHASE_CHOICES: { value: "lost" | "preparation" | "offer" | "inquiry" | "execution" | "handover" | "warranty" | "closed" | "paused"; label: string; color: string; }[]
+const PHASE_CHOICES: { value: "lost" | "inquiry" | "preparation" | "offer" | "execution" | "handover" | "warranty" | "closed" | "paused"; label: string; color: string; }[]
 ```
 
 ### PHASE_KEYS

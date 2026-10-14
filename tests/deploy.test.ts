@@ -91,7 +91,7 @@ describe("nanečisto (--dry-run)", () => {
       "--acme-email",
       "info@klient.cz",
       "--client",
-      "demo",
+      "opsys",
       "--image",
       "ghcr.io/x/y",
       "--backup-image",
@@ -100,7 +100,7 @@ describe("nanečisto (--dry-run)", () => {
       "v1.0.0",
     ];
     const out = execFileSync(path.join(scripts, "install.sh"), args, { encoding: "utf8" });
-    expect(out).toMatch(/instalace demo v1\.0\.0 na https:\/\/system\.klient\.cz/);
+    expect(out).toMatch(/instalace opsys v1\.0\.0 na https:\/\/system\.klient\.cz/);
     expect(() =>
       execFileSync(path.join(scripts, "install.sh"), [...args, "--version", "1.0"], {
         stdio: "pipe",

@@ -169,15 +169,12 @@
     "packages/core/src/modules/server.ts": [
       "AttentionProvider",
       "CalendarLayerProvider",
-      "CostProvider",
       "DashboardMetricResult",
-      "DiaryPrefillProvider",
       "ModuleJob",
       "WidgetProvider",
       "defineCommand",
       "defineDashboardMetric",
-      "defineModuleServer",
-      "getJobFinanceProviders"
+      "defineModuleServer"
     ],
     "packages/core/src/notifications/catalog.ts": [
       "NotificationCatalogError",
@@ -260,16 +257,6 @@
       "createSettings",
       "defineSetting"
     ],
-    "packages/core/src/terminal/config.ts": [
-      "TerminalConfig",
-      "TerminalConfigInput",
-      "TerminalSettings",
-      "TerminalTile"
-    ],
-    "packages/core/src/terminal/ops.ts": ["TerminalOpOutcome"],
-    "packages/core/src/terminal/resolve.ts": ["bottomTiles"],
-    "packages/core/src/terminal/settings.ts": ["TerminalRoleChoice"],
-    "packages/core/src/terminal/submit.ts": ["TerminalSubmitEnv"],
     "packages/core/src/testing/auth.ts": ["createTestAuth", "fakeMailer", "secretFromTotpUri"],
     "packages/core/src/testing/index.ts": ["TestDbUrls", "uniqueEmail"],
     "packages/core/src/time/dates.ts": [
@@ -287,106 +274,6 @@
       "isAbsence"
     ],
     "packages/modules/dochazka/src/settings.ts": ["DochazkaSettings"],
-    "packages/modules/fakturace/src/billing/api.ts": [
-      "CreateDraftInput",
-      "FinalSettlement",
-      "JobInvoicing",
-      "jobInvoicing"
-    ],
-    "packages/modules/fakturace/src/billing/core.ts": [
-      "InvoiceKind",
-      "LineIn",
-      "assertInvoiceUnlocked",
-      "customerNow",
-      "isVatPayer",
-      "loadInvoice",
-      "loadLines",
-      "supplierNow"
-    ],
-    "packages/modules/fakturace/src/billing/lines.ts": [
-      "AdvanceDoc",
-      "BudgetItemRow",
-      "ExtraChange",
-      "FinalInput",
-      "PreviousDoc",
-      "StatementLine",
-      "statementInvoiceLines"
-    ],
-    "packages/modules/fakturace/src/billing/sources.ts": [
-      "BilledState",
-      "ContractInfo",
-      "JobBudget",
-      "JobHistory",
-      "billedState",
-      "loadContract"
-    ],
-    "packages/modules/fakturace/src/dispatch/index.ts": ["dispatchArea"],
-    "packages/modules/fakturace/src/dispatch/service.ts": [
-      "BulkResult",
-      "DispatchKind",
-      "DispatchRecord",
-      "RenderPdf"
-    ],
-    "packages/modules/fakturace/src/dispatch/templates.ts": ["MailInvoice", "MailVariable"],
-    "packages/modules/fakturace/src/export/accounting.ts": [
-      "IsdocExportOptions",
-      "PreparedIsdocExport",
-      "PreparedVatReport",
-      "VatReportOptions",
-      "issuedIsdocXml",
-      "receivedIsdocName",
-      "receivedIsdocXml"
-    ],
-    "packages/modules/fakturace/src/export/documents.ts": [
-      "InvoiceLineRow",
-      "IssuedBundle",
-      "ReceivedBundle",
-      "ReceivedLineRow",
-      "ReceivedRow",
-      "receivedVatDoc"
-    ],
-    "packages/modules/fakturace/src/export/isdoc.ts": ["IsdocInput", "IsdocLine", "IsdocPayment"],
-    "packages/modules/fakturace/src/export/package.ts": [
-      "PackageOptions",
-      "PreparedPackage",
-      "receivedPaidLabel"
-    ],
-    "packages/modules/fakturace/src/export/select.ts": ["DocEntities", "SelectOptions"],
-    "packages/modules/fakturace/src/export/testing/xml.ts": ["child", "childAll", "textOf"],
-    "packages/modules/fakturace/src/export/vat-report.ts": [
-      "VatBucket",
-      "VatDoc",
-      "VatRow",
-      "VatSummaryLine"
-    ],
-    "packages/modules/fakturace/src/exports.ts": ["ExportAdapter", "ExportFile", "totalLabel"],
-    "packages/modules/fakturace/src/iban.ts": ["czAccountToIban", "isValidIban"],
-    "packages/modules/fakturace/src/pdf.ts": ["InvoiceDoc", "InvoiceTemplate", "documentTitle"],
-    "packages/modules/fakturace/src/received/api.ts": ["costLinesForJob"],
-    "packages/modules/fakturace/src/received/calc.ts": [
-      "LineIn",
-      "LineTotals",
-      "lineTotals",
-      "receivedState",
-      "sumLines"
-    ],
-    "packages/modules/fakturace/src/received/service.ts": [
-      "ReceivedInput",
-      "ReceivedLineInput",
-      "deleteReceived",
-      "loadReceivedLines",
-      "unmarkReceivedPaid"
-    ],
-    "packages/modules/fakturace/src/server.ts": ["renderInvoicePdf"],
-    "packages/modules/fakturace/src/settings.ts": ["FakturaceSettings"],
-    "packages/modules/fakturace/src/totals.ts": [
-      "LineInput",
-      "LineTotals",
-      "VatGroup",
-      "documentTotals",
-      "retentionTotal",
-      "vatOf"
-    ],
     "packages/modules/kalendar/src/commands.ts": ["CalendarItemOut"],
     "packages/modules/kalendar/src/ics.ts": ["IcsEvent", "IcsExportEvent", "icsText"],
     "packages/modules/kalendar/src/recurrence.ts": ["EventTimes", "Occurrence", "Recurrence"],
@@ -396,193 +283,7 @@
       "TransportResult"
     ],
     "packages/modules/poptavky/src/server.ts": ["IntakeAuthError"],
-    "packages/modules/realizace/src/diary-editor.tsx": ["DiaryEntryData", "Draft", "draftFrom"],
-    "packages/modules/realizace/src/diary-shared.ts": [
-      "DiaryIncident",
-      "DiaryMachine",
-      "DiaryMaterial",
-      "DiaryWeather",
-      "DiaryWorker",
-      "summarizeMachines",
-      "summarizeMaterials",
-      "summarizeWorkers",
-      "weatherSummary",
-      "weekdayShort"
-    ],
-    "packages/modules/realizace/src/diary.ts": ["WeatherResult", "toEntry"],
-    "packages/modules/realizace/src/phase-dialog.tsx": [
-      "PhaseDraft",
-      "blankDraft",
-      "draftFromPhase"
-    ],
-    "packages/modules/realizace/src/schedule-shared.ts": [
-      "Phase",
-      "PhaseState",
-      "PhasesData",
-      "Zoom",
-      "clamp",
-      "dayWidth",
-      "daysLabel",
-      "monthShort",
-      "phaseState",
-      "workdaysLabel"
-    ],
-    "packages/modules/realizace/src/schedule.ts": ["statusFromProgress"],
-    "packages/modules/realizace/src/scheduled.ts": ["ScheduledResult"],
-    "packages/modules/realizace/src/weather.ts": ["FetchLike"],
-    "packages/modules/sklad/src/engine.ts": ["PostedDoc"],
-    "packages/modules/sklad/src/stock-math.ts": ["MergedLine", "RawLine", "StockDocType"],
-    "packages/modules/stroje/src/fleet.ts": [
-      "AssetKind",
-      "DeadlineKey",
-      "IntervalDue",
-      "IntervalInput",
-      "LogInput",
-      "Tone",
-      "consumptionUnit",
-      "formatMeter",
-      "kindLabel",
-      "meterUnit"
-    ],
-    "packages/modules/zakazky/src/approvals/api.ts": [
-      "ApprovalHandler",
-      "ApprovalState",
-      "DecideInput",
-      "RequestApprovalInput",
-      "getHandler"
-    ],
-    "packages/modules/zakazky/src/approvals/rules.ts": [
-      "ApprovalDocType",
-      "DecideCheck",
-      "RuleLike"
-    ],
-    "packages/modules/zakazky/src/budget/api.ts": [
-      "BudgetTotals",
-      "SectionTotals",
-      "ensureRealization"
-    ],
-    "packages/modules/zakazky/src/budget/cells.tsx": ["CellMove"],
-    "packages/modules/zakazky/src/budget/formula.ts": [
-      "CalcInput",
-      "CalcOutput",
-      "FormulaError",
-      "FormulaResult"
-    ],
-    "packages/modules/zakazky/src/budget/grid.tsx": ["GridApi"],
-    "packages/modules/zakazky/src/budget/math.ts": [
-      "Amounts",
-      "ItemKind",
-      "ItemLike",
-      "ItemNode",
-      "MathItem",
-      "ObjectLike",
-      "ObjectNode",
-      "SectionLike",
-      "SectionNode",
-      "VatBreakdown",
-      "VatGroup",
-      "VersionKind",
-      "VersionStatus",
-      "finalizeAmounts",
-      "itemAmounts",
-      "itemKindLabel",
-      "marginPct",
-      "sumAmounts"
-    ],
-    "packages/modules/zakazky/src/budget/offer-pdf.ts": ["OfferDoc", "renderOfferPdf"],
-    "packages/modules/zakazky/src/budget/offer-template.ts": ["OfferTemplate"],
-    "packages/modules/zakazky/src/budget/queries.ts": ["toItem", "toVersionView"],
-    "packages/modules/zakazky/src/budget/service.ts": [
-      "CalcRow",
-      "ItemRow",
-      "ObjectRow",
-      "SectionRow",
-      "assertEditable",
-      "auditJob",
-      "currentVersion",
-      "ensureDefaultObject",
-      "isEmptyVersion",
-      "latestOffer",
-      "listVersions",
-      "loadStructure",
-      "loadVersion",
-      "lockJobRow",
-      "nextItemPosition",
-      "nextSectionPosition",
-      "realizationOf",
-      "renumberItems",
-      "renumberObjects",
-      "renumberSections",
-      "sectionDepth",
-      "sectionIdsIn"
-    ],
-    "packages/modules/zakazky/src/budget/transitions.ts": ["ApplyResult"],
-    "packages/modules/zakazky/src/budget/types.ts": [
-      "BudgetTreeView",
-      "ObjectView",
-      "SectionView",
-      "VersionSummary",
-      "VersionView"
-    ],
-    "packages/modules/zakazky/src/budget/ui-format.ts": [
-      "moneyInput",
-      "pct",
-      "qtyInput",
-      "vatInput"
-    ],
-    "packages/modules/zakazky/src/changes/calc.ts": ["ChangeLineKind", "LineQuantities"],
-    "packages/modules/zakazky/src/changes/service.ts": [
-      "BudgetItemInfo",
-      "ChangeLineRow",
-      "ChangeRow",
-      "changeLines",
-      "describe",
-      "labelOf",
-      "loadChange",
-      "realizationSections"
-    ],
-    "packages/modules/zakazky/src/costs/api.ts": [
-      "AllocateInput",
-      "BudgetSnapshot",
-      "CostFilters",
-      "ManualCostInput",
-      "deleteManualCost",
-      "filterCosts",
-      "planVsActual",
-      "updateManualCost"
-    ],
-    "packages/modules/zakazky/src/costs/model.ts": [
-      "AllocationState",
-      "AllocationStatus",
-      "CostOut",
-      "categoryLabel",
-      "sourceLabel"
-    ],
-    "packages/modules/zakazky/src/costs/plan.ts": [
-      "Metrics",
-      "PlanInput",
-      "PlanObjectIn",
-      "PlanObjectNode",
-      "PlanResult",
-      "PlanSectionIn",
-      "PlanSectionNode",
-      "buildPlan",
-      "metricsOf"
-    ],
-    "packages/modules/zakazky/src/costs/summary.ts": [
-      "JobSummary",
-      "SummaryInput",
-      "computeSummary"
-    ],
-    "packages/modules/zakazky/src/costs/ui-shared.tsx": [
-      "CostList",
-      "CostRow",
-      "ItemOption",
-      "SectionOption"
-    ],
-    "packages/modules/zakazky/src/detail/kpis.ts": ["JobSummary", "Tone", "formatPct"],
     "packages/modules/zakazky/src/detail/visibility.ts": ["fromExecution", "fromPreparation"],
-    "packages/modules/zakazky/src/economics.ts": ["ChangeStatus", "CostCategory", "changeLabel"],
     "packages/modules/zakazky/src/lifecycle/phases.ts": [
       "HealthKey",
       "PhaseAction",
@@ -594,48 +295,7 @@
     ],
     "packages/modules/zakazky/src/lifecycle/transitions.ts": ["PhaseOption", "stageById"],
     "packages/modules/zakazky/src/lifecycle/ui.tsx": ["PhasePreview"],
-    "packages/modules/zakazky/src/orders/api.ts": ["OrderBrief", "getOrderBrief"],
-    "packages/modules/zakazky/src/orders/calc.ts": [
-      "OrderLineIn",
-      "OrderStatus",
-      "canTransition",
-      "orderStatus"
-    ],
-    "packages/modules/zakazky/src/orders/service.ts": [
-      "OrderInput",
-      "OrderLineInput",
-      "cancelOrder",
-      "deleteOrder",
-      "loadOrderLines",
-      "loadOrderRow"
-    ],
-    "packages/modules/zakazky/src/share/api.ts": ["InvestorBase", "InvestorFile", "ResolvedShare"],
-    "packages/modules/zakazky/src/share/model.ts": ["DiaryShare", "ShareStatus", "shareStatus"],
-    "packages/modules/zakazky/src/share/token.ts": ["hashShareToken"],
-    "packages/modules/zakazky/src/statements/api.ts": ["InvoiceDraftPayload"],
-    "packages/modules/zakazky/src/statements/calc.ts": [
-      "StatementLineCalc",
-      "StatementLineInput",
-      "computeLine"
-    ],
-    "packages/modules/zakazky/src/statements/commands.ts": ["createStatement"],
-    "packages/modules/zakazky/src/statements/service.ts": [
-      "BudgetLine",
-      "ComputedLine",
-      "StatementRow",
-      "assertEditable",
-      "canSeeMoney",
-      "describe",
-      "loadStatement",
-      "onDecision",
-      "onReopen",
-      "registerStatementHandler"
-    ],
-    "packages/modules/zakazky/src/templates/payload.ts": [
-      "ItemTemplate",
-      "SectionTemplate",
-      "TemplatePayload"
-    ],
+    "packages/modules/zakazky/src/templates/payload.ts": ["TemplatePayload"],
     "packages/modules/zakazky/src/templates/service.ts": ["ApplyTemplateResult", "BuildOptions"],
     "packages/ui/src/charts/bar-chart.tsx": ["BarChartProps"],
     "packages/ui/src/charts/bar-layout.ts": [
@@ -715,15 +375,6 @@
     "packages/ui/src/nav.tsx": ["NavApi", "useNav"],
     "packages/ui/src/shell/app-shell.tsx": ["NavItem", "NavSection", "ShellProps"],
     "packages/ui/src/shell/bottom-nav.tsx": ["BottomItem"],
-    "packages/ui/src/shell/theme.tsx": ["ThemeChoice"],
-    "packages/ui/src/terminal/kit.tsx": ["JobOption"],
-    "packages/ui/src/terminal/queue.ts": [
-      "OpStore",
-      "TerminalQueue",
-      "createTerminalQueue",
-      "memoryOpStore"
-    ],
-    "packages/ui/src/terminal/shell.tsx": ["TerminalNavItem"],
-    "packages/ui/src/terminal/types.ts": ["TerminalWidgetProps"]
+    "packages/ui/src/shell/theme.tsx": ["ThemeChoice"]
   }
 }

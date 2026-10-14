@@ -19,7 +19,7 @@ FROM base AS build
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile
-ARG CLIENT=demo
+ARG CLIENT=opsys
 ARG APP_VERSION=0.0.0
 ENV CLIENT=${CLIENT} APP_VERSION=${APP_VERSION}
 RUN pnpm build
@@ -32,7 +32,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 
 # --- běhové prostředí ---
 FROM node:${NODE_VERSION}-bookworm-slim AS runtime
-ARG CLIENT=demo
+ARG CLIENT=opsys
 ARG APP_VERSION=0.0.0
 LABEL org.opencontainers.image.title="system-${CLIENT}" \
       org.opencontainers.image.version="${APP_VERSION}"

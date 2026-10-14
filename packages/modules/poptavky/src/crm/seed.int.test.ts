@@ -61,7 +61,6 @@ describe("ensureCrmDefaults: stávající instance před CRM", () => {
             stageId: legacyOf(stageName).id,
             phase,
             valueMinor: value,
-            sumContractMinor: value,
           })
           .returning()
       )[0]!;

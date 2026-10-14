@@ -11,7 +11,7 @@ Firmy a osoby: typ, hierarchie, štítky, více telefonů a e-mailů, doplnění
 - **Závisí na:** žádném modulu
 - **Balíček:** `packages/modules/kontakty`
 - **Vyprávěcí dokumentace:** [docs/moduly/kontakty.md](../../moduly/kontakty.md)
-- **Příkazy:** [6 příkazů](../prikazy/kontakty.md)
+- **Příkazy:** [7 příkazů](../prikazy/kontakty.md)
 - **Entity:** [`company`](../entity/kontakty.md#company), [`person`](../entity/kontakty.md#person)
 - **Databáze:** [tabulky a migrace](../databaze/kontakty.md)
 

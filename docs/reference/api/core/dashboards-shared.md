@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core/dashboards-shared` (soubor `packages/core/src/dashboards/shared.ts`). Exportů: 60, z toho s popisem 23.
+Vstupní bod `@rebar/core/dashboards-shared` (soubor `packages/core/src/dashboards/shared.ts`). Exportů: 59, z toho s popisem 22.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
@@ -24,7 +24,6 @@ Vstupní bod `@rebar/core/dashboards-shared` (soubor `packages/core/src/dashboar
 | [`periodOf`](dashboards.md#periodof) | function | Období filtrů nástěnky. | v `@rebar/core/dashboards` |
 | [`resolvePeriod`](dashboards.md#resolveperiod) | function | Období podle předvolby k danému dni. `all` a neplatné vlastní období = `null` (bez omezení). | v `@rebar/core/dashboards` |
 | [`seedDashboard`](dashboards.md#seeddashboard) | function | Doplní id a rozměry widgetů a složí definici ve verzi, kterou systém čte. | v `@rebar/core/dashboards` |
-| [`standardDashboards`](dashboards.md#standarddashboards) | function | Výchozí nástěnky podle rolí (majitel, kancelář, mistr, účetní) pro zapnuté moduly. Widgety modulů, které klient nemá zapnuté, se vynechají; nástěnka, které nezbyde žádný widget, se nezakládá. Žádná se neotevírá na úvodní stránce (zůstává klasický Přehled), uživatel ji najde v přepínači nástěnek. | v `@rebar/core/dashboards` |
 | [`AGG_FUNCTIONS`](dashboards.md#agg_functions) | const |  | v `@rebar/core/dashboards` |
 | [`BUCKETS`](dashboards.md#buckets) | const |  | v `@rebar/core/dashboards` |
 | [`BUILTINS`](dashboards.md#builtins) | const |  | v `@rebar/core/dashboards` |

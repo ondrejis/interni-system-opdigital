@@ -5,7 +5,7 @@ import { MONEY_PERMISSIONS } from "./money";
 
 /**
  * Aktivní uživatelé, kteří mají dané oprávnění (v kterémkoli rozsahu), a majitelé (systémová role má vždy všechna).
- * Pro upozornění typu „schválená vícepráce → fakturace“.
+ * Pro upozornění typu „schválená platba → fakturace“.
  */
 export async function usersWithPermission(db: Executor, permission: string): Promise<string[]> {
   const rows = await db

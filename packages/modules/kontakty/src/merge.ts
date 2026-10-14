@@ -12,13 +12,12 @@ import { company, person, personContactPoint } from "./schema";
  *
  * Odkazy na záznam se nehledají ručním výčtem tabulek (ten by zastaral s každým novým modulem), ale v katalogu
  * databáze (`discoverReferences`):
- *  1. cizí klíče na `company(id)` / `person(id)` (zakázky, poptávky, faktury, objednávky, sklad, účastníci…),
+ *  1. cizí klíče na `company(id)` / `person(id)` (zakázky, poptávky, účastníci…),
  *  2. sloupce `company_id` / `person_id` bez cizího klíče (aktivity CRM, jejich vazby jsou měkké),
  *  3. polymorfní vazby `entity_type` + `entity_id` (komentáře, úkoly, soubory, poznámky, upozornění, e-maily).
  * Test (`merge.int.test.ts`) hlídá, že žádný sloupec s podobným názvem nezůstane mimo tento výčet.
  *
- * Výjimky: `audit_log` a `search_document` se nepřepisují (historie zůstane u původního id, hledání se přeindexuje);
- * vystavené faktury mají jako snímek jména odběratele JSON (`customer`), který se nemění, jen se přepojí odkaz.
+ * Výjimky: `audit_log` a `search_document` se nepřepisují (historie zůstane u původního id, hledání se přeindexuje).
  */
 export type MergeEntity = "company" | "person";
 
@@ -46,13 +45,6 @@ const POLY_SKIP = new Set(["audit_log", "search_document"]);
 const LABELS: Record<string, string> = {
   job: "zakázky",
   inquiry: "poptávky",
-  invoice: "vydané faktury",
-  received_invoice: "přijaté faktury",
-  job_cost: "náklady zakázek",
-  job_order: "objednávky zakázek",
-  purchase_order: "objednávky",
-  stock_doc: "skladové doklady",
-  stock_item: "skladové položky (dodavatel)",
   person: "kontaktní osoby",
   job_participant: "účasti na zakázkách",
   crm_activity: "aktivity",

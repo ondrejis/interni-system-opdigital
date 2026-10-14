@@ -189,13 +189,11 @@ export async function dealTiles(ctx: Ctx, deps: ModuleDeps): Promise<WidgetData[
   if (!can(ctx, "poptavky.read")) return [];
   const scope = await tryScopedEntity(ctx, deps, "job");
   if (!scope) return [];
-  const money = scope.entity.byKey.has("sumContract") && scope.entity.byKey.has("crmWeighted");
+  const money = scope.entity.byKey.has("value") && scope.entity.byKey.has("crmWeighted");
   const [r] = await ctx.db
     .select({
       n: sql<number>`count(*)::int`,
-      value: money
-        ? sql<number>`coalesce(sum(${job.sumContractMinor}), 0)::float8`
-        : sql<number>`0`,
+      value: money ? sql<number>`coalesce(sum(${job.valueMinor}), 0)::float8` : sql<number>`0`,
       weighted: money
         ? sql<number>`coalesce(sum(${job.crmWeightedMinor}), 0)::float8`
         : sql<number>`0`,

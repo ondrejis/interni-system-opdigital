@@ -250,25 +250,6 @@ export async function moduleDocs(rt: Runtime): Promise<Record<string, string>> {
         );
     }
 
-    // --- terminal
-    if (m.terminalWidgets?.length)
-      sections.push(
-        doc(
-          "## Dlaždice mobilního terminálu",
-          table(
-            ["Klíč", "Název", "Oprávnění", "Příkazy", "Celá obrazovka", "Výchozí zapnuto"],
-            m.terminalWidgets.map((w) => [
-              code(w.key),
-              text(w.label),
-              perm(w.permission),
-              (w.commands ?? []).map((c) => code(c)).join(", "),
-              w.page ? "ano" : "ne",
-              w.defaultEnabled === false ? "ne" : "ano",
-            ]),
-          ),
-        ),
-      );
-
     // --- UI
     if (ui) {
       const uiParts: string[] = [];
@@ -417,15 +398,6 @@ export async function moduleDocs(rt: Runtime): Promise<Record<string, string>> {
               .join("; ") +
             ".",
         );
-      if (ui.terminalWidgets && Object.keys(ui.terminalWidgets).length)
-        uiParts.push(
-          `Vykreslení dlaždic mobilního terminálu (viz tabulka dlaždic výše): ${Object.keys(
-            ui.terminalWidgets as object,
-          )
-            .sort()
-            .map((k) => code(k))
-            .join(", ")}.`,
-        );
       for (const k of Object.keys(ui)
         .filter((k) => !KNOWN_UI_KEYS.has(k))
         .sort())
@@ -512,22 +484,11 @@ export async function moduleDocs(rt: Runtime): Promise<Record<string, string>> {
             ),
           ),
         );
-      if (server.costProviders.length)
-        parts.push(
-          doc(
-            "### Poskytovatelé nákladů zakázky",
-            server.costProviders.map((c) => `- ${code(c.key)}`).join("\n"),
-          ),
-        );
       const counts: string[] = [];
       if (server.attention.length)
         counts.push(`položky „Vyžaduje pozornost“: ${server.attention.length} poskytovatelů`);
       if (server.widgets.length)
         counts.push(`dlaždice přehledu: ${server.widgets.length} poskytovatelů`);
-      if (server.diaryPrefill.length)
-        counts.push(`předvyplnění stavebního deníku: ${server.diaryPrefill.length}`);
-      if (server.jobInvoicing.length)
-        counts.push(`souhrn fakturace zakázky: ${server.jobInvoicing.length}`);
       if (counts.length)
         parts.push(
           doc(

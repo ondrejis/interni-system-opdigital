@@ -54,18 +54,6 @@ export const optionsCommand = defineCommand({
   },
 });
 
-/** Kontrola duplicit podle IČO, e-mailu a telefonu (rychlé zadání a kvalifikace ukážou nalezené záznamy k výběru). */
-export const duplicatesCommand = defineCommand({
-  name: "crm.contact.duplicates",
-  permission: "kontakty.read",
-  input: z.object({
-    ico: z.string().trim().max(20).optional(),
-    email: z.string().trim().max(200).optional(),
-    phone: z.string().trim().max(40).optional(),
-  }),
-  handler: (ctx, i) => findContactDuplicates(ctx, i),
-});
-
 /** Údaje poptávky a nalezené duplicity pro dialog „Kvalifikovat“ (firma/osoba z poptávky, IČO k doplnění). */
 export const qualifyPreviewCommand = defineCommand({
   name: "crm.inbox.qualifyPreview",
@@ -157,7 +145,7 @@ export type OverviewDeal = {
   rotting: boolean;
   /** Role osoby na zakázce, když je jen účastník (ne hlavní kontakt). */
   participantRole: string | null;
-  /** Částky jen s oprávněním `zakazky.economics`. */
+  /** Částky jen s oprávněním `zakazky.finance`. */
   valueMinor?: number;
   weightedMinor?: number;
 };
@@ -167,7 +155,7 @@ const WON_PHASES = ["preparation", "execution", "handover", "warranty", "closed"
 
 /**
  * Přehled obchodu u firmy nebo osoby: zakázky s fází a stavem (pro mini pás stavů), souhrn otevřených a vyhraných obchodů,
- * kontaktní osoby, související firmy a (u osoby) účasti na zakázkách. Částky vidí jen, kdo má `zakazky.economics`;
+ * kontaktní osoby, související firmy a (u osoby) účasti na zakázkách. Částky vidí jen, kdo má `zakazky.finance`;
  * zakázky se řídí oprávněním `zakazky.read` (rozsah „jen moje“ platí).
  */
 export const overviewCommand = defineCommand({
@@ -176,7 +164,7 @@ export const overviewCommand = defineCommand({
   input: z.object({ entity: z.enum(["company", "person"]), id: z.uuid() }),
   handler: async (ctx, i) => {
     await assertEntityAccess(ctx, i.entity, i.id, "read");
-    const money = can(ctx, "zakazky.economics");
+    const money = can(ctx, "zakazky.finance");
 
     // kandidáti: zakázky firmy / osoby jako hlavního kontaktu a účasti osoby na zakázkách
     const direct = await ctx.db
@@ -216,7 +204,7 @@ export const overviewCommand = defineCommand({
             overdueActivities: job.crmOverdueActivities,
             rotting: job.crmRotting,
             archivedAt: job.crmArchivedAt,
-            sumContract: job.sumContractMinor,
+            sumContract: job.valueMinor,
             weighted: job.crmWeightedMinor,
             updatedAt: job.updatedAt,
           })
@@ -487,7 +475,6 @@ export const participantRemoveCommand = defineCommand({
 
 export const contactCommands = [
   optionsCommand,
-  duplicatesCommand,
   qualifyPreviewCommand,
   overviewCommand,
   participantsListCommand,

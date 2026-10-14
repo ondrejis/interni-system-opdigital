@@ -1,2 +1,0 @@
-CREATE INDEX "stock_item_code_trgm_idx" ON "stock_item" USING gin (lower(f_unaccent("code")) gin_trgm_ops);--> statement-breakpoint
-CREATE INDEX "stock_item_ean_trgm_idx" ON "stock_item" USING gin (lower(f_unaccent("ean")) gin_trgm_ops);

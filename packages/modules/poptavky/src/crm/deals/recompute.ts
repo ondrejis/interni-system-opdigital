@@ -76,7 +76,7 @@ export async function recomputeJobCrm(
     { phase: row.phase, crmProbabilityPct: row.crmProbabilityPct },
     stage,
   );
-  const weightedMinor = weightedValueMinor(row.sumContractMinor, probabilityPct);
+  const weightedMinor = weightedValueMinor(row.valueMinor, probabilityPct);
   // hnije jen otevřený obchod, který není v archivu
   const rotting =
     isOpenDeal(row.phase) && !row.crmArchivedAt

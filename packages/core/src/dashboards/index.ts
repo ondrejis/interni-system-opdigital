@@ -55,7 +55,6 @@ export {
 } from "./service";
 export type { BoardDetail, SeedDashboard } from "./service";
 export { seedDashboard } from "./seed";
-export { standardDashboards } from "./defaults";
 export type { DashboardSeedInput, DashboardSeed, SeedWidget } from "./seed";
 export { resultToTable, cellText } from "./result-table";
 export type { ResultTable } from "./result-table";

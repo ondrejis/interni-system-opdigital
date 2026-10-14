@@ -9,3 +9,6 @@ test-results
 .next-*
 test-results-crawl
 docs/reference
+# pracovní dokumenty OPSYS (zadání, rozbory, specifikace od zadavatele) se neformátují
+docs/opsys/
+docs/specifikace/

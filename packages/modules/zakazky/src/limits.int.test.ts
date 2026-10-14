@@ -13,14 +13,14 @@ import {
   type ResolvedEntity,
 } from "@rebar/core/entities";
 import { ensureSeries } from "@rebar/core/numbering";
-import { createCtx, loadActor, UserError } from "@rebar/core/rbac";
+import { createCtx, loadActor } from "@rebar/core/rbac";
 import { connectAppDb, uniqueEmail } from "@rebar/core/testing";
 import { company } from "@rebar/kontakty/schema";
 import { companyEntity, personEntity } from "@rebar/kontakty/server";
 import { manifest } from "./index";
 import { jobEntity } from "./server";
 
-/** Meze číselných atributů: záporná cena, zádržné přes 100 %, nesmyslná souřadnice vrátí českou větu, ne obecnou chybu. */
+/** Meze číselných atributů: záporná hodnota vrátí českou větu, ne obecnou chybu. */
 const app = connectAppDb();
 afterAll(() => app.close());
 
@@ -42,7 +42,7 @@ async function boss() {
     .values({ key: `r-${newId().slice(-8)}`, name: "R" })
     .returning();
   await app.db.insert(schema.rolePermission).values(
-    ["zakazky.read", "zakazky.write", "zakazky.economics", "kontakty.read"].map((permission) => ({
+    ["zakazky.read", "zakazky.write", "zakazky.finance", "kontakty.read"].map((permission) => ({
       roleId: role!.id,
       permission,
       scope: "all" as const,
@@ -56,7 +56,7 @@ async function boss() {
 }
 
 describe("meze číselných atributů zakázky", () => {
-  it("záporná cena, zádržné nad 100 % a souřadnice mimo rozsah se odmítnou s větou", async () => {
+  it("záporná hodnota se odmítne s větou při vytvoření i úpravě", async () => {
     const ctx = await boss();
     const [c] = await app.db
       .insert(company)
@@ -65,20 +65,12 @@ describe("meze číselných atributů zakázky", () => {
     const base = { title: "Meze", company: c!.id };
 
     await expect(createRecord(ctx, registry, jobE, { ...base, value: -500_000 })).rejects.toThrow(
-      /Původní smluvní cena.*nesmí být záporné/,
-    );
-    await expect(
-      createRecord(ctx, registry, jobE, { ...base, retentionBp: 20_000 }),
-    ).rejects.toThrow(/Zádržné.*nesmí být větší/);
-    await expect(createRecord(ctx, registry, jobE, { ...base, siteLat: 123 })).rejects.toThrow(
-      UserError,
+      /Hodnota.*nesmí být záporné/,
     );
 
     const ok = await createRecord(ctx, registry, jobE, {
       ...base,
       value: 123_456_789,
-      retentionBp: 500,
-      siteLat: 49.74,
     });
     expect(ok.row.value).toBe(123_456_789);
     // totéž při úpravě

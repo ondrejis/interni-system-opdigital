@@ -21,22 +21,20 @@ Hlídá to `tests/guards.test.ts`. Co je specifické pro klienta, patří do `cl
 
 **V administraci** (Nastavení; každá sekce je vidět jen roli s příslušným oprávněním):
 
-| Sekce Nastavení                        | Co se tu nastavuje                                                                                                                                 | Oprávnění             |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| Firma a vzhled                         | údaje na dokladech, název systému, akcentová barva, logo (přepisují hodnoty z `config.ts`)                                                         | `settings.manage`     |
-| E-maily                                | odesílání e-mailů (SMTP): server, port, uživatel, heslo (šifrované v DB), odesílatel, zkušební e-mail                                              | `settings.manage`     |
-| Uživatelé                              | pozvánky, role uživatelů, deaktivace, odhlášení zařízení, odkaz pro obnovu hesla, historie přihlášení                                              | `users.manage`        |
-| Role a oprávnění                       | vlastní role, matice oprávnění s rozsahem „vše / jen moje“                                                                                         | `roles.manage`        |
-| Schvalování                            | pravidla schvalování dokladů s limitem částky                                                                                                      | `zakazky.approve_all` |
-| Stavy a pipeline                       | stavy poptávek a zakázek: název, barva, pořadí, druh (otevřený / vyhraný / ztracený / hotový), u zakázek fáze                                      | `settings.manage`     |
-| Číselníky                              | seznamy hodnot (např. důvody prohry)                                                                                                               | `settings.manage`     |
-| Vlastní pole                           | vlastní pole entit (úroveň 2)                                                                                                                      | `settings.manage`     |
-| Číselné řady                           | vzor čísel dokladů, např. `FV-{YYYY}-{NNNN}`                                                                                                       | `settings.manage`     |
-| Sazby DPH                              | sazby s platností od data a výchozí sazba (nové doklady)                                                                                           | `settings.manage`     |
-| Terminál řemeslníka                    | dlaždice mobilního terminálu (zapnutí, název, pořadí), role jen pro terminál, povinná zakázka a fotka ([TERMINAL](TERMINAL.md))                    | `settings.manage`     |
-| Pravidla upozornění                    | které události systém hlásí, komu, kudy a jakým textem; povinné události, tiché hodiny, doručování za 24 hodin ([NOTIFICATIONS](NOTIFICATIONS.md)) | `settings.manage`     |
-| Moduly                                 | přehled modulů a toho, co je zapnuté; zapnutí a vypnutí **není přepínač za běhu**, je v `config.ts` (viz níže)                                     | `settings.manage`     |
-| Můj účet, Upozornění, Zabezpečení účtu | každý uživatel u sebe (jméno a telefon, změna hesla, přihlášená zařízení, push, 2FA a záložní kódy)                                                | každý přihlášený      |
+| Sekce Nastavení                        | Co se tu nastavuje                                                                                                                                 | Oprávnění         |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| Firma a vzhled                         | údaje na dokladech, název systému, akcentová barva, logo (přepisují hodnoty z `config.ts`)                                                         | `settings.manage` |
+| E-maily                                | odesílání e-mailů (SMTP): server, port, uživatel, heslo (šifrované v DB), odesílatel, zkušební e-mail                                              | `settings.manage` |
+| Uživatelé                              | pozvánky, role uživatelů, deaktivace, odhlášení zařízení, odkaz pro obnovu hesla, historie přihlášení                                              | `users.manage`    |
+| Role a oprávnění                       | vlastní role, matice oprávnění s rozsahem „vše / jen moje“                                                                                         | `roles.manage`    |
+| Stavy a pipeline                       | stavy poptávek a zakázek: název, barva, pořadí, druh (otevřený / vyhraný / ztracený / hotový), u zakázek fáze                                      | `settings.manage` |
+| Číselníky                              | seznamy hodnot (např. důvody prohry)                                                                                                               | `settings.manage` |
+| Vlastní pole                           | vlastní pole entit (úroveň 2)                                                                                                                      | `settings.manage` |
+| Číselné řady                           | vzor čísel dokladů, např. `FV-{YYYY}-{NNNN}`                                                                                                       | `settings.manage` |
+| Sazby DPH                              | sazby s platností od data a výchozí sazba (nové doklady)                                                                                           | `settings.manage` |
+| Pravidla upozornění                    | které události systém hlásí, komu, kudy a jakým textem; povinné události, tiché hodiny, doručování za 24 hodin ([NOTIFICATIONS](NOTIFICATIONS.md)) | `settings.manage` |
+| Moduly                                 | přehled modulů a toho, co je zapnuté; zapnutí a vypnutí **není přepínač za běhu**, je v `config.ts` (viz níže)                                     | `settings.manage` |
+| Můj účet, Upozornění, Zabezpečení účtu | každý uživatel u sebe (jméno a telefon, změna hesla, přihlášená zařízení, push, 2FA a záložní kódy)                                                | každý přihlášený  |
 
 Šablony dokladů a texty e-mailů s fakturami mají vlastní nastavení u příslušných modulů (Fakturace → Nastavení). Žádná z těchto změn nevyžaduje nové vydání a každá se zapisuje do auditu.
 
@@ -57,10 +55,9 @@ export default defineClientConfig({
   },
 
   // Zapnuté moduly (závislosti se kontrolují při startu).
-  modules: ["kontakty", "poptavky", "zakazky", "realizace", "fakturace", "dochazka"],
+  modules: ["kontakty", "zakazky", "poptavky", "dochazka", "kalendar"],
 
-  // notifications: { quietHours: { enabled: true, start: "20:00", end: "06:00" }, events: { "approval.request": { mandatory: true } } }, // upozornění, viz NOTIFICATIONS.md
-  // terminal: { roles: ["worker"], tiles: [{ widget: "dochazka.clock" }, { widget: "core.tasks" }] }, // mobilní terminál, viz TERMINAL.md
+  // notifications: { quietHours: { enabled: true, start: "20:00", end: "06:00" }, events: { "task.assigned": { mandatory: true } } }, // upozornění, viz NOTIFICATIONS.md
   // security: { idleTimeoutMinutes: 480, require2faRoles: ["owner", "admin"] },
   // agency: { serviceAccess: "off" },
 });
@@ -70,12 +67,10 @@ export default defineClientConfig({
   migrace se spouštějí jen pro zapnuté moduly a **tabulky vypnutého modulu se nemažou** (data zůstanou pro případné zapnutí zpět).
 - **Branding:** `branding.name` je viditelný název systému (UI, e-maily, PDF, manifest PWA). Nesmí obsahovat interní pracovní název jádra; kontrola je v konfiguraci i v nastavení Vzhled.
   Logo se dá nahrát v administraci; soubory značky patří do `clients/<slug>/branding/`.
-- **Terminál řemeslníka:** `terminal` (role jen pro terminál, pořadí a zapnutí dlaždic, volby docházky a deníku) jsou výchozí hodnoty, které správce přepíše v Nastavení → Terminál řemeslníka.
-  Jak dlaždice funguje a jak ji přidat z modulu: [TERMINAL](TERMINAL.md). Klíč dlaždice, který neexistuje v žádném modulu, je chyba při startu (`pnpm config:check`).
 - **Upozornění:** `notifications` (tiché hodiny, časy shrnutí a pravidla jednotlivých událostí: zapnutí, povinnost, závažnost, kanály, příjemci, text) jsou výchozí hodnoty firmy, které správce přepíše v Nastavení → Pravidla upozornění
   a každý uživatel doplní vlastními předvolbami. Klíče událostí, příjemci a parametry textu: [NOTIFICATIONS](NOTIFICATIONS.md) §2 až §4; neznámý klíč nebo příjemce je chyba při startu (`pnpm config:check`).
 - **Zabezpečení:** `security.idleTimeoutMinutes` (odhlášení po neaktivitě, 5–1440 min), `security.require2faRoles` (role s povinným 2FA, výchozí `owner` a `admin`).
-- **Výchozí data klienta** jsou v `clients/<slug>/seed/index.ts` (`defineSeed`): role (`DEFAULT_ROLES` jako výchozí bod), případně pipeline, číselníky a řady.
+- **Výchozí data klienta** jsou v `clients/<slug>/seed/index.ts` (`defineSeed`): role (`DEFAULT_ROLES` je jen systémová role vlastníka; další role a jejich oprávnění definuje klient), případně pipeline, číselníky a řady.
   Seed se spouští při instalaci i po každé aktualizaci (`pnpm db:seed`, v produkci služba `seed`), **je idempotentní a nepřepisuje, co správce změnil v administraci**.
 
 Ověření konfigurace všech klientů bez spuštění aplikace: `pnpm config:check`.
@@ -103,8 +98,8 @@ Jen když je změna užitečná pro všechny klienty (nová funkce, nová událo
 
 ### Nástěnky a exporty v konfiguraci klienta
 
-V `config.ts` (úroveň 1): `dashboards: { enabled, defaults }` (výchozí nástěnky rolí; `standardDashboards(moduly)` nebo vlastní `seedDashboard({...})`) a `exports: { enabled, csvDelimiter, scheduled, syncMaxRows, retentionDays }`.
-Role `accountant` (`ACCOUNTANT_ROLE` v `@rebar/core/seed`) přidej do seedu (`roles: [...DEFAULT_ROLES, ACCOUNTANT_ROLE]`). Metriku z vlastního modulu přidáš přes `dashboardMetrics`. Podrobně [DASHBOARDY](DASHBOARDY.md) a [EXPORTY](EXPORTY.md).
+V `config.ts` (úroveň 1): `dashboards: { enabled, defaults }` (výchozí nástěnky rolí složené přes `seedDashboard({...})`) a `exports: { enabled, csvDelimiter, scheduled, syncMaxRows, retentionDays }`.
+Role pro nástěnky definuj v seedu klienta (`roles: [...DEFAULT_ROLES, { key: "partner", … }]`). Metriku z vlastního modulu přidáš přes `dashboardMetrics`. Podrobně [DASHBOARDY](DASHBOARDY.md) a [EXPORTY](EXPORTY.md).
 
 ## 2. Jak napsat rozšíření (úroveň 3)
 
@@ -186,7 +181,7 @@ expect(info).toHaveBeenCalledWith(`[example] vznikla zakázka ${String(row.id)}`
 
 ## 3. Jak přidat modul
 
-Modul je balíček v `packages/modules/<id>`. Vzor, který lze zkopírovat: malý modul `stroje` (`packages/modules/stroje`) nebo `kontakty` (jen data a entity).
+Modul je balíček v `packages/modules/<id>`. Vzor, který lze zkopírovat: modul `kalendar` (`packages/modules/kalendar`) nebo `kontakty` (jen data a entity).
 Níže jsou všechny kroky, v tomto pořadí. Označení modulu je `<id>` (kebab-case, bez diakritiky; názvy tabulek a sloupců anglicky, texty rozhraní česky).
 
 1. **Balíček.** `packages/modules/<id>/package.json` (jméno `@rebar/<id>`, `exports`: `.`, `./schema`, `./server`, případně `./ui`; závislosti `@rebar/core`, `@rebar/ui`, `drizzle-orm`, `zod`…),
@@ -205,7 +200,7 @@ Níže jsou všechny kroky, v tomto pořadí. Označení modulu je `<id>` (kebab
 
    Závislost na jiném modulu přidej do `dependencies` (např. `"@rebar/kontakty": "workspace:*"`) **a** do `dependsOn` v manifestu; test `apps/web/src/modules.test.ts` kontroluje, že odpovídají.
 
-2. **Manifest** (`src/index.ts`) — id, název, ikona, navigace, stránky, oprávnění `<id>.<akce>`, klíče entit, případně `dependsOn` a `seed`. Ukázka (zkráceno z `stroje`):
+2. **Manifest** (`src/index.ts`) — id, název, ikona, navigace, stránky, oprávnění `<id>.<akce>`, klíče entit, případně `dependsOn` a `seed`. Ukázka (zkráceno z dnes odstraněného modulu stroje, vzor zůstává platný):
 
    ```ts
    import { defineModule } from "@rebar/core";
@@ -269,7 +264,7 @@ Níže jsou všechny kroky, v tomto pořadí. Označení modulu je `<id>` (kebab
    - poskytovatele (`costProviders`, `attention`, `widgets`, `calendarLayers`…) a úlohy (`defineModuleJob`) podle potřeby; modul **nikdy nevolá jiný modul přímo** ([ADR 006](adr/006-vrstvy-balicku.md), [ADR 012](adr/012-moduly-prikazy-a-poskytovatele.md)).
 
 6. **UI** (`src/ui.tsx`, volitelné) — `defineModuleUi({ recordTabs, recordActions, recordOverview, pages })`. Seznam a detail každé entity vzniká sám z registru na adrese `listPath`,
-   vlastní stránka nebo záložka na cizí entitě (např. `job`) je jen doplněk. `ui.tsx` nesmí importovat serverový kód (databáze, Node); hlídá to `tests/modules.test.ts`. Ukázka z `stroje` (`tab(…)` je pomocná funkce toho souboru):
+   vlastní stránka nebo záložka na cizí entitě (např. `job`) je jen doplněk. `ui.tsx` nesmí importovat serverový kód (databáze, Node); hlídá to `tests/modules.test.ts`. Ukázka z dnes odstraněného modulu stroje (`tab(…)` je pomocná funkce toho souboru):
 
    ```ts
    export const ui = defineModuleUi({
@@ -303,7 +298,7 @@ Níže jsou všechny kroky, v tomto pořadí. Označení modulu je `<id>` (kebab
    - čistá logika bez databáze: `src/*.test.ts` (jednotkové, `pnpm test:unit`);
    - databázová část včetně oprávnění pro každou roli a souběhu: `src/*.int.test.ts` proti skutečnému PostgreSQL (`pnpm db:up`, pak `pnpm test`);
      pomůcky `connectAppDb` a `makeUser` z `@rebar/core/testing`, vzor `packages/modules/zakazky/src/entities.int.test.ts`;
-   - testy napříč moduly v `tests/*.int.test.ts` (vzor `tests/stroje.int.test.ts`).
+   - testy napříč moduly v `tests/*.int.test.ts` (vzor `tests/kalendar.int.test.ts`).
 
 9. **Dokumentace.** Řádek do `CHANGELOG.md`, případně ADR; modul se objeví v tabulce balíčků v README a v [ARCHITECTURE](ARCHITECTURE.md).
 

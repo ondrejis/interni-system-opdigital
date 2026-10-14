@@ -19,26 +19,19 @@ Jak psát (podrobně v docs/DOCS-PROCES.md):
 
 _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprávění píš pod ním._
 
-- **Popis z manifestu:** Pipeline zakázek, rozpočet a položky, termíny, tým, dokumenty, ekonomika.
+- **Popis z manifestu:** Zakázky: fáze, termíny, tým, šablony, komentáře a úkoly (kostra, model se přepracovává).
 - **Závisí na:** [`kontakty`](kontakty.md)
-- **Entity:** [`job`](../reference/entity/zakazky.md#job), [`job_order`](../reference/entity/zakazky.md#job_order)
-- **Příkazy:** [80 příkazů](../reference/prikazy/zakazky.md)
-- **Úlohy na pozadí:** `zakazky.summary.refresh` (`20 3 * * *`), `zakazky.starts_today` (`30 6 * * 1-5`)
-- **Nastavení v administraci:** `nabidka`
-- **Dlaždice terminálu:** `zakazky.today`
+- **Entity:** [`job`](../reference/entity/zakazky.md#job)
+- **Příkazy:** [11 příkazů](../reference/prikazy/zakazky.md)
 - **Referenční stránky:** [modul](../reference/moduly/zakazky.md), [entity](../reference/entity/zakazky.md), [příkazy](../reference/prikazy/zakazky.md), [databáze](../reference/databaze/zakazky.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 
-| Oprávnění             | Název                                                         | Výchozí: owner | Výchozí: office | Výchozí: foreman | Výchozí: worker |
-| --------------------- | ------------------------------------------------------------- | -------------- | --------------- | ---------------- | --------------- |
-| `zakazky.read`        | Vidí zakázky                                                  | vše            | vše             | moje             | moje            |
-| `zakazky.write`       | Upravuje zakázky                                              | vše            | vše             | moje             |                 |
-| `zakazky.economics`   | Vidí ekonomiku zakázek                                        | vše            | vše             |                  |                 |
-| `zakazky.budget`      | Upravuje rozpočet a náklady zakázek                           | vše            | vše             |                  |                 |
-| `zakazky.approve`     | Schvaluje doklady zakázek do svého limitu                     | vše            | vše             | moje             |                 |
-| `zakazky.approve_all` | Schvaluje doklady bez limitu a nastavuje pravidla schvalování | vše            |                 |                  |                 |
-| `zakazky.share`       | Sdílí zakázku s investorem (odkaz jen ke čtení)               | vše            | vše             |                  |                 |
+| Oprávnění         | Název                          | Výchozí: owner |
+| ----------------- | ------------------------------ | -------------- |
+| `zakazky.read`    | Vidí zakázky                   | vše            |
+| `zakazky.write`   | Upravuje zakázky               | vše            |
+| `zakazky.finance` | Vidí hodnotu a finance zakázek | vše            |
 
 <!-- docs:generated:end -->
 

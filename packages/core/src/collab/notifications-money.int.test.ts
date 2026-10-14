@@ -36,8 +36,8 @@ describe("peníze v textu upozornění", () => {
   });
 
   it("částku dostane jen ten, kdo má zakázkovou ekonomiku nebo faktury; ostatní čistý text", async () => {
-    const boss = await person(["zakazky.economics"]);
-    const billing = await person(["fakturace.read"]);
+    const boss = await person(["finance.read"]);
+    const billing = await person(["finance.read"]);
     const worker = await person(["zakazky.read"]);
     const body = "VP-1 Zesílení desky: +206 000 Kč";
     await createNotifications(

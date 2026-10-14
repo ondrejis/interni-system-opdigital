@@ -4,8 +4,6 @@ import {
   type ClientExtension,
   type ModuleManifest,
 } from "@rebar/core";
-import { collectPermissions } from "@rebar/core";
-import { validateTerminalSetup } from "@rebar/core/terminal";
 import { collectNotificationEvents, configureNotifications } from "@rebar/core/notifications";
 import config from "@client/config";
 import { extensions } from "@client/extensions";
@@ -36,13 +34,6 @@ export function getRuntime(): Runtime {
   }
 
   const modules = resolveModules(config.modules, ALL_MODULES);
-  const terminalProblems = validateTerminalSetup(
-    config.terminal,
-    ALL_MODULES,
-    new Set(collectPermissions(ALL_MODULES).map((p) => p.key)),
-  );
-  if (terminalProblems.length)
-    throw new Error(`Neplatná sestava terminálu:\n - ${terminalProblems.join("\n - ")}`);
   const ids = new Set<string>();
   for (const ext of extensions) {
     if (ids.has(ext.id))

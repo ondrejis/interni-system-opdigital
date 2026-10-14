@@ -150,26 +150,6 @@ export const area: ModuleServer = {
           });
       }
 
-      // zakázky se semaforem „problém“
-      const danger = await visibleJobs(ctx, deps.registry, {
-        op: "and",
-        conditions: [{ attr: "sumHealth", op: "is", value: "danger" }],
-      });
-      if (danger.length) {
-        const rows = await ctx.db
-          .select({ id: job.id, number: job.number, title: job.title })
-          .from(job)
-          .where(inArray(job.id, danger))
-          .limit(10);
-        for (const r of rows)
-          items.push({
-            id: `job-health-${r.id}`,
-            module: "zakazky",
-            severity: "danger",
-            title: `Zakázka ${r.number} „${r.title}“ má problém s termínem nebo rozpočtem`,
-            href: `/zakazky/${r.id}`,
-          });
-      }
       return items;
     },
   ],

@@ -85,6 +85,13 @@
       "when": 1791872770974,
       "tag": "0011_crm_stage_probability",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791984076339,
+      "tag": "0012_drop_terminal_op",
+      "breakpoints": true
     }
   ]
 }

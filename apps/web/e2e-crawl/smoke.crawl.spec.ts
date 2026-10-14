@@ -8,7 +8,7 @@ const PAGES = [
   "/ukoly",
   "/zakazky",
   "/kontakty/firmy",
-  "/fakturace",
+  "/kalendar",
   "/nastaveni/firma",
 ];
 

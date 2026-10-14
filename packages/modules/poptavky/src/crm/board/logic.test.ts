@@ -107,7 +107,7 @@ describe("věty kontroly přechodu", () => {
 
 describe("součty sloupce a stáří", () => {
   it("vezme součet a vážený součet ze serverových agregací", () => {
-    expect(columnTotals(3, { sumContract: 500_000, crmWeighted: 250_000 })).toEqual({
+    expect(columnTotals(3, { value: 500_000, crmWeighted: 250_000 })).toEqual({
       count: 3,
       totalMinor: 500_000,
       weightedMinor: 250_000,

@@ -1,8 +1,5 @@
-// Kdy se záložky detailu zakázky ukážou podle fáze (ADR 015, tabulka „Záložky“ v analýze). Čisté funkce.
-// Pravidla: Přehled, Rozpočet, Úkoly a Soubory jsou vždy; Fakturace, Náklady a Realizace od přípravy
-// (zálohy, objednávky a harmonogram se řeší před stavbou); Změny od realizace; v Realizaci je Deník,
-// Předání a Vady až od zahájení stavby. Prohraná zakázka nese jen obchodní část. Pozastavená se chová jako
-// fáze, ze které byla pozastavena.
+// Fáze, podle které se řídí viditelnost částí detailu zakázky. Čisté funkce. Pozastavená zakázka se chová jako fáze,
+// ze které byla pozastavena; prohraná nese jen obchodní část.
 
 const ORDER = [
   "inquiry",
@@ -35,12 +32,3 @@ export function phaseAtLeast(row: RowLike, min: Main): boolean {
 
 export const fromPreparation = (row: RowLike) => phaseAtLeast(row, "preparation");
 export const fromExecution = (row: RowLike) => phaseAtLeast(row, "execution");
-
-/** Pravidla viditelnosti podle skupiny záložek. */
-export const GROUP_VISIBLE: Record<string, (row: RowLike) => boolean> = {
-  rozpocet: () => true,
-  zmeny: fromExecution,
-  naklady: fromPreparation,
-  fakturace: fromPreparation,
-  realizace: fromPreparation,
-};

@@ -39,8 +39,7 @@
     "./dashboards": "./src/dashboards/index.ts",
     "./dashboards-shared": "./src/dashboards/shared.ts",
     "./push": "./src/push/index.ts",
-    "./notifications": "./src/notifications/index.ts",
-    "./terminal": "./src/terminal/index.ts"
+    "./notifications": "./src/notifications/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

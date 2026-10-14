@@ -28,12 +28,12 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 
-| Oprávnění          | Název                       | Výchozí: owner | Výchozí: office | Výchozí: foreman | Výchozí: worker |
-| ------------------ | --------------------------- | -------------- | --------------- | ---------------- | --------------- |
-| `poptavky.read`    | Vidí poptávky               | vše            | vše             |                  |                 |
-| `poptavky.write`   | Upravuje poptávky           | vše            | vše             |                  |                 |
-| `poptavky.convert` | Převádí poptávky na zakázky | vše            | vše             |                  |                 |
-| `poptavky.intake`  | Spravuje příjem poptávek    | vše            |                 |                  |                 |
+| Oprávnění          | Název                       | Výchozí: owner |
+| ------------------ | --------------------------- | -------------- |
+| `poptavky.read`    | Vidí poptávky               | vše            |
+| `poptavky.write`   | Upravuje poptávky           | vše            |
+| `poptavky.convert` | Převádí poptávky na zakázky | vše            |
+| `poptavky.intake`  | Spravuje příjem poptávek    | vše            |
 
 <!-- docs:generated:end -->
 

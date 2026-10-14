@@ -35,7 +35,7 @@ export function parseOwner(v: string): OwnerFilter {
 
 /**
  * Prognóza obchodů po měsících (`crm.forecast`). Agregace běží na serveru nad zakázkami v rozsahu aktéra (oprávnění
- * ke čtení, rozsah „jen moje“); částky a váženou hodnotu dostane jen ten, kdo má `zakazky.economics`, jinak jsou `null`
+ * ke čtení, rozsah „jen moje“); částky a váženou hodnotu dostane jen ten, kdo má `zakazky.finance`, jinak jsou `null`
  * a sečtou se jen počty. Nearchivované otevřené obchody (poptávka, nabídka) padají do měsíců podle předpokládaného
  * uzavření, vyhrané podle data výhry. Vstup: `owner` (`all`, `me`, id uživatele), `from` (první měsíc `YYYY-MM`,
  * výchozí aktuální) a `months` (1 až 12, výchozí 4).
@@ -55,7 +55,7 @@ export const forecastCommand = defineCommand({
     const from = input.from ?? currentMonth();
     const scope = await scopedEntity(ctx, deps, "job");
     // peníze jen s oprávněním ekonomiky: atribut, který aktér nevidí, v entitě neexistuje
-    const money = scope.entity.byKey.has("sumContract") && scope.entity.byKey.has("crmWeighted");
+    const money = scope.entity.byKey.has("value") && scope.entity.byKey.has("crmWeighted");
     const range = windowRange(from, input.months);
     const ownerWhere =
       owner === "all"
@@ -72,7 +72,7 @@ export const forecastCommand = defineCommand({
         phase: job.phase,
         expected: job.expectedCloseDate,
         wonDay,
-        value: money ? job.sumContractMinor : sql<number>`0`,
+        value: money ? job.valueMinor : sql<number>`0`,
         weighted: money ? job.crmWeightedMinor : sql<number>`0`,
         probOverride: job.crmProbabilityPct,
         stageProb: schema.pipelineStage.probabilityPct,

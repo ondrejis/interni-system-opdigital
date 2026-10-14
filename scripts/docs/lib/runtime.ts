@@ -64,15 +64,12 @@ export function loadRuntime(): Runtime {
 export const KNOWN_SERVER_KEYS = new Set([
   "entities",
   "commands",
-  "costProviders",
   "attention",
   "widgets",
   "calendarLayers",
-  "diaryPrefill",
   "jobs",
   "phaseHooks",
   "deleteBlockers",
-  "jobInvoicing",
 ]);
 
 /** Klíče manifestu, které generátor zná. */
@@ -87,7 +84,6 @@ export const KNOWN_MANIFEST_KEYS = new Set([
   "permissions",
   "entities",
   "seed",
-  "terminalWidgets",
 ]);
 
 /** Klíče `ModuleUi`, které generátor zná. */
@@ -100,7 +96,6 @@ export const KNOWN_UI_KEYS = new Set([
   "recordOverview",
   "hiddenCoreTabs",
   "pages",
-  "terminalWidgets",
 ]);
 
 /** Příkazy serverové části modulu jako pole (v registru jsou v mapě podle názvu). */

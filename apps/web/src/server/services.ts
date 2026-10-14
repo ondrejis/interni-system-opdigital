@@ -72,9 +72,7 @@ function build() {
     cipher,
     baseURL: env.APP_URL,
     emit,
-    costProviders: collected.costProviders,
     calendarLayers: collected.calendarLayers,
-    diaryPrefill: collected.diaryPrefill,
   };
 
   const exportRuntime: ExportRuntime = {

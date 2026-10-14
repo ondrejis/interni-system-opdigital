@@ -1,2 +1,0 @@
-CREATE INDEX "job_number_trgm_idx" ON "job" USING gin (lower(f_unaccent("number")) gin_trgm_ops);--> statement-breakpoint
-CREATE INDEX "job_address_trgm_idx" ON "job" USING gin (lower(f_unaccent("address")) gin_trgm_ops);

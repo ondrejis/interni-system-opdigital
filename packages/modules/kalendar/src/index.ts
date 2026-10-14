@@ -14,6 +14,7 @@ export const manifest = defineModule({
       icon: "calendar",
       permission: "kalendar.read",
       group: "Provoz",
+      bottom: true,
     },
     {
       label: "Události",

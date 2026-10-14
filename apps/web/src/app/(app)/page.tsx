@@ -1,19 +1,16 @@
 import { getAccount } from "@rebar/core/auth";
 import { collectNav } from "@rebar/core";
 import { listMyTasks, unreadCount } from "@rebar/core/collab";
-import { queryRecords, resolveEntity } from "@rebar/core/entities";
 import { can, scopeOf } from "@rebar/core/rbac";
 import { formatDate } from "@rebar/core/shared";
 import { todayIso } from "@rebar/core/time";
 import { Icon, PageHeader } from "@rebar/ui";
-import { BookOpen, MapPin } from "lucide-react";
 import Link from "next/link";
 import { homeBoardId, listBoards } from "@rebar/core/dashboards";
 import { collectDashboard } from "@/server/dashboard";
 import { dashboardsEnabled } from "@/server/dashboards";
 import { HomeBoards } from "./home-boards";
 import { groupNav } from "@/server/shell";
-import { HomeClock } from "./home-clock";
 import { requireCtx } from "@/server/request";
 import { getServices } from "@/server/services";
 
@@ -34,7 +31,7 @@ export default async function HomePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const ctx = await requireCtx();
-  const { runtime, registry, db } = getServices();
+  const { runtime } = getServices();
   // vlastní nástěnky: přepínač nahoře; vybraná nástěnka (nebo domovská pro roli) nahradí klasický Přehled
   const boardsOn = dashboardsEnabled();
   const [boards, homeId] = boardsOn
@@ -78,22 +75,6 @@ export default async function HomePage({
   const nav = collectNav(runtime.modules).filter(
     (n) => n.permission === undefined || [n.permission].flat().some((p) => can(ctx, p)),
   );
-  // Terén: moje zakázky (montér a mistr jen svoje, ostatní ty, na kterých se pracuje) s rychlým skokem do deníku
-  const jobDef = runtime.modules.some((m) => m.id === "zakazky") ? registry.get("job") : undefined;
-  const myJobs =
-    jobDef && scopeOf(ctx, "zakazky.read")
-      ? (
-          await queryRecords(ctx, registry, await resolveEntity(db, jobDef), {
-            filters: {
-              op: "and",
-              conditions: [{ attr: "phase", op: "is_any_of", value: ["execution", "handover"] }],
-            },
-            limit: 6,
-          })
-        ).rows
-      : [];
-  const diaryOpen = runtime.modules.some((m) => m.id === "realizace") && can(ctx, "realizace.read");
-  const jobsTitle = scopeOf(ctx, "zakazky.read") === "own" ? "Moje zakázky" : "Zakázky v realizaci";
   const today = todayIso();
   const open = tasks.filter((t) => !t.doneAt);
   const overdue = open.filter((t) => t.dueDate && t.dueDate < today).length;
@@ -114,54 +95,6 @@ export default async function HomePage({
         <p className="mt-1 text-muted" data-testid="whoami">
           Přihlášen: <strong className="text-fg">{account.name}</strong> ({account.roleName})
         </p>
-
-        {runtime.modules.some((m) => m.id === "dochazka") && can(ctx, "dochazka.own") && (
-          <HomeClock />
-        )}
-
-        {myJobs.length > 0 && (
-          <section aria-label={jobsTitle} className="mt-6" data-testid="my-jobs">
-            <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-faint">
-              {jobsTitle}
-            </h2>
-            <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              {myJobs.map((j) => (
-                <li
-                  key={String(j.id)}
-                  className="rounded-lg border border-line p-3 hover:border-line-strong"
-                >
-                  <Link href={`/zakazky/${String(j.id)}`} className="block">
-                    <span className="block truncate font-medium">{String(j.title)}</span>
-                    <span className="mt-0.5 block truncate text-sm text-muted">
-                      {String(j.number)}
-                      {j.address ? ` · ${String(j.address)}` : ""}
-                    </span>
-                  </Link>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {diaryOpen && (
-                      <Link
-                        href={`/zakazky/${String(j.id)}?tab=realizace&sub=denik`}
-                        className="inline-flex min-h-8 items-center gap-1.5 rounded-md bg-accent px-3 text-sm font-medium text-accent-fg pointer-coarse:min-h-11"
-                      >
-                        <BookOpen className="size-4" /> Zapsat do deníku
-                      </Link>
-                    )}
-                    {j.address ? (
-                      <a
-                        href={`https://mapy.cz/zakladni?q=${encodeURIComponent(String(j.address))}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-line-strong px-3 text-sm pointer-coarse:min-h-11"
-                      >
-                        <MapPin className="size-4" /> Navigovat
-                      </a>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
 
         <section aria-label="Vyžaduje pozornost" className="mt-6" data-testid="attention">
           <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-faint">
