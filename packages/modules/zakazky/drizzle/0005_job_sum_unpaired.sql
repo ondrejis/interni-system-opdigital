@@ -1,0 +1,1 @@
+ALTER TABLE "job" ADD COLUMN "sum_unpaired_count" integer DEFAULT 0 NOT NULL;

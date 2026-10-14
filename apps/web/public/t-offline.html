@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Jste offline</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --fg: #1b1c20;
+        --muted: #62656e;
+        --line: #d2d3d9;
+        --accent: #2563eb;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #131417;
+          --fg: #ececf0;
+          --muted: #a0a3ac;
+          --line: #3a3b43;
+        }
+      }
+      body {
+        margin: 0;
+        font:
+          18px/1.5 system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      main {
+        max-width: 36rem;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+      }
+      h1 {
+        font-size: 1.6rem;
+        margin: 0 0 0.5rem;
+      }
+      p {
+        color: var(--muted);
+        margin: 0 0 1rem;
+      }
+      .box {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 1rem;
+        margin: 1.25rem 0;
+      }
+      .box strong {
+        color: var(--fg);
+      }
+      button {
+        width: 100%;
+        min-height: 56px;
+        border: 0;
+        border-radius: 14px;
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Jste offline</h1>
+      <p>
+        Terminál se bez připojení nenačte. Zápisy, které jste už pořídili, jsou uložené v telefonu a
+        odešlou se, jakmile se připojení vrátí.
+      </p>
+      <div class="box" id="queue" hidden><strong id="count"></strong></div>
+      <button type="button" id="retry">Zkusit znovu</button>
+    </main>
+    <script>
+      document.getElementById("retry").addEventListener("click", function () {
+        location.reload();
+      });
+      window.addEventListener("online", function () {
+        location.reload();
+      });
+      // počet čekajících zápisů z fronty terminálu (IndexedDB), jen pro informaci
+      try {
+        var req = indexedDB.open("terminal-ops", 1);
+        req.onsuccess = function () {
+          var db = req.result;
+          if (!db.objectStoreNames.contains("ops")) return;
+          var all = db.transaction("ops", "readonly").objectStore("ops").getAll();
+          all.onsuccess = function () {
+            var n = all.result.length;
+            if (!n) return;
+            document.getElementById("queue").hidden = false;
+            document.getElementById("count").textContent =
+              "Čeká na odeslání: " + n + (n === 1 ? " zápis" : n < 5 ? " zápisy" : " zápisů");
+          };
+        };
+      } catch (e) {}
+    </script>
+  </body>
+</html>

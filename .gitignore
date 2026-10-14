@@ -1,0 +1,26 @@
+node_modules/
+.next/
+dist/
+coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+
+# secrets — v repu jen .env.example
+.env
+.env.*
+!.env.example
+
+# znalostní soubor pracovního prostoru (Obsidian), není součástí produktu
+/_kontext.md
+
+# lokální data (soubory, DB cluster)
+.data/
+
+# přihlášená relace e2e testů
+apps/web/e2e/.auth/
+apps/web/e2e-crawl/.auth/
+apps/web/e2e-shuffled/
+apps/web/test-results-*/

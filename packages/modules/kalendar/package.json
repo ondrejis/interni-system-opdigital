@@ -1,0 +1,30 @@
+{
+  "name": "@rebar/kalendar",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./server": "./src/server.ts",
+    "./ui": "./src/ui.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@rebar/core": "workspace:*",
+    "@rebar/ui": "workspace:*",
+    "drizzle-orm": "^0.45.3",
+    "lucide-react": "^1.53.0",
+    "react": "^19.3.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "vitest": "^5.0.3",
+    "drizzle-kit": "^0.31.11",
+    "@types/react": "^19.3.0"
+  }
+}

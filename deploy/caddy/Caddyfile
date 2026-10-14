@@ -1,0 +1,39 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(self), microphone=(), geolocation=(self), payment=()"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		-Server
+	}
+
+	@static path /_next/static/*
+	header @static Cache-Control "public, max-age=31536000, immutable"
+
+	# veřejné a přihlašovací cesty nepotřebují velká těla (poptávky z webu, přihlášení, pozvánky, push)
+	@small path /api/intake/* /api/auth/* /api/invitations/* /api/push/*
+	request_body @small {
+		max_size 256KB
+	}
+
+	# nahrávání souborů (do 25 MB + režie formuláře) a exporty
+	request_body {
+		max_size 30MB
+	}
+
+	reverse_proxy app:3000 {
+		# adresu klienta nastavuje proxy, nikdy ji nepřebíráme od klienta (omezení počtu přihlášení podle IP)
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Real-IP {remote_host}
+		health_uri /api/health/live
+		health_interval 15s
+	}
+}

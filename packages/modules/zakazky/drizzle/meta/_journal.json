@@ -1,0 +1,97 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791458996446,
+      "tag": "0000_init",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791463877697,
+      "tag": "0001_rozpocet_naklady_zmeny",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791525722620,
+      "tag": "0002_zakazka_model",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791526061780,
+      "tag": "0003_zakazka_souhrn",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791526531708,
+      "tag": "0004_job_cost_source",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791526628262,
+      "tag": "0005_job_sum_unpaired",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791526762198,
+      "tag": "0006_lifecycle_phases",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791526880090,
+      "tag": "0007_rozpocet_z_odhadu",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791527239659,
+      "tag": "0008_zrusit_odhad",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791527434906,
+      "tag": "0009_zmeny_radky_ze_starych",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791560308158,
+      "tag": "0010_trgm_hledani",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791873017233,
+      "tag": "0011_crm_zakazka",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791873022363,
+      "tag": "0012_crm_historie_stavu",
+      "breakpoints": true
+    }
+  ]
+}

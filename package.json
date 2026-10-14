@@ -1,0 +1,62 @@
+{
+  "name": "rebar",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Core interních firemních systémů na míru (interní pracovní název, klientům se nezobrazuje)",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @rebar/web dev",
+    "build": "pnpm --filter @rebar/web build",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm -r --parallel typecheck && tsc -p scripts/docs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e:local": "sh scripts/e2e-local.sh",
+    "test:e2e": "cd apps/web && node --env-file-if-exists=../../.env.local node_modules/@playwright/test/cli.js test",
+    "config:check": "tsx scripts/config-check.ts",
+    "client:new": "tsx scripts/client-new.ts",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm docs:check && pnpm docs:coverage --check && pnpm test && pnpm config:check",
+    "db:up": "sh scripts/dev-db.sh up",
+    "db:down": "sh scripts/dev-db.sh down",
+    "db:migrate": "tsx --env-file-if-exists=.env.local scripts/db-migrate.ts",
+    "db:generate": "pnpm --filter @rebar/core db:generate",
+    "test:unit": "vitest run --project unit",
+    "db:seed": "tsx --env-file-if-exists=.env.local scripts/db-seed.ts",
+    "demo:seed": "tsx --env-file-if-exists=.env.local scripts/demo-seed.ts",
+    "worker": "tsx --env-file-if-exists=.env.local scripts/worker.ts",
+    "db:reset": "sh scripts/dev-db.sh reset",
+    "perf:check": "tsx --env-file-if-exists=.env.local scripts/perf-check.ts",
+    "vapid:generate": "tsx scripts/vapid-generate.ts",
+    "test:crawl": "cd apps/web && node --env-file-if-exists=../../.env.local node_modules/@playwright/test/cli.js test -c playwright.crawl.config.ts",
+    "check:fresh": "sh scripts/fresh-instance-check.sh",
+    "check:fresh:push": "FRESH_VAPID=1 sh scripts/fresh-instance-check.sh",
+    "docs:generate": "tsx scripts/docs/generate.ts",
+    "docs:check": "tsx scripts/docs/generate.ts --check",
+    "docs:api": "tsx scripts/docs/generate.ts --only=api",
+    "docs:scaffold": "tsx scripts/docs/scaffold.ts",
+    "docs:status": "tsx scripts/docs/status.ts",
+    "docs:coverage": "tsx scripts/docs/coverage.ts",
+    "docs:refresh": "tsx scripts/docs/generate.ts && tsx scripts/docs/coverage.ts --prune"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^24.0.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.6.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "@rebar/core": "workspace:*",
+    "tsx": "^4.23.15"
+  }
+}

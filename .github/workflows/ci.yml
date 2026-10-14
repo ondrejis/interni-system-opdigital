@@ -1,0 +1,319 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      REBAR_TEST_DB_HOST: localhost:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Klient PostgreSQL 17 (test zálohovacího nástroje potřebuje pg_dump stejné verze jako server) a restic (skutečná záloha do lokálního repozitáře)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17 jq restic shellcheck
+          echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+      - name: Skripty a workflow (shellcheck, actionlint)
+        run: |
+          shellcheck -x -P SCRIPTDIR --severity=warning -e SC1111 deploy/scripts/*.sh deploy/postgres/init-roles.sh scripts/ci/*.sh
+          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - name: Dokumentace odpovídá kódu (generovaná reference, popisy exportů)
+        run: |
+          pnpm docs:check
+          pnpm docs:coverage --check
+      - name: Role testovací databáze
+        run: |
+          psql -h localhost -U postgres -c "CREATE ROLE rebar_migrator LOGIN PASSWORD 'migrator'" -c "CREATE ROLE rebar_app LOGIN PASSWORD 'app'"
+      - run: pnpm test
+      - run: pnpm config:check
+      - run: pnpm audit --prod --audit-level high
+
+  build:
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/**/*.ts', 'apps/**/*.tsx', 'packages/**/*.ts', 'packages/**/*.tsx') }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+      - run: pnpm build
+        env:
+          CLIENT: demo
+      - name: Velikost JavaScriptu
+        run: node scripts/bundle-report.mjs
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: check
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      CLIENT: demo
+      DATABASE_URL: postgres://rebar_app:app@localhost:5432/rebar_e2e
+      DATABASE_MIGRATE_URL: postgres://rebar_migrator:migrator@localhost:5432/rebar_e2e
+      DATABASE_APP_ROLE: rebar_app
+      APP_URL: http://localhost:3101
+      AUTH_SECRET: ci-secret-ci-secret-ci-secret-0123456789
+      APP_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      HEALTH_TOKEN: ci-health-token-0123456789
+      FILES_DIR: /tmp/rebar-files
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: "Databáze pro e2e (čistá, řazení ICU cs-CZ jako v provozu)"
+        run: |
+          psql -h localhost -U postgres \
+            -c "CREATE ROLE rebar_migrator LOGIN PASSWORD 'migrator'" \
+            -c "CREATE ROLE rebar_app LOGIN PASSWORD 'app'" \
+            -c "CREATE DATABASE rebar_e2e OWNER rebar_migrator TEMPLATE template0 ENCODING 'UTF8' LOCALE_PROVIDER icu ICU_LOCALE 'cs-CZ' LOCALE 'en_US.UTF-8'"
+      - run: pnpm db:migrate
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Prohlížeč pro Playwright
+        run: pnpm --filter @rebar/web exec playwright install --with-deps chromium
+      - uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/**/*.ts', 'apps/**/*.tsx', 'packages/**/*.ts', 'packages/**/*.tsx') }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 7
+
+  # Ověří, že se image sestaví (na produkčním serveru se nikdy nebuilduje) a že obsahuje, co má.
+  image:
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          build-args: |
+            CLIENT=demo
+            APP_VERSION=0.0.0-ci
+          load: true
+          tags: system-demo:ci
+          cache-from: type=gha,scope=image-demo
+          cache-to: type=gha,mode=max,scope=image-demo
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/backup.Dockerfile
+          load: true
+          tags: system-backup:ci
+          cache-from: type=gha,scope=image-backup
+          cache-to: type=gha,mode=max,scope=image-backup
+      - name: Obsah image aplikace
+        run: |
+          docker run --rm --entrypoint sh system-demo:ci -c '
+            test -f /srv/web/apps/web/server.js &&
+            test -d /srv/web/apps/web/.next/static &&
+            test -x /app/node_modules/.bin/tsx &&
+            test -f /app/scripts/worker.ts &&
+            test -e /app/node_modules/@rebar/core/package.json &&
+            test -f /app/scripts/db-migrate.ts &&
+            test "$(id -u)" != "0" &&
+            echo "image v pořádku (uživatel $(id -un))"'
+      - name: Obsah image zálohování
+        run: |
+          docker run --rm --entrypoint sh system-backup:ci -c 'restic version && pg_dump --version && jq --version && test -x /scripts/backup-tool.sh'
+
+  # Smoke celého nasazení: image z CI + docker compose (PostgreSQL, app, worker, backup, Caddy) jako na serveru klienta.
+  # Migrace, výchozí data, procházecí testy proti běžícímu kontejneru, skutečná záloha a zkouška obnovy (restic do lokálního
+  # repozitáře) a kontrola, že v logu kontejnerů nejsou chyby.
+  compose-smoke:
+    runs-on: ubuntu-latest
+    needs: image
+    timeout-minutes: 75
+    env:
+      # provozní soubory + přepsání pro CI; stejné nastavení používají i deploy/scripts/*.sh (dc)
+      COMPOSE_FILE: ${{ github.workspace }}/deploy/docker-compose.yml:${{ github.workspace }}/scripts/ci/docker-compose.ci.yml
+      COMPOSE: docker compose --project-directory deploy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          build-args: |
+            CLIENT=demo
+            APP_VERSION=0.0.0-ci
+          load: true
+          tags: system-demo:ci
+          cache-from: type=gha,scope=image-demo
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/backup.Dockerfile
+          load: true
+          tags: system-backup:ci
+          cache-from: type=gha,scope=image-backup
+      - name: Konfigurace instance (.env s náhodnými tajemstvími)
+        run: |
+          scripts/ci/compose-env.sh
+          mkdir -p /tmp/restic-ci && chmod 777 /tmp/restic-ci
+      - name: Databáze, migrace, výchozí data
+        run: |
+          $COMPOSE up -d --wait postgres
+          $COMPOSE run --rm migrate
+          $COMPOSE run --rm seed
+          if [ -f scripts/demo-seed.ts ]; then
+            # ukázková data (skript je jinak odmítne nasadit v produkčním režimu kontejneru)
+            $COMPOSE run --rm -e DEMO_SEED_ALLOW_PRODUCTION=1 seed node_modules/.bin/tsx scripts/demo-seed.ts --quiet
+          fi
+          # vlastník CI se přihlašuje bez dvoufázového ověření (jen v této zahazované databázi)
+          $COMPOSE exec -T postgres psql -U postgres -d system -v ON_ERROR_STOP=1 -c "update role set require_2fa = false where key = 'owner'"
+      - name: Spuštění aplikace, workeru a zálohování
+        run: |
+          $COMPOSE up -d app worker backup
+          for _ in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:3000/api/health/live && break
+            sleep 3
+          done
+          curl -fsS http://127.0.0.1:3000/api/health/live
+          echo
+          curl -sS -H "Authorization: Bearer $HEALTH_TOKEN" http://127.0.0.1:3000/api/health | tee health.json
+          echo
+          jq -e '.db.ok == true' health.json
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm --filter @rebar/web exec playwright install --with-deps chromium
+      - name: Procházecí testy proti kontejneru
+        env:
+          CRAWL_BASE_URL: http://localhost:3000
+        timeout-minutes: 45
+        # celá sada (obchod, provoz, platforma, role, mobil, okraje, přístupnost) nad čerstvými demo daty;
+        # lokálně totéž dělá `pnpm check:fresh`
+        run: pnpm test:crawl
+      - name: Záloha a zkouška obnovy (skutečný restic, lokální repozitář)
+        if: ${{ !cancelled() }}
+        run: |
+          psql_sys() { $COMPOSE exec -T postgres psql -U postgres -d system -v ON_ERROR_STOP=1 -Atc "$1"; }
+          # značky stavu v databázi a v souborech před zálohou
+          psql_sys "create table ci_marker (v text); insert into ci_marker values ('pred zalohou'); alter table ci_marker owner to system_migrator"
+          $COMPOSE exec -T app sh -c 'echo "pred zalohou" > /data/files/ci-marker.txt'
+          $COMPOSE exec -T backup /scripts/backup-tool.sh backup
+          $COMPOSE exec -T backup /scripts/backup-tool.sh restore-test
+          $COMPOSE exec -T backup cat /data/status/backup.json | tee backup-status.json
+          jq -e '.lastSuccessAt != null and .restoreTest.ok == true' backup-status.json
+          # stav zálohy vidí i aplikace (/api/health)
+          curl -sS -H "Authorization: Bearer $HEALTH_TOKEN" http://127.0.0.1:3000/api/health | jq -e '.backup.lastSuccessAt != null'
+      - name: Obnova ze zálohy (deploy/scripts/restore.sh)
+        if: ${{ !cancelled() }}
+        run: |
+          psql_sys() { $COMPOSE exec -T postgres psql -U postgres -d system -v ON_ERROR_STOP=1 -Atc "$1"; }
+          snapshot="$(jq -r .lastSnapshot backup-status.json)"
+          # po záloze data změníme; obnova je musí vrátit
+          psql_sys "update ci_marker set v = 'po zaloze'"
+          $COMPOSE exec -T app sh -c 'echo "po zaloze" > /data/files/ci-marker.txt; echo navic > /data/files/ci-navic.txt'
+          deploy/scripts/restore.sh "$snapshot" --yes
+          test "$(psql_sys 'select v from ci_marker')" = "pred zalohou"
+          test "$($COMPOSE exec -T app cat /data/files/ci-marker.txt)" = "pred zalohou"
+          $COMPOSE exec -T app test ! -e /data/files/ci-navic.txt
+          curl -fsS http://127.0.0.1:3000/api/health/live
+      - name: Caddy (hlavičky, přepsání adresy klienta)
+        if: ${{ !cancelled() }}
+        run: |
+          $COMPOSE up -d --wait caddy
+          for _ in $(seq 1 20); do
+            curl -ksS -o /dev/null https://localhost/api/health/live && break
+            sleep 3
+          done
+          curl -ksS -D - -o /dev/null https://localhost/api/health/live | tee caddy-headers.txt
+          grep -qi '^strict-transport-security:' caddy-headers.txt
+          grep -qi '^x-frame-options: DENY' caddy-headers.txt
+          grep -qi '^content-security-policy:.*frame-ancestors' caddy-headers.txt
+      - name: Log kontejnerů bez chyb
+        if: ${{ !cancelled() }}
+        run: |
+          $COMPOSE logs --no-color > compose.log
+          scripts/ci/check-logs.sh compose.log
+      - name: Log kontejnerů při selhání
+        if: failure()
+        run: $COMPOSE logs --no-color --tail=500 | tail -n 600 || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: compose-smoke
+          path: |
+            compose.log
+            health.json
+            backup-status.json
+            caddy-headers.txt
+            apps/web/test-results
+          retention-days: 7
+          if-no-files-found: ignore
+      - name: Úklid
+        if: always()
+        run: $COMPOSE --profile tools down -v --remove-orphans

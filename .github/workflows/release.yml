@@ -1,0 +1,92 @@
+name: Release
+
+# Vydání podle tagu vX.Y.Z: ověří kód, sestaví image každého klienta a zálohování, nahraje je do GHCR
+# a k vydání přiloží balíček s provozními soubory (deploy/).
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  clients:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: list
+        run: |
+          slugs=$(for d in clients/*/; do b=$(basename "$d"); case "$b" in _*) ;; *) echo "$b" ;; esac; done | jq -R . | jq -sc .)
+          echo "matrix=$slugs" >> "$GITHUB_OUTPUT"
+
+  images:
+    runs-on: ubuntu-latest
+    needs: [verify, clients]
+    strategy:
+      fail-fast: false
+      matrix:
+        client: ${{ fromJson(needs.clients.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Název image (malými písmeny)
+        id: name
+        run: |
+          repo=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "image=${repo}-${{ matrix.client }}" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          push: true
+          build-args: |
+            CLIENT=${{ matrix.client }}
+            APP_VERSION=${{ github.ref_name }}
+          tags: ${{ steps.name.outputs.image }}:${{ github.ref_name }}
+          cache-from: type=gha,scope=image-${{ matrix.client }}
+          cache-to: type=gha,mode=max,scope=image-${{ matrix.client }}
+          provenance: true
+          sbom: true
+
+  backup-image:
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: name
+        run: echo "image=$(echo "ghcr.io/${{ github.repository }}-backup" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/backup.Dockerfile
+          push: true
+          tags: ${{ steps.name.outputs.image }}:${{ github.ref_name }}
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [images, backup-image]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Balíček provozních souborů
+        run: tar -czf deploy-${{ github.ref_name }}.tgz -C deploy --exclude=logs --exclude=.state --exclude=.env .
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: deploy-${{ github.ref_name }}.tgz
+          generate_release_notes: true

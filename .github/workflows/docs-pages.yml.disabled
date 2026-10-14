@@ -1,0 +1,53 @@
+# Publikace dokumentace na GitHub Pages: ZATÍM VYPNUTO.
+#
+# GitHub spouští jen soubory .yml/.yaml, takže tento soubor se s příponou .disabled nespouští.
+# Zapnutí vyžaduje: (1) výslovné povolení majitele, (2) ADR o publikaci (kdo uvidí obsah, soukromý repozitář, tarif),
+# (3) v nastavení repozitáře Settings -> Pages -> Source: GitHub Actions, (4) přejmenování na docs-pages.yml.
+# Popis procesu: docs/DOCS-PROCES.md, §8.
+name: Docs (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+    paths: ["docs/**", "README.md", "CHANGELOG.md"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Zveřejní se jen aktuální dokumentace: kontrola driftu musí projít.
+      - run: pnpm docs:check
+      - uses: actions/configure-pages@v5
+      - name: Sestavení webu z markdownu (Jekyll)
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./docs
+          destination: ./_site
+      - uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

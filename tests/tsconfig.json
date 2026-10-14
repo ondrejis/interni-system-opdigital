@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "zod": ["../packages/core/node_modules/zod"],
+      "drizzle-orm": ["../packages/core/node_modules/drizzle-orm"],
+      "drizzle-orm/*": ["../packages/core/node_modules/drizzle-orm/*"]
+    }
+  },
+  "include": ["."]
+}

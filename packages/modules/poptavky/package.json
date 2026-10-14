@@ -1,0 +1,31 @@
+{
+  "name": "@rebar/poptavky",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./server": "./src/server.ts",
+    "./ui": "./src/ui.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@rebar/core": "workspace:*",
+    "@rebar/ui": "workspace:*",
+    "@rebar/kontakty": "workspace:*",
+    "@rebar/zakazky": "workspace:*",
+    "drizzle-orm": "^0.45.3",
+    "zod": "^4.6.5",
+    "react": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "vitest": "^5.0.3",
+    "drizzle-kit": "^0.31.11",
+    "@types/react": "^19.3.0"
+  }
+}

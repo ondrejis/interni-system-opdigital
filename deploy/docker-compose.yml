@@ -1,0 +1,208 @@
+# Provoz jedné klientské instance. Obrazy se stahují (staví je CI), na serveru se nic nebuilduje.
+# Konfigurace je v .env (vzor: .env.example). Spouštět přes scripts/*.sh nebo `docker compose …` v této složce.
+name: system
+
+x-app: &app
+  image: ${APP_IMAGE}:${APP_TAG}
+  restart: unless-stopped
+  init: true
+  # jen to, co aplikace potřebuje (žádná hesla k záloze ani superuživatel databáze)
+  environment: &app-env
+    CLIENT: ${CLIENT}
+    APP_VERSION: ${APP_TAG}
+    AUTH_SECRET: ${AUTH_SECRET}
+    APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY}
+    APP_ENCRYPTION_KEYS: ${APP_ENCRYPTION_KEYS:-}
+    HEALTH_TOKEN: ${HEALTH_TOKEN}
+    HEARTBEAT_URL: ${HEARTBEAT_URL:-}
+    SENTRY_DSN: ${SENTRY_DSN:-}
+    VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+    VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+    VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+    OWNER_EMAIL: ${OWNER_EMAIL:-}
+    OWNER_NAME: ${OWNER_NAME:-}
+    OWNER_PASSWORD: ${OWNER_PASSWORD:-}
+    TZ: Europe/Prague
+    APP_URL: https://${DOMAIN}
+    DATABASE_URL: postgres://${DB_APP_USER}:${DB_APP_PASSWORD}@postgres:5432/${DB_NAME}
+    DATABASE_MIGRATE_URL: postgres://${DB_MIGRATOR_USER}:${DB_MIGRATOR_PASSWORD}@postgres:5432/${DB_NAME}
+    DATABASE_APP_ROLE: ${DB_APP_USER}
+    FILES_DIR: /data/files
+    BACKUP_STATUS_FILE: /data/status/backup.json
+  volumes:
+    - files:/data/files
+    - status:/data/status:ro
+  networks: [internal, edge]
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    networks: [edge]
+    mem_limit: 128m
+    logging: &log
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  app:
+    <<: *app
+    # halda Node omezená pod limit kontejneru (1 GB): bez toho RSS při zátěži vyroste na 735–925 MB, s omezením zůstává kolem 400–460 MB
+    command: ["node", "--max-old-space-size=640", "/srv/web/apps/web/server.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose: ["3000"]
+    mem_limit: 1g
+    logging: *log
+
+  worker:
+    <<: *app
+    command: ["node_modules/.bin/tsx", "scripts/worker.ts"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f scripts/worker.ts >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    mem_limit: 512m
+    logging: *log
+
+  postgres:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_SUPERUSER_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_APP_USER: ${DB_APP_USER}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD}
+      DB_MIGRATOR_USER: ${DB_MIGRATOR_USER}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD}
+      TZ: Europe/Prague
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgres/init-roles.sh:/docker-entrypoint-initdb.d/10-init-roles.sh:ro
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [internal]
+    mem_limit: 1280m
+    logging: *log
+
+  # Jednorázové nástroje (nespouštějí se s `up`): docker compose run --rm migrate | seed
+  migrate:
+    <<: *app
+    profiles: ["tools"]
+    restart: "no"
+    command: ["node_modules/.bin/tsx", "scripts/db-migrate.ts"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  seed:
+    <<: *app
+    profiles: ["tools"]
+    restart: "no"
+    command: ["node_modules/.bin/tsx", "scripts/db-seed.ts"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backup:
+    image: ${BACKUP_IMAGE}:${APP_TAG}
+    restart: unless-stopped
+    environment:
+      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-}
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      BACKUP_TIME: ${BACKUP_TIME:-02:30}
+      RESTORE_TEST_DAY: ${RESTORE_TEST_DAY:-1}
+      DB_NAME: ${DB_NAME}
+      PGHOST: postgres
+      PGDATABASE: ${DB_NAME}
+      PGUSER: ${DB_MIGRATOR_USER}
+      PGPASSWORD: ${DB_MIGRATOR_PASSWORD}
+      TZ: Europe/Prague
+    volumes:
+      - files:/data/files:ro
+      - status:/data/status
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal, edge]
+    mem_limit: 256m
+    logging: *log
+
+  # Obnova ze zálohy (jen přes scripts/restore.sh): na rozdíl od `backup` smí zapisovat do souborů.
+  restore:
+    image: ${BACKUP_IMAGE}:${APP_TAG}
+    profiles: ["tools"]
+    restart: "no"
+    environment:
+      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-}
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      PGHOST: postgres
+      PGDATABASE: ${DB_NAME}
+      PGUSER: ${DB_MIGRATOR_USER}
+      PGPASSWORD: ${DB_MIGRATOR_PASSWORD}
+      TZ: Europe/Prague
+    volumes:
+      - files:/data/files
+      - status:/data/status
+    user: "0:0"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal, edge]
+
+  # Metriky serveru pro Beszel (zapíná se profilem `monitoring`, když je v .env BESZEL_KEY).
+  beszel-agent:
+    image: henrygd/beszel-agent:0.12
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      KEY: ${BESZEL_KEY:-}
+      PORT: ${BESZEL_PORT:-45876}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    mem_limit: 64m
+    logging: *log
+
+networks:
+  # databáze je dostupná jen z vnitřní sítě, bez přístupu ven
+  internal:
+    internal: true
+  edge: {}
+
+volumes:
+  pgdata:
+  files:
+  status:
+  caddy_data:
+  caddy_config:

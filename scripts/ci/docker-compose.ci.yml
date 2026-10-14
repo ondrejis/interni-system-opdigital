@@ -1,0 +1,24 @@
+# Přepsání deploy/docker-compose.yml jen pro CI (job compose-smoke): aplikace vystavená na localhost přes http
+# (za Caddy je v provozu https), zálohy do lokálního restic repozitáře místo S3 (RESTIC_REPOSITORY v .env).
+# Použití: docker compose --project-directory deploy -f deploy/docker-compose.yml -f scripts/ci/docker-compose.ci.yml …
+x-ci-env: &ci-env
+  APP_URL: http://localhost:3000
+  APP_ALLOW_HTTP: "1"
+
+services:
+  app:
+    ports: ["127.0.0.1:3000:3000"]
+    environment: *ci-env
+  worker:
+    environment: *ci-env
+  migrate:
+    environment: *ci-env
+  seed:
+    environment: *ci-env
+  # lokální restic repozitář (RESTIC_REPOSITORY=/restic-repo je v .env) ve složce na runneru s právy pro uživatele zálohování (uid 1000 v obrazu)
+  backup:
+    volumes:
+      - /tmp/restic-ci:/restic-repo
+  restore:
+    volumes:
+      - /tmp/restic-ci:/restic-repo

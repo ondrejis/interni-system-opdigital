@@ -1,0 +1,54 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommitTypeAll(chore)"],
+  "timezone": "Europe/Prague",
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 5,
+  "labels": ["dependencies"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"]
+  },
+  "packageRules": [
+    {
+      "description": "Drobné a bezpečnostní aktualizace dev nástrojů dohromady",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "dev nástroje (minor a patch)"
+    },
+    {
+      "description": "Produkční závislosti: minor a patch dohromady",
+      "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "závislosti (minor a patch)"
+    },
+    {
+      "description": "Next.js, React a související knihovny společně",
+      "matchPackageNames": ["next", "react", "react-dom", "@types/react", "@types/react-dom"],
+      "groupName": "Next.js a React"
+    },
+    {
+      "description": "Docker obrazy v compose a Dockerfile",
+      "matchManagers": ["docker-compose", "dockerfile"],
+      "groupName": "Docker obrazy"
+    },
+    {
+      "description": "Hlavní verze PostgreSQL se nenasazuje automaticky (vyžaduje plán migrace dat)",
+      "matchPackageNames": ["postgres"],
+      "matchManagers": ["docker-compose"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Hlavní verze vždy zvlášť a s ručním schválením",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "GitHub Actions dohromady",
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions"
+    }
+  ],
+  "vulnerabilityAlerts": { "labels": ["security"], "schedule": ["at any time"] }
+}

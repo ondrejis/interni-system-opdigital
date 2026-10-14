@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+  - packages/modules/*
+  - clients/*
+  - tests
+onlyBuiltDependencies:
+  - esbuild
+  - sharp

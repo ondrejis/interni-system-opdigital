@@ -1,0 +1,2 @@
+# Řádky v logu kontejnerů (compose-smoke), které nejsou chybou aplikace. Regulární výrazy (grep -E), jeden na řádek.
+# Každý výjimku popište důvodem. Prázdné = jakákoli chyba v logu shodí job.

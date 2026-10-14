@@ -1,0 +1,11 @@
+node_modules
+.next
+dist
+coverage
+pnpm-lock.yaml
+docs/AUDIT.md
+playwright-report
+test-results
+.next-*
+test-results-crawl
+docs/reference
