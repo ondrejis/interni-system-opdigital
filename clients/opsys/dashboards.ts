@@ -35,6 +35,13 @@ const metric = (
   ...(options ? { options } : {}),
 });
 
+/** Příjmy tento měsíc (R-41): můj podíl zaplaceno, vystaveno, plánováno; stejné jako v katalogu. */
+const INCOME: SeedWidget[] = [
+  metric("kpi", "Příjmy tento měsíc: zaplaceno", "finance.income_month", 4, 1, { view: "mine" }),
+  metric("kpi", "Příjmy tento měsíc: vystaveno", "finance.income_month_issued", 4, 1),
+  metric("kpi", "Příjmy tento měsíc: plánováno", "finance.income_month_planned", 4, 1),
+];
+
 /** „Den“: úkoly na dnes, pipeline, příjmy, zakázky ve skluzu, saldo a poslední změny. */
 const den = (): SeedWidget[] => [
   {
@@ -44,8 +51,8 @@ const den = (): SeedWidget[] => [
     h: 3,
     source: { kind: "builtin", builtin: "my_tasks" },
   },
-  tile("Pipeline v Kč", "obchody.pipeline", 6, 2),
-  metric("kpi", "Příjmy tento měsíc", "finance.income_month", 6, 1, { view: "mine" }),
+  tile("Pipeline v Kč", "obchody.pipeline", 6, 3),
+  ...INCOME,
   tile("Zakázky ve skluzu", "zakazky.slipping", 6, 2),
   tile("Saldo vyrovnání", "finance.balance", 6, 2),
   metric("list", "Poslední změny", "prehled.recent_changes", 12, 3, { scope: "all" }),
@@ -53,11 +60,12 @@ const den = (): SeedWidget[] => [
 
 /** „Finance“ pro oba: příjmy, saldo, nezaplacené platby, příjmy podle osoby a retainery. */
 const finance = (): SeedWidget[] => [
-  metric("kpi", "Příjmy tento měsíc", "finance.income_month", 4, 1, { view: "mine" }),
+  ...INCOME,
   metric("kpi", "Retainery (měsíčně)", "finance.retainers", 4, 1),
   metric("kpi", "Aktivní retainery", "finance.retainers_count", 4, 1),
   tile("Saldo vyrovnání", "finance.balance", 6, 2),
   tile("Nezaplacené platby", "finance.unpaid", 6, 2),
+  metric("kpi", "Blízko splatnosti (7 dní)", "finance.unpaid_soon", 6, 1, { days: 7 }),
   metric("chart", "Příjmy podle osoby", "finance.income_by_person", 12, 3, undefined, {
     chart: "stacked",
     format: "money",

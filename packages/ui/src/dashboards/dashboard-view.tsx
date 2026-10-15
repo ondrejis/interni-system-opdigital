@@ -354,7 +354,13 @@ export function DashboardView({
             setCatalogOpen(false);
             const widget = { ...p.widget, id: newWidgetId() };
             if (p.configure) setEditor({ widget, isNew: true });
-            else setDraft((d) => [...d, widget]);
+            else
+              setDraft((d) =>
+                [
+                  ...d,
+                  ...(p.widgets ?? [p.widget]).map((x) => ({ ...x, id: newWidgetId() })),
+                ].slice(0, MAX_DASHBOARD_WIDGETS),
+              );
           }}
         />
       )}

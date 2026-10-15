@@ -1,38 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-test("přehled: pozornost, dlaždice modulů a moje úkoly", async ({ page }) => {
+// Přehled (widgety, úpravy, telefon) je v `prehled-widgety.spec.ts`; tady zůstává jen cesta z úvodní adresy a PWA.
+test("úvodní adresa vede na Přehled", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByTestId("attention")).toBeVisible();
-  await expect(page.getByTestId("widgets")).toBeVisible();
-  await expect(page.getByTestId("widgets").getByText("Dnešní události")).toBeVisible();
-  await expect(page.getByTestId("bottom-nav")).toBeHidden(); // na počítači spodní lišta není
-});
-
-test.describe("telefon", () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
-
-  test("spodní navigace z manifestů modulů a velké dotykové plochy", async ({ page }) => {
-    await page.goto("/");
-    const nav = page.getByTestId("bottom-nav");
-    await expect(nav).toBeVisible();
-    // Dnes, první tři položky modulů označené `bottom: true` v manifestu (Zakázky, CRM, Docházka) a Více
-    for (const name of ["Dnes", "Zakázky", "CRM", "Docházka", "Více"])
-      await expect(nav.getByText(name, { exact: true })).toBeVisible();
-
-    // dotykové plochy ve spodní liště mají aspoň 44 px
-    const box = await nav.getByRole("link", { name: "Zakázky" }).boundingBox();
-    expect(box!.height).toBeGreaterThanOrEqual(44);
-
-    await nav.getByRole("link", { name: "Zakázky" }).click();
-    await expect(page).toHaveURL(/\/zakazky$/);
-    await expect(nav.getByRole("link", { name: "Zakázky" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-
-    await nav.getByRole("button", { name: "Více" }).click();
-    await expect(page.getByRole("link", { name: "Kalendář", exact: true }).first()).toBeVisible();
-  });
+  await expect(page).toHaveURL(/\/prehled/);
+  await expect(page.getByRole("navigation", { name: "Nástěnky" })).toBeVisible();
 });
 
 test("upozornění v telefonu: bez klíčů VAPID systém push nenabízí, s klíči ano", async ({

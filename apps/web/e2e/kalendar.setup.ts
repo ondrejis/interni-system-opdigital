@@ -16,5 +16,5 @@ setup("přihlášení majitele pro testy aplikace", async ({ page }) => {
   await page.getByLabel("Kód z aplikace").fill(totp(secret));
   await page.getByRole("button", { name: "Potvrdit a zapnout" }).click();
   await expect(page).toHaveURL(/\/(prehled)?$/);
-  await page.context().storageState({ path: "e2e/.auth/user.json" });
+  await page.context().storageState({ path: "e2e/.auth/kalendar.json" });
 });

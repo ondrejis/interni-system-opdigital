@@ -108,6 +108,26 @@ Modul nemá hard závislost. S `ukoly`: obsluha `task.changed`, služba `tasks.c
 - Přihlašovací údaje k Googlu jsou jen v šifrované podobě (`tokens_enc`, `setting.google_calendar`); bez `APP_ENCRYPTION_KEY` modul nefunguje.
 - Testy běží proti `fake-google` (`@rebar/kalendar/testing`); skutečný Google se ověřuje ručně (smoke test s reálnými účty, D §7).
 
+## UI a e2e (KAL-B)
+
+**Stránka `/kalendar`** (`packages/modules/kalendar/src/ui/calendar-page.tsx#CalendarPage`): pohledy **Den, Týden (výchozí), Měsíc, Agenda**; zvolený pohled a vypnuté vrstvy si pamatuje prohlížeč (`localStorage`, jen pohodlí). Pracovní doba 8–18 (po–pá) je světlá, zbytek dne a víkendy šedé. Pruh nahoře pod záhlavím dne nese celodenní položky, úkoly s termínem bez času a svátky. Překrývající se události stojí vedle sebe (`lib.ts#layoutDay`), aktuální čas ukazuje červená čára.
+
+**Vrstvy** (tlačítka pod nadpisem): „Moje kalendáře“, „Kalendář: <jméno druhého>“ (vypnutá ve výchozím stavu; zapnutí přepne dotaz na `who: "all"` a ukáže cizí události, soukromé jako „Obsazeno“ šrafovaně a bez možnosti otevřít) a vrstvy ostatních modulů z `kalendar.range` (Úkoly s termínem, Termíny zakázek). Bez připojeného Googlu se nad kalendářem ukáže výzva k připojení a zůstanou jen úkoly a schůzky z OPSYS (KAL-09).
+
+**Nová schůzka** (`meeting-dialog.tsx#MeetingDialog`): tažením v prázdném místě týdenní nebo denní mřížky (náhled výběru, krok 15 minut; prosté kliknutí = hodina), tlačítkem „Nová schůzka“, dnem v měsíci, nebo z palety („Nová schůzka“ → `/kalendar?nova=1`). Pole: název, datum, od–do nebo celý den, místo, klient, obchod, kontakt, účastníci (e-maily), „Poslat pozvánky“ (**výchozí vypnuto**; bez zapnutí se účastníci do Googlu nezapisují), „Přidat Google Meet“ (jen s připojeným Googlem), „Soukromá schůzka“ (jen s `private.read`). Na mobilu se vždy zakládá formulářem.
+
+**Přesun a změna délky**: tažení bloku v mřížce přesune událost (i mezi dny), tažení dolního okraje změní délku; v měsíci jde událost přetáhnout na jiný den. Klávesnice: `Alt` + šipky nahoru/dolů posune o 15 minut, vlevo/vpravo o den, `Alt+Shift` + šipky nahoru/dolů změní délku. Změna se hned ukáže (optimisticky) a odešle příkazem `kalendar.move`; při chybě se vrátí a ukáže se zpráva. Na zařízeních bez myši se událost jen otevře. Přepočty (přichytávání, přesun přes přechod na letní čas) jsou v `packages/modules/kalendar/src/ui/lib.ts#moveInstants`: délka se drží podle nástěnných hodin, takže 10:00–11:00 zůstane 10:00–11:00 i po změně času.
+
+**Náhled události** (`event-panel.tsx#EventPanel`, postranní panel): čas, místo, kalendář, účastníci s odpovědí, popis, odkaz „Otevřít Google Meet“, odkazy na klienta/obchod/kontakt s odebráním, výběr vazby jedním výběrem a **návrh vazby podle e-mailu účastníka** (`kalendar.suggestLinks`: tlačítko „Navázat“ nastaví kontakt, jeho firmu a, má-li jediný otevřený obchod, i obchod), „V Googlu“, smazání s potvrzením. Schůzka navázaná na obchod je v jeho historii a další aktivitě díky úkolu, který `kalendar.link` založí (viz Vazby výše).
+
+**Mobil**: pod 768 px jsou jen Agenda (výchozí) a Den; Týden a Měsíc se schovají.
+
+**Přehled**: příspěvek PRE je metrika `kalendar.upcoming` (tvar seznam, `packages/modules/kalendar/src/ui/widget.ts#upcomingMetric`) a dlaždice „Nadcházející schůzky“ (`upcomingMeetings`): dnešní nedokončené a zítřejší události; cizí soukromé jako „Obsazeno“ bez místa a odkazu. Soukromí zajišťuje `rangeItems`; obě cesty jsou v `privatePaths`.
+
+**Nastavení → Google Kalendář** (`settings.tsx#GoogleCalendarSettings`, stránka `apps/web/src/app/(app)/nastaveni/google-kalendar/page.tsx`): připojit/odpojit vlastní účet, „Synchronizovat teď“, „Otestovat připojení“, „Načíst kalendáře znovu“, výběr zobrazovaných kalendářů, kalendář pro zápis, stav a poslední chyby (účet i kalendáře), návratová hláška z `?google=ok|denied|error`; správce (`settings.manage`) navíc zadá OAuth klienta, přepínač soukromých schůzek do Googlu a vidí `redirectUri`.
+
+**Testy**: jednotkové `src/ui/lib.test.ts` (pozice, kolize, přichytávání, letní čas, vrstvy, e-maily) a `src/ui/widget.test.ts` (Přehled, „Obsazeno“). E2E `apps/web/e2e/kalendar.spec.ts` (AS-13: bez Googlu, připojení, pohledy a vrstvy, Meet a návrh vazby, tažení, přesun, změna délky, klávesnice, mobil, odpojení) běží proti `fake-google` ve webovém procesu: server se spouští s `NODE_OPTIONS="--import tsx --import apps/web/e2e/support/fake-google-preload.ts"` a testy konfigurací `apps/web/playwright.kalendar.config.ts` (port 3107); ve výchozí konfiguraci se spec přeskočí. Nepokryto e2e: „Obsazeno“ u druhého uživatele (je v `tests/kalendar-google.int.test.ts`) a objevení schůzky v historii obchodu.
+
 ## Odkazy na kód a testy
 
 - Rozhraní adaptéru: `packages/modules/kalendar/src/google/client.ts#GoogleCalendarClient`; skutečný klient `packages/modules/kalendar/src/google/real-client.ts#createGoogleClient`; fake `packages/modules/kalendar/src/google/fake-google.ts#createFakeGoogle`.

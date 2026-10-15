@@ -94,6 +94,8 @@ describe("katalog widgetů Přehledu", () => {
       metricDef("muj-prostor.expirations", ["muj-prostor.domains", "muj-prostor.hosting"]),
       metricDef("muj-prostor.retainers", ["muj-prostor.hosting"]),
       metricDef("finance.income_month", ["finance.read"]),
+      metricDef("finance.income_month_issued", ["finance.read"]),
+      metricDef("finance.income_month_planned", ["finance.read"]),
     ];
     const env = envOf(metrics);
     const partner = ctxOf(["finance.read", "prehled.read"]);
@@ -112,6 +114,42 @@ describe("katalog widgetů Přehledu", () => {
     expect(presetAvailable(owner, envOf([]), p)).toBe(false);
     expect(presetAvailable(owner, envOf([], ["task"]), p)).toBe(true);
     expect(presetAvailable(ctxOf([]), envOf([], ["task"]), p)).toBe(false);
+  });
+
+  it("Příjmy tento měsíc přidají zaplaceno, vystaveno i plánováno; Nezaplacené doplní blízko splatnosti", () => {
+    const income = WIDGET_PRESETS.find((p) => p.key === "prijmy-mesic")!;
+    expect(income.widgets!.map((w) => (w.source.kind === "metric" ? w.source.metric : ""))).toEqual(
+      ["finance.income_month", "finance.income_month_issued", "finance.income_month_planned"],
+    );
+    const unpaid = WIDGET_PRESETS.find((p) => p.key === "nezaplacene")!;
+    expect(JSON.stringify(unpaid.widgets)).toContain("finance.unpaid_soon");
+    for (const p of [income, unpaid])
+      for (const w of p.widgets!) expect(() => parseWidget({ ...w, id: "w-test-1" })).not.toThrow();
+    // bez nových metrik financí se widget nenabízí, s nimi ano
+    const owner = ctxOf([], true);
+    const base = [metricDef("finance.income_month", []), metricDef("finance.unpaid", [])];
+    expect(presetAvailable(owner, envOf(base), income)).toBe(false);
+    const full = [
+      ...base,
+      metricDef("finance.income_month_issued", []),
+      metricDef("finance.income_month_planned", []),
+      metricDef("finance.unpaid_soon", []),
+    ];
+    expect(presetAvailable(owner, envOf(full), income)).toBe(true);
+    expect(presetAvailable(owner, envOf(full), unpaid)).toBe(true);
+  });
+
+  it("Nadcházející schůzky se nabídnou, jakmile je v katalogu metrik kalendar.upcoming (a aktér má její oprávnění)", () => {
+    const schuzky = WIDGET_PRESETS.find((p) => p.key === "schuzky")!;
+    const owner = ctxOf([], true);
+    const keys = (c: Ctx, m: DashboardMetricDef[]) =>
+      availablePresets(c, envOf(m)).map((p) => p.key);
+    expect(keys(owner, [])).not.toContain("schuzky");
+    const upcoming = metricDef("kalendar.upcoming", ["kalendar.read"]);
+    expect(keys(owner, [upcoming])).toContain("schuzky");
+    expect(keys(ctxOf(["kalendar.read"]), [upcoming])).toContain("schuzky");
+    expect(keys(ctxOf([]), [upcoming])).not.toContain("schuzky");
+    expect(schuzky.widget.type).toBe("list");
   });
 
   it("Číslo a Seznam z pohledu a Rychlé odkazy jsou dostupné vždy (a otevřou nastavení)", () => {
@@ -147,12 +185,14 @@ describe("výchozí přehledy OPSYS (PRE-03)", () => {
           "Úkoly na dnes",
           "Pipeline v Kč",
           "Zakázky ve skluzu",
-          "Příjmy tento měsíc",
+          "Příjmy tento měsíc: zaplaceno",
+          "Příjmy tento měsíc: vystaveno",
+          "Příjmy tento měsíc: plánováno",
           "Saldo vyrovnání",
           "Poslední změny",
         ]),
       );
-    expect(byKey("owner-den").definition.widgets).toHaveLength(6);
+    expect(byKey("owner-den").definition.widgets).toHaveLength(8);
   });
 
   it("partner nemá Expirace ani Retainery z Můj prostor, owner ano", () => {
@@ -165,7 +205,9 @@ describe("výchozí přehledy OPSYS (PRE-03)", () => {
   });
 
   it("widgety výchozích přehledů odpovídají katalogu (stejné zdroje)", () => {
-    const sources = new Set(WIDGET_PRESETS.map((p) => JSON.stringify(p.widget.source)));
+    const sources = new Set(
+      WIDGET_PRESETS.flatMap((p) => (p.widgets ?? [p.widget]).map((x) => JSON.stringify(x.source))),
+    );
     for (const s of seeds)
       for (const w of s.definition.widgets) {
         // dlaždice a metriky ze seedu musí existovat v katalogu se stejným zdrojem (parametry mohou mít navíc výchozí)

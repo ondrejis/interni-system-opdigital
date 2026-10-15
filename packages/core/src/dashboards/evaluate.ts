@@ -175,13 +175,14 @@ export function presetAvailable(ctx: Ctx, env: DashboardEnv, p: WidgetPresetDef)
 export function availablePresets(ctx: Ctx, env: DashboardEnv): WidgetPresetInfo[] {
   return (env.presets ?? [])
     .filter((p) => presetAvailable(ctx, env, p))
-    .map(({ key, title, description, group, phase, widget, configure }) => ({
+    .map(({ key, title, description, group, phase, widget, widgets, configure }) => ({
       key,
       title,
       description,
       group,
       phase,
       widget,
+      ...(widgets ? { widgets } : {}),
       ...(configure ? { configure } : {}),
     }));
 }

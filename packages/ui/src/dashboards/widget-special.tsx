@@ -24,10 +24,11 @@ const selectCls =
 export function isSpecialSource(w: DashboardWidget, _metric?: MetricInfo): boolean {
   const s = w.source;
   if (s.kind === "view" || s.kind === "links") return true;
-  if (s.kind === "builtin") return s.builtin === "my_tasks" || !!s.params?.tileIds?.length;
+  if (s.kind === "builtin") return !!s.params?.tileIds?.length;
   return false;
 }
 
+/** Kontrola nastavení speciálních widgetů (pohled, odkazy); věta pro uživatele, nebo `null`. */
 export function validateSpecial(w: DashboardWidget): string | null {
   const s = w.source;
   if (s.kind === "view") {

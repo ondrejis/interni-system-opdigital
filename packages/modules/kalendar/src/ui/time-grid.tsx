@@ -365,7 +365,7 @@ export function TimeGrid({
                   key={d}
                   data-day={d}
                   data-testid="day-column"
-                  className={cn("relative border-l border-line", !work && "bg-subtle")}
+                  className={"relative border-l border-line bg-subtle"}
                   onPointerDown={(e) => {
                     if (
                       e.button !== 0 ||

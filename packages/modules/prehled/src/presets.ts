@@ -1,4 +1,8 @@
-import { NO_VIEW_ID, type WidgetPresetDef } from "@rebar/core/dashboards-shared";
+import {
+  NO_VIEW_ID,
+  type DashboardWidget,
+  type WidgetPresetDef,
+} from "@rebar/core/dashboards-shared";
 
 /*
   Katalog hotových widgetů Přehledu (PRE-04, PRE-05, PRE-06). Každý widget je jen definice nad tím, co dodávají moduly:
@@ -19,6 +23,43 @@ const metric = (key: string, params?: Record<string, string | number | boolean>)
   metric: key,
   ...(params ? { params } : {}),
 });
+
+/** Příjmy tento měsíc podle R-41: můj podíl zaplaceno / vystaveno / plánováno. */
+export const INCOME: Omit<DashboardWidget, "id">[] = [
+  {
+    type: "kpi",
+    title: "Příjmy tento měsíc: zaplaceno",
+    w: 4,
+    h: 1,
+    source: metric("finance.income_month", { view: "mine" }),
+  },
+  {
+    type: "kpi",
+    title: "Příjmy tento měsíc: vystaveno",
+    w: 4,
+    h: 1,
+    source: metric("finance.income_month_issued"),
+  },
+  {
+    type: "kpi",
+    title: "Příjmy tento měsíc: plánováno",
+    w: 4,
+    h: 1,
+    source: metric("finance.income_month_planned"),
+  },
+];
+
+/** Nezaplacené platby: dlaždice financí (po splatnosti) a součet plateb blízko splatnosti. */
+export const UNPAID: Omit<DashboardWidget, "id">[] = [
+  { type: "builtin", title: "Nezaplacené platby", w: 6, h: 2, source: tile("finance.unpaid") },
+  {
+    type: "kpi",
+    title: "Blízko splatnosti (7 dní)",
+    w: 6,
+    h: 1,
+    source: metric("finance.unpaid_soon", { days: 7 }),
+  },
+];
 
 export const WIDGET_PRESETS: readonly WidgetPresetDef[] = [
   /* ---------- MVP ---------- */
@@ -129,15 +170,17 @@ export const WIDGET_PRESETS: readonly WidgetPresetDef[] = [
     group: "Finance",
     phase: "mvp",
     title: "Příjmy tento měsíc",
-    description: "Můj podíl z plateb zaplacených tento měsíc.",
-    widget: {
-      type: "kpi",
-      title: "Příjmy tento měsíc",
-      w: 3,
-      h: 1,
-      source: metric("finance.income_month", { view: "mine" }),
+    description:
+      "Můj podíl tento měsíc: zaplaceno, vystaveno (čeká na zaplacení) a plánováno. Přidá tři čísla vedle sebe.",
+    widget: INCOME[0]!,
+    widgets: INCOME,
+    requires: {
+      metrics: [
+        "finance.income_month",
+        "finance.income_month_issued",
+        "finance.income_month_planned",
+      ],
     },
-    requires: { metrics: ["finance.income_month"] },
   },
   {
     key: "prijmy-osoby",
@@ -175,15 +218,11 @@ export const WIDGET_PRESETS: readonly WidgetPresetDef[] = [
     group: "Finance",
     phase: "mvp",
     title: "Nezaplacené platby",
-    description: "Vystavené a nezaplacené platby, kolik z nich je po splatnosti.",
-    widget: {
-      type: "builtin",
-      title: "Nezaplacené platby",
-      w: 4,
-      h: 1,
-      source: tile("finance.unpaid"),
-    },
-    requires: { metrics: ["finance.unpaid"] },
+    description:
+      "Vystavené a nezaplacené platby, kolik z nich je po splatnosti, a součet plateb blízko splatnosti (7 dní).",
+    widget: UNPAID[0]!,
+    widgets: UNPAID,
+    requires: { metrics: ["finance.unpaid", "finance.unpaid_soon"] },
   },
   {
     key: "posledni-zmeny",

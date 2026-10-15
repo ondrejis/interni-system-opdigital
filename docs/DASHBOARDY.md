@@ -7,6 +7,7 @@ Rozhodnutí a jejich důvody jsou v [ADR 025](adr/025-vlastni-nastenky.md); expo
 ## 1. Jak se nástěnky používají
 
 - **Úvodní stránka** (`/`) má nahoře přepínač: klasický **Přehled** (beze změny) a nástěnky, které uživatel vidí. Vybraná nástěnka a filtry jsou v adrese (`?board=…&obdobi=this_month&zakazka=…&osoba=…`), takže jdou sdílet záložkou.
+  V OPSYS je úvodní stránkou **Přehled** (`/prehled`, `/` na něj přesměruje): klasický Přehled tam není, každý přehled je nástěnka a uživatel dostane při prvním otevření kopie výchozích sad své role (viz „Přehled OPSYS“ níže).
 - **Filtry nahoře** (období, zakázka, osoba) se propisují do widgetů: období podle datumového atributu widgetu, zakázka a osoba podle atributu zakázky / uživatele, který se rozpozná sám (nebo ho určí autor widgetu).
 - **Úpravy** (tlačítko Upravit, autor nebo správce): přidat widget, přetáhnout (myš, dotyk, klávesnice: Mezerník, šipky), změnit velikost (rukojeť v rohu, šipky na rukojeti, nebo výběr šířky a výšky v dialogu), upravit, odebrat, přejmenovat, Uložit.
   Uložení hlídá souběžnou změnu („Nástěnku mezitím někdo změnil“). Na telefonu je mřížka jeden sloupec a velikost se volí v dialogu.
@@ -157,3 +158,16 @@ Při změně tvaru: zvyš `DEFINITION_VERSION`, přidej převod a test, který p
 ## 7. Výkon
 
 Widgety se načítají souběžně a samostatně (`POST /api/dashboards/evaluate`), dotazy jsou nad indexovanými sloupci s limitem a časovým limitem. `pnpm perf:check` měří agregace (≈ 7 ms), výchozí sadu majitele (≈ 20 ms) a export všech zakázek (viz [PERFORMANCE](PERFORMANCE.md)).
+
+## 8. Přehled OPSYS (modul `prehled`)
+
+Přehled (`/prehled`, [docs/moduly/prehled.md](moduly/prehled.md)) je nad touto platformou. Co k ní přibylo:
+
+- **Katalog widgetů** („Přidat widget“): hotové widgety (`WidgetPresetDef`, data v `packages/modules/prehled/src/presets.ts`) se do `DashboardEnv.presets` předávají z aplikace; `availablePresets(ctx, env)` nabídne jen ty, jejichž metriky existují (modul je zapnutý) a na které má aktér oprávnění. Pod katalogem je dál „Vlastní widget“ z libovolných dat.
+- **Zdroj `view`** (Číslo z pohledu = `kpi`, Seznam z pohledu = `table`): odkaz na uložený pohled (`saved_view`, můj nebo sdílený). Pohled se převede na obyčejný zdroj entity a jde stejnou datovou vrstvou jako seznam (oprávnění, rozsah „jen moje“, soukromé záznamy, skryté atributy).
+- **Zdroj `links`** (Rychlé odkazy): vlastní odkazy (jen `/…` nebo `https://…`) a uložené pohledy.
+- **Vestavěný blok `tiles` s `tileIds`** zobrazí jen vybrané dlaždice modulů (Pipeline, Saldo, Nezaplacené platby…); **`my_tasks`** má `includeDelegated` a `limit`, položky nesou `completeId` a widget je jde odškrtnout (`DashboardApi.completeTask` → příkaz `ukoly.complete`).
+- **Metrika tvaru `list`** (`shape: "list"`, výsledek `{ kind: "list", items }`) pro widget typu Seznam: tak čte Poslední změny `prehled.recent_changes` (historie přes `auditReadScope`).
+- **První otevření:** `ensurePersonalBoards(ctx)` zkopíruje výchozí sady role (`seed_key`, bez autora) jako osobní přehledy uživatele, který dosud žádný neměl. `DashboardSummary.template` označuje vzory, které se v přepínači nenabízejí.
+- **Editor:** na telefonu je v režimu Upravit jen přeskládání pořadí; přidání, nastavení, odebrání a změna velikosti jsou na tabletu a počítači.
+- **Soukromí:** testuje `tests/prehled.int.test.ts` (partner nevidí soukromé záznamy ve widgetech, součtech, odkazech a posledních změnách).

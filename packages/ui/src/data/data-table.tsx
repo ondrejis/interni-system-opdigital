@@ -39,6 +39,7 @@ import {
 } from "../components/overlay";
 import { Skeleton } from "../components/badges";
 import { cn } from "../lib/cn";
+import { ROW_HEIGHTS, useDensity } from "../hooks/use-density";
 import { useNav } from "../nav";
 import { alignRight, CellValue } from "./cell";
 import { CellEditor } from "./editors";
@@ -172,12 +173,15 @@ export function DataTable(p: DataTableProps) {
     return out;
   }, [p.rows, p.group, p.groups, collapsed]);
 
+  const rowHeight = ROW_HEIGHTS[useDensity()];
   const virt = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: () => rowHeight,
     overscan: 12,
   });
+  // po přepnutí hustoty (Nastavení → Vzhled) se výšky řádků přepočítají
+  useEffect(() => virt.measure(), [rowHeight, virt]);
   const vItems = virt.getVirtualItems();
 
   useEffect(() => {
@@ -349,7 +353,7 @@ export function DataTable(p: DataTableProps) {
           {/* záhlaví */}
           <div
             role="row"
-            className="sticky top-0 z-20 flex h-9 border-b border-line bg-subtle text-sm text-muted"
+            className="sticky top-0 z-20 flex h-[var(--row-h,36px)] border-b border-line bg-subtle text-sm text-muted"
             style={{ width: totalWidth }}
           >
             <div
@@ -418,7 +422,7 @@ export function DataTable(p: DataTableProps) {
                   top: 0,
                   left: 0,
                   width: totalWidth,
-                  height: ROW_HEIGHT,
+                  height: rowHeight,
                   transform: `translateY(${v.start}px)`,
                 };
                 if (item.kind === "group") {
@@ -593,7 +597,7 @@ export function DataTable(p: DataTableProps) {
 
       {/* patička: počet a součty */}
       <div
-        className="flex h-9 shrink-0 items-center border-t border-line bg-subtle text-sm text-muted"
+        className="flex h-[var(--row-h,36px)] shrink-0 items-center border-t border-line bg-subtle text-sm text-muted"
         data-testid="table-footer"
       >
         <div

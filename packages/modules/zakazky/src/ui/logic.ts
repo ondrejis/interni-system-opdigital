@@ -493,6 +493,38 @@ export function toRetainerSetup(f: RetainerForm): RetainerSetup | null {
   };
 }
 
+/**
+ * Formulář → plochý vstup `finance.retainer.continue`. U střídání je `firstIssuerId` ten, kdo fakturuje první měsíc, a
+ * `issuerId` druhý v pořadí (`otherUserId`, není-li znám, zůstane stejný jako první). `null`, když je formulář neplatný.
+ */
+export function toRetainerContinueInput(
+  jobId: string,
+  f: RetainerForm,
+  otherUserId: string | null,
+): {
+  jobId: string;
+  amountMinor: number;
+  fromMonth: YearMonth;
+  issueDay: number;
+  issuerMode: "fixed" | "alternate";
+  issuerId: string;
+  firstIssuerId?: string;
+  split?: SplitRuleInput[];
+} | null {
+  if (Object.keys(retainerErrors(f)).length) return null;
+  const first = f.issuerId!;
+  return {
+    jobId,
+    amountMinor: f.amountMinor!,
+    fromMonth: f.fromMonth,
+    issueDay: f.issueDay,
+    issuerMode: f.issuerMode,
+    issuerId: f.issuerMode === "alternate" ? (otherUserId ?? first) : first,
+    ...(f.issuerMode === "alternate" ? { firstIssuerId: first } : {}),
+    ...(f.split && f.split.length ? { split: f.split } : {}),
+  };
+}
+
 /** Měsíc `RRRR-MM` česky („prosinec 2026“). */
 export function monthLabel(ym: YearMonth): string {
   const [y, m] = ym.split("-").map(Number) as [number, number];

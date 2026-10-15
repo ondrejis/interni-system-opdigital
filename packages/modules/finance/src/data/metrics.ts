@@ -15,7 +15,7 @@ import { privateScope } from "./private";
 import { reports } from "./reports";
 import { getBalance } from "./settlements";
 import { loadPeople, num, thisMonth, today } from "./util";
-import { monthRange } from "@rebar/core/time";
+import { addDaysIso, monthRange } from "@rebar/core/time";
 
 const TYPE_LABELS: Record<string, string> = {
   web: "Web",
@@ -61,6 +61,44 @@ async function paidIncome(
         isNull(payment.deletedAt),
         paymentScope(ctx),
         sql`${payment.paidOn} between ${from} and ${to}`,
+      ),
+    );
+  if (!userId) return recs.reduce((s, p) => s + p.amountMinor, 0);
+  const allocs = await loadAllocations(
+    ctx.db,
+    recs.map((r) => r.id),
+  );
+  return recs.reduce(
+    (s, p) =>
+      s +
+      (allocs.get(p.id) ?? [])
+        .filter((a) => a.userId === userId)
+        .reduce((x, a) => x + a.amountMinor, 0),
+    0,
+  );
+}
+
+/** Podíl osoby (`userId`) na platbách ve stavu s datem v období; `planned` se řadí podle plánovaného vystavení, splatnosti nebo měsíce platby. */
+async function shareByStatus(
+  ctx: Ctx,
+  status: "issued" | "planned",
+  from: string,
+  to: string,
+  userId: string | null,
+): Promise<number> {
+  const date =
+    status === "issued"
+      ? sql`${payment.issuedOn}`
+      : sql`coalesce(${payment.issuedOn}, ${payment.dueOn}, (${payment.periodMonth} || '-01')::date)`;
+  const recs = await ctx.db
+    .select()
+    .from(payment)
+    .where(
+      and(
+        eq(payment.status, status),
+        isNull(payment.deletedAt),
+        paymentScope(ctx),
+        sql`${date} between ${from} and ${to}`,
       ),
     );
   if (!userId) return recs.reduce((s, p) => s + p.amountMinor, 0);
@@ -138,6 +176,49 @@ function buildMetrics(): DashboardMetricDef[] {
           default: "total",
         },
       ],
+    ),
+    ...(["issued", "planned"] as const).map((st) =>
+      scalar(
+        `finance.income_month_${st}`,
+        st === "issued" ? "Příjmy tento měsíc: vystaveno" : "Příjmy tento měsíc: plánováno",
+        st === "issued"
+          ? "Podíl přihlášeného na platbách vystavených v období (výchozí aktuální měsíc), ještě nezaplacených."
+          : "Podíl přihlášeného na plánovaných platbách s termínem v období (výchozí aktuální měsíc).",
+        "money",
+        async (ctx, input) => {
+          const range = monthRange(thisMonth());
+          const me = input.userId ?? ctx.actor.userId;
+          return {
+            kind: "scalar",
+            value: await shareByStatus(ctx, st, input.from ?? range.from, input.to ?? range.to, me),
+          };
+        },
+        { period: true, person: true },
+      ),
+    ),
+    scalar(
+      "finance.unpaid_soon",
+      "Platby blízko splatnosti",
+      "Součet vystavených nezaplacených plateb, které jsou splatné v následujících dnech (výchozí 7).",
+      "money",
+      async (ctx, input) => {
+        const days = Number(input.params.days ?? 7);
+        const t = today();
+        const [r] = await ctx.db
+          .select({ sum: sql<number>`coalesce(sum(${payment.amountMinor}), 0)` })
+          .from(payment)
+          .where(
+            and(
+              eq(payment.status, "issued"),
+              isNull(payment.deletedAt),
+              paymentScope(ctx),
+              sql`${payment.dueOn} between ${t} and ${addDaysIso(t, days)}`,
+            ),
+          );
+        return { kind: "scalar", value: num(r?.sum) };
+      },
+      undefined,
+      [{ key: "days", label: "Dnů dopředu", type: "number", default: 7 }],
     ),
     scalar(
       "finance.balance",

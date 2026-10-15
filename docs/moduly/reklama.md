@@ -69,6 +69,15 @@ Vlastník (Ondřej) má všechna tři oprávnění. Partner (Patrik) má podle R
 
 **Přiřazení kampaně zakázce (REK-06)**: `reklama.campaign.assignJob`. Zakázka musí být marketingová; u účtu klienta musí patřit témuž klientovi. Čísla pak vidí záložka „Reklama“ u zakázky a na kartě klienta (`reklama.forJob`, `reklama.forClient`).
 
+**Obrazovky (REK-B: REK-08, REK-09, REK-11, KLI-08)**
+
+1. **Seznam účtů** (`/reklama`, statická trasa `apps/web/src/app/(app)/reklama`, protože generický seznam entity neumí útratu za měsíc): název, komu účet patří (OP Digital, nebo klient s odkazem na kartu klienta), počet kampaní, útrata tento měsíc a stav posledního stažení dat. Chyba poslední synchronizace je vidět červeně přímo u účtu a nad tabulkou. „Změnit“ otevře dialog vlastníka (`reklama.account.setOwner`; u klienta je firma povinná). Tlačítko „Obnovit z Meta“ (`reklama.sync`, jen s `reklama.manage`) ukáže po doběhnutí počet načtených kampaní a řádků, nebo chyby jednotlivých účtů. Neaktivní účty se ukážou po zaškrtnutí. Pod 768 px jsou místo tabulky karty.
+2. **Detail účtu** (`/reklama/<id>`, generický záznam entity, do jehož Přehledu modul přidává karty): přepínač období (7, 30, 90 dní, měsíc, vlastní dvě data; výchozí 30 dní), dlaždice (útrata, zobrazení s kliky a CTR, leady Meta, leady OPSYS s rozdílem, cena za lead, cena za lead v OPSYS, vyhrané obchody, náklad na vyhraný obchod), dva grafy po dnech (útrata a leady) a tabulka kampaní s řádkem Celkem a přiřazenou zakázkou. Vpravo karta s vlastníkem, stavem synchronizace a tlačítkem Obnovit jen pro tento účet.
+3. **Detail kampaně** (`/reklama/kampane/<id>`): totéž za kampaň, k tomu tabulka reklamních sad s reklamami pod nimi, miniatura kreativy (klik ji zvětší; adresa se vykreslí jen pro `http(s)`), seznam leadů (obchodů se zdrojem Meta) s odkazem na obchod a výsledkem a nahoře upozornění, když Meta napočítala víc leadů, než dorazilo do OPSYS. Vpravo přiřazení kampaně marketingové zakázce: u účtu klienta se nabízejí jen zakázky téhož klienta, přiřazení jde zrušit; server navíc ověřuje typ a klienta.
+4. **Záložka Reklama** na kartě klienta (`CLIENT_TABS.reklama`) a v marketingové zakázce (`visible` jen pro typ marketing): za 3, 6 nebo 12 měsíců dlaždice, tabulka po měsících (útrata, leady Meta a OPSYS, cena za lead), graf po dnech a kampaně; u klienta navíc jeho reklamní účty. Prázdnou záložku na kartě klienta skryje `tabCounts` z REK-A.
+
+**Rozdíl leadů Meta × OPSYS** se ukazuje vždy textem, ne jen barvou: „−3 ztraceno“ (Meta napočítala víc), „+2 navíc“ (v OPSYS je víc, např. ručně zapsané obchody), „souhlasí“. Bez leadů na obou stranách je pomlčka. Hodnota, kterou nejde spočítat (bez dělitele), je pomlčka, nikdy nula. Peníze se v UI zaokrouhlují na celé koruny; grafy jsou dva (Kč a ks mají jinou jednotku, jedna osa by jednu řadu zploštila) a mají tabulku pro čtečky obrazovky z grafů jádra.
+
 ## Stavy a přechody
 
 <!-- Stavové automaty (pipeline, fáze, stavy dokladů): z čeho kam se smí, za jakých podmínek, co přechod automaticky udělá. Hodí se tabulka nebo diagram Mermaid. -->
@@ -118,8 +127,10 @@ Nastavení → Integrace → panel **Meta** (slot `settings.integrations`):
   "formId": "555555555555",
   "formName": "Poptávka webu",
   "createdTime": "2026-10-14T10:00:00+0200",
-  "campaignId": "120000000001", "campaignName": "Weby – podzim",
-  "adsetId": "120000000002", "adId": "120000000003",
+  "campaignId": "120000000001",
+  "campaignName": "Weby – podzim",
+  "adsetId": "120000000002",
+  "adId": "120000000003",
   "fieldData": [
     { "name": "full_name", "values": ["Jan Novák"] },
     { "name": "email", "values": ["jan@firma.cz"] },
@@ -129,14 +140,16 @@ Nastavení → Integrace → panel **Meta** (slot `settings.integrations`):
 }
 ```
 
-   Pole formuláře se poznají podle názvu bez diakritiky (`full_name`, `jmeno_a_prijmeni`, `email`, `telefon`, `company_name`, `firma`, `ico` a další); místo `fieldData` jde poslat plochou mapu `fields` nebo přímá pole `fullName`, `email`, `phone`, `companyName`, `ico`. ID smí být čísla.
-4. Hlavička `X-Opsys-Signature: t=<unix sekundy>,v1=<hex>`, kde `v1` je HMAC-SHA256 tajemství z textu `<t>.<tělo přesně tak, jak se posílá>`; tolerance ±5 minut. V uzlu Code:
+Pole formuláře se poznají podle názvu bez diakritiky (`full_name`, `jmeno_a_prijmeni`, `email`, `telefon`, `company_name`, `firma`, `ico` a další); místo `fieldData` jde poslat plochou mapu `fields` nebo přímá pole `fullName`, `email`, `phone`, `companyName`, `ico`. ID smí být čísla. 4. Hlavička `X-Opsys-Signature: t=<unix sekundy>,v1=<hex>`, kde `v1` je HMAC-SHA256 tajemství z textu `<t>.<tělo přesně tak, jak se posílá>`; tolerance ±5 minut. V uzlu Code:
 
 ```js
 const crypto = require("crypto");
-const body = JSON.stringify($json);               // přesně toto tělo pošlete
+const body = JSON.stringify($json); // přesně toto tělo pošlete
 const t = Math.floor(Date.now() / 1000);
-const v1 = crypto.createHmac("sha256", $env.OPSYS_INGEST_SECRET).update(`${t}.${body}`).digest("hex");
+const v1 = crypto
+  .createHmac("sha256", $env.OPSYS_INGEST_SECRET)
+  .update(`${t}.${body}`)
+  .digest("hex");
 return [{ json: { body, signature: `t=${t},v1=${v1}` } }];
 ```
 
@@ -170,6 +183,9 @@ Závisí na `kontakty` (`upsertContactFromLead`) a `obchody` (`createDealFromLea
 - Token Meta je dlouhodobý (systémový uživatel Business Manageru); automatická obnova tokenu se nestaví. Neplatný token ukáže panel jako „Vyžaduje nové přihlášení“.
 - Součty přes účty v různých měnách se nepřevádějí.
 - Reklamy se v OPSYS nevytvářejí ani neupravují.
+- Detail účtu a kampaně je generický záznam entity, takže v panelu „Údaje“ jdou vlastník účtu a klient přepsat i napřímo (mimo kontrolu `reklama.account.setOwner`, že účet klienta má klienta); správný způsob je tlačítko „Změnit“ u vlastníka (žádost pro REK-A v `ZADOSTI.md`).
+- Období v detailu účtu a kampaně se po otevření vrací na 30 dní (není v adrese); záložka Reklama u klienta a zakázky nabízí jen 3, 6 a 12 měsíců.
+- Náhled kreativy je odkaz na CDN Meta, takže po vypršení odkazu se ukáže jen prázdná miniatura; po další synchronizaci se obnoví.
 
 ## Odkazy na kód a testy
 
@@ -181,4 +197,6 @@ Závisí na `kontakty` (`upsertContactFromLead`) a `obchody` (`createDealFromLea
 - Adaptér: `packages/modules/reklama/src/meta/client.ts#MetaAdsClient`, `packages/modules/reklama/src/meta/real-client.ts#createRealMetaClient`, `packages/modules/reklama/src/meta/fake-meta.ts#createFakeMetaClient`
 - Výpočty: `packages/modules/reklama/src/meta/logic.ts#buildMetrics`, `packages/modules/reklama/src/meta/logic.ts#rewriteWindow`
 - Čtení: `packages/modules/reklama/src/meta/queries.ts#campaignDetail`, `packages/modules/reklama/src/meta/queries.ts#metricsFor`
+- UI: `packages/modules/reklama/src/ui/accounts-page.tsx#AccountsPage`, `packages/modules/reklama/src/ui/account-overview.tsx#AccountPerformance`, `packages/modules/reklama/src/ui/campaign-overview.tsx#CampaignPerformance`, `packages/modules/reklama/src/ui/campaign-overview.tsx#JobAssign`, `packages/modules/reklama/src/ui/ads-tab.tsx#ClientAdsTab`, `packages/modules/reklama/src/ui/format.ts#lostInfo`, `packages/modules/reklama/src/ui/format.ts#aggregateMonthly`
+- Testy UI: `packages/modules/reklama/src/ui/format.test.ts` (formát čísel, rozdíl leadů, stav synchronizace, měsíce), `apps/web/e2e/reklama.spec.ts` (seznam, detail účtu a kampaně, náhled, vlastník, záložka klienta, Obnovit, mobil)
 - Testy: `tests/reklama.int.test.ts` (AS-08: idempotence, selhání, 7denní přepis, výpočty, soukromí), `packages/modules/reklama/src/meta/logic.test.ts`, `packages/modules/reklama/src/meta/real-client.test.ts`

@@ -6,8 +6,8 @@ import { cn } from "../lib/cn";
 
 export type ThemeChoice = "light" | "dark" | "system";
 
-/** Skript do `<head>`: nastaví téma před vykreslením, aby stránka při načtení nezablikala. */
-export const themeScript = `try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}`;
+/** Skript na začátku `<body>`: nastaví téma a hustotu řádků (`data-density`) před vykreslením, aby stránka při načtení nezablikala. */
+export const themeScript = `try{var r=document.documentElement,t=localStorage.getItem("theme");if(t==="light"||t==="dark")r.setAttribute("data-theme",t);var d=localStorage.getItem("density");r.setAttribute("data-density",d==="compact"?"compact":"comfortable")}catch(e){}`;
 
 function apply(choice: ThemeChoice) {
   const root = document.documentElement;

@@ -331,6 +331,8 @@ export type WidgetPresetDef = {
   group: string;
   phase: "mvp" | "v2";
   widget: Omit<DashboardWidget, "id">;
+  /** Katalogová položka přidá víc widgetů najednou (např. Příjmy: zaplaceno, vystaveno, plánováno); první je `widget`. */
+  widgets?: Omit<DashboardWidget, "id">[];
   /** Nabízí se jen, když platí všechno: metriky existují (modul je zapnutý) a aktér na ně má oprávnění, entity jsou
    * čitelné, aktér má všechna oprávnění. */
   requires?: {
@@ -343,9 +345,10 @@ export type WidgetPresetDef = {
   /** Widget se po přidání nastavuje (pohled, odkazy): otevře se editor místo okamžitého přidání. */
   configure?: boolean | undefined;
 };
+/** Widget z katalogu v podobě, kterou dostane prohlížeč (bez podmínek dostupnosti). */
 export type WidgetPresetInfo = Pick<
   WidgetPresetDef,
-  "key" | "title" | "description" | "group" | "phase" | "widget" | "configure"
+  "key" | "title" | "description" | "group" | "phase" | "widget" | "widgets" | "configure"
 >;
 
 /** Nulové UUID: „pohled ještě není vybrán“ (nově přidaný widget Číslo / Seznam z pohledu; editor ho nenechá uložit). */

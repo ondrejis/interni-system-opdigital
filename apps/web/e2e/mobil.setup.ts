@@ -1,8 +1,8 @@
 import { expect, test as setup } from "@playwright/test";
 import { totp } from "./totp";
 
-/** Jednou přihlásí druhého majitele (včetně povinného 2FA) a uloží relaci pro ostatní testy. */
-setup("přihlášení majitele pro testy aplikace", async ({ page }) => {
+/** Přihlásí majitele (včetně povinného 2FA) v mobilním zobrazení a uloží relaci pro `mobil*.spec.ts` (MOB). */
+setup("přihlášení majitele pro mobilní testy", async ({ page }) => {
   const email = process.env.E2E_APP_EMAIL!;
   const password = process.env.E2E_APP_PASSWORD!;
   await page.goto("/prihlaseni");
@@ -16,5 +16,5 @@ setup("přihlášení majitele pro testy aplikace", async ({ page }) => {
   await page.getByLabel("Kód z aplikace").fill(totp(secret));
   await page.getByRole("button", { name: "Potvrdit a zapnout" }).click();
   await expect(page).toHaveURL(/\/(prehled)?$/);
-  await page.context().storageState({ path: "e2e/.auth/user.json" });
+  await page.context().storageState({ path: "e2e/.auth/mobil.json" });
 });

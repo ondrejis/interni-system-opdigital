@@ -11,10 +11,7 @@
       "name": "Poznámka 1",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [
-        -300,
-        40
-      ]
+      "position": [-300, 40]
     },
     {
       "parameters": {
@@ -29,10 +26,7 @@
       "name": "Webhook z OPSYS",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        0,
-        300
-      ],
+      "position": [0, 300],
       "webhookId": "opsys-drive-folders",
       "notes": "Adresa (Production URL) se vkládá do OPSYS: Nastavení → Integrace → Webhooky, události `drive.*`.",
       "notesInFlow": true
@@ -46,10 +40,7 @@
       "name": "Konfigurace",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        220,
-        300
-      ],
+      "position": [220, 300],
       "notes": "Jediné místo s nastavením. Tajemství z proměnných prostředí n8n, ID složek vyplň (nebo také proměnné prostředí).",
       "notesInFlow": true
     },
@@ -62,10 +53,7 @@
       "name": "Ověřit podpis",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        440,
-        300
-      ],
+      "position": [440, 300],
       "notes": "Bez platného podpisu se nic nedělá (odpověď 401).",
       "notesInFlow": true
     },
@@ -97,10 +85,7 @@
       "name": "Podpis platný?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        660,
-        300
-      ]
+      "position": [660, 300]
     },
     {
       "parameters": {
@@ -114,10 +99,7 @@
       "name": "Odpovědět 200",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [
-        880,
-        220
-      ],
+      "position": [880, 220],
       "notes": "Hned po ověření: OPSYS čeká na odpověď nejvýš 10 s, zbytek běží na pozadí.",
       "notesInFlow": true
     },
@@ -133,10 +115,7 @@
       "name": "Odpovědět 401",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [
-        880,
-        420
-      ]
+      "position": [880, 420]
     },
     {
       "parameters": {
@@ -147,10 +126,7 @@
       "name": "Plán",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1100,
-        220
-      ],
+      "position": [1100, 220],
       "notes": "Převede událost na plán. Neznámá událost nebo chybná konfigurace = chyba v callbacku.",
       "notesInFlow": true
     },
@@ -258,10 +234,7 @@
       "name": "Jaká operace?",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [
-        1320,
-        220
-      ]
+      "position": [1320, 220]
     },
     {
       "parameters": {
@@ -272,10 +245,7 @@
       "name": "Další úroveň",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1560,
-        40
-      ],
+      "position": [1560, 40],
       "notes": "Smyčka: Další úroveň → Založit → Zapsat ID → Další úroveň. Souběžně se zakládají složky jedné úrovně.",
       "notesInFlow": true
     },
@@ -307,10 +277,7 @@
       "name": "Hotovo?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        1780,
-        40
-      ]
+      "position": [1780, 40]
     },
     {
       "parameters": {
@@ -330,10 +297,7 @@
       "name": "Google Disk: založit složku",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        2000,
-        120
-      ],
+      "position": [2000, 120],
       "credentials": {
         "googleDriveOAuth2Api": {
           "id": "",
@@ -356,10 +320,7 @@
       "name": "Zapsat ID",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        2220,
-        120
-      ]
+      "position": [2220, 120]
     },
     {
       "parameters": {
@@ -370,10 +331,7 @@
       "name": "Výsledek: strom",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        2000,
-        -60
-      ]
+      "position": [2000, -60]
     },
     {
       "parameters": {
@@ -414,10 +372,7 @@
       "name": "Google Disk: najít složku služby",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1560,
-        260
-      ],
+      "position": [1560, 260],
       "credentials": {
         "googleDriveOAuth2Api": {
           "id": "",
@@ -438,10 +393,7 @@
       "name": "Doplnit složku služby",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1780,
-        260
-      ]
+      "position": [1780, 260]
     },
     {
       "parameters": {
@@ -461,10 +413,7 @@
       "name": "Google Disk: přejmenovat",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1560,
-        440
-      ],
+      "position": [1560, 440],
       "credentials": {
         "googleDriveOAuth2Api": {
           "id": "",
@@ -494,10 +443,7 @@
       "name": "Google Disk: přesunout",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1560,
-        620
-      ],
+      "position": [1560, 620],
       "credentials": {
         "googleDriveOAuth2Api": {
           "id": "",
@@ -520,10 +466,7 @@
       "name": "Výsledek: jednoduchý",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1800,
-        520
-      ]
+      "position": [1800, 520]
     },
     {
       "parameters": {
@@ -534,10 +477,7 @@
       "name": "Podepsat callback",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        2440,
-        260
-      ]
+      "position": [2440, 260]
     },
     {
       "parameters": {
@@ -564,10 +504,7 @@
       "name": "Callback do OPSYS",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        2660,
-        260
-      ],
+      "position": [2660, 260],
       "retryOnFail": true,
       "maxTries": 5,
       "waitBetweenTries": 5000,

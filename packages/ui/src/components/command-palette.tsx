@@ -112,9 +112,17 @@ export function CommandPalette({
             value={query}
             onValueChange={setQuery}
             placeholder="Hledat klienty, kontakty, obchody… nebo napsat příkaz"
-            className="h-11 w-full bg-transparent text-lg outline-none placeholder:text-faint"
+            enterKeyHint="search"
+            className="h-11 w-full bg-transparent text-lg outline-none placeholder:text-faint max-md:h-14"
             data-testid="palette-input"
           />
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="-mr-2 shrink-0 rounded-md px-3 text-base font-medium text-accent md:hidden"
+          >
+            Zavřít
+          </button>
         </div>
         <Command.List className="scrollbar-thin max-h-[52vh] overflow-auto p-2">
           <Command.Empty className="px-3 py-6 text-center text-muted">
@@ -148,7 +156,7 @@ export function CommandPalette({
             </Command.Group>
           ))}
         </Command.List>
-        <div className="flex items-center justify-between border-t border-line px-4 py-2 text-xs text-faint">
+        <div className="flex items-center justify-between border-t border-line px-4 py-2 text-xs text-faint max-md:hidden">
           <span>↑↓ pohyb</span>
           <span className="flex items-center gap-1">
             <CornerDownLeft className="size-3" /> otevřít · Esc zavřít
@@ -187,7 +195,7 @@ function Row({
       </span>
       {item.actions?.map((a) => {
         const cls =
-          "flex size-8 shrink-0 items-center justify-center rounded-md text-muted hover:bg-line hover:text-fg [&_svg]:size-4";
+          "flex size-8 shrink-0 items-center justify-center rounded-md text-muted hover:bg-line hover:text-fg max-md:size-11 max-md:bg-subtle [&_svg]:size-4 max-md:[&_svg]:size-5";
         const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
         return a.href ? (
           <a

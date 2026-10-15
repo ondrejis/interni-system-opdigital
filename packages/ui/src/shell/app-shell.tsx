@@ -142,7 +142,7 @@ export function AppShell({
     });
   };
 
-  const sidebar = (compact: boolean) => (
+  const sidebar = (compact: boolean, touch = false) => (
     <Sidebar
       {...{
         brand,
@@ -159,6 +159,7 @@ export function AppShell({
       pathname={pending ?? pathname}
       onNavigate={setPending}
       compact={compact}
+      touch={touch}
       onToggle={toggle}
     />
   );
@@ -185,15 +186,16 @@ export function AppShell({
             role="dialog"
             aria-modal="true"
             aria-label="Navigace"
-            className="absolute inset-y-0 left-0 w-72 border-r border-line bg-subtle anim-slide-in"
+            className="absolute inset-y-0 left-0 w-[min(20rem,88vw)] border-r border-line bg-subtle pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] anim-slide-in"
+            data-testid="more-menu"
           >
-            {sidebar(false)}
+            {sidebar(false, true)}
           </aside>
         </div>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-12 items-center gap-2 border-b border-line bg-bg px-3 md:hidden">
+        <header className="flex h-[calc(3rem+env(safe-area-inset-top))] items-center gap-2 border-b border-line bg-bg px-3 pt-[env(safe-area-inset-top)] md:hidden">
           <button
             type="button"
             aria-label="Otevřít menu"
@@ -228,6 +230,7 @@ function NavLink({
   active,
   compact,
   nested,
+  touch,
   onNavigate,
   trailing,
 }: {
@@ -235,6 +238,8 @@ function NavLink({
   active: boolean;
   compact: boolean;
   nested?: boolean;
+  /** Menu na telefonu: řádek aspoň 44 px. */
+  touch?: boolean;
   onNavigate: (href: string) => void;
   trailing?: ReactNode;
 }) {
@@ -247,7 +252,7 @@ function NavLink({
       onClick={() => onNavigate(item.href)}
       className={cn(
         "group flex items-center gap-2 rounded-md px-2 font-medium text-muted transition-colors hover:bg-hover hover:text-fg",
-        nested ? "h-7 text-[13px]" : "h-8 text-base",
+        touch ? "h-11 text-base" : nested ? "h-7 text-[13px]" : "h-8 text-base",
         active && "bg-active text-fg",
         compact && "justify-center px-0",
       )}
@@ -281,11 +286,13 @@ function NavGroup({
   item,
   isActive,
   compact,
+  touch,
   onNavigate,
 }: {
   item: NavItem;
   isActive: (href: string) => boolean;
   compact: boolean;
+  touch?: boolean;
   onNavigate: (href: string) => void;
 }) {
   const children = item.children ?? [];
@@ -296,21 +303,36 @@ function NavGroup({
   }, [within]);
   if (!children.length)
     return (
-      <NavLink item={item} active={isActive(item.href)} compact={compact} onNavigate={onNavigate} />
+      <NavLink
+        item={item}
+        active={isActive(item.href)}
+        compact={compact}
+        touch={touch}
+        onNavigate={onNavigate}
+      />
     );
   // Hlavní stránka modulu je aktivní jen tehdy, když není aktivní žádná z podstránek.
   const own = isActive(item.href) && !children.some((c) => isActive(c.href));
   return (
     <div>
       <div className="relative">
-        <NavLink item={item} active={own} compact={compact} onNavigate={onNavigate} />
+        <NavLink
+          item={item}
+          active={own}
+          compact={compact}
+          touch={touch}
+          onNavigate={onNavigate}
+        />
         {!compact && (
           <button
             type="button"
             aria-label={open ? `Sbalit: ${item.label}` : `Rozbalit: ${item.label}`}
             aria-expanded={open}
             onClick={() => setOpen((o) => !o)}
-            className="absolute right-1 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded text-faint transition-colors hover:bg-active hover:text-fg"
+            className={cn(
+              "absolute right-1 top-1/2 flex -translate-y-1/2 items-center justify-center rounded text-faint transition-colors hover:bg-active hover:text-fg",
+              touch ? "size-11" : "size-6",
+            )}
           >
             <ChevronDown className={cn("size-3.5 transition-transform", !open && "-rotate-90")} />
           </button>
@@ -325,6 +347,7 @@ function NavGroup({
               nested
               active={isActive(c.href)}
               compact={false}
+              touch={touch}
               onNavigate={onNavigate}
             />
           ))}
@@ -347,10 +370,13 @@ function Sidebar({
   securityHref,
   accountHref,
   compact,
+  touch,
   onToggle,
   onNavigate,
 }: Omit<ShellProps, "children" | "bottomNav"> & {
   compact: boolean;
+  /** Menu na telefonu (Více): větší dotykové plochy. */
+  touch: boolean;
   onToggle: () => void;
   onNavigate: (href: string) => void;
 }) {
@@ -403,6 +429,7 @@ function Sidebar({
               item={i}
               active={isActive(i.href)}
               compact={compact}
+              touch={touch}
               onNavigate={onNavigate}
             />
           ))}
@@ -420,6 +447,7 @@ function Sidebar({
                 item={i}
                 isActive={isActive}
                 compact={compact}
+                touch={touch}
                 onNavigate={onNavigate}
               />
             ))}
@@ -434,6 +462,7 @@ function Sidebar({
             item={i}
             active={isActive(i.href)}
             compact={compact}
+            touch={touch}
             onNavigate={onNavigate}
           />
         ))}
@@ -442,6 +471,7 @@ function Sidebar({
             item={{ href: settingsHref, label: "Nastavení", icon: "settings" }}
             active={isActive(settingsHref)}
             compact={compact}
+            touch={touch}
             onNavigate={onNavigate}
           />
         )}

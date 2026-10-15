@@ -37,6 +37,7 @@ import {
   taskMovePatch,
   toApiRows,
   toRetainerSetup,
+  toRetainerContinueInput,
   updatePhase,
   updateTask,
   planPhaseChange,
@@ -415,6 +416,31 @@ describe("retainer", () => {
     });
     expect(toRetainerSetup({ ...f, issuerMode: "alternate" })).toMatchObject({
       issuerMode: "alternate",
+      firstIssuerId: "u1",
+    });
+  });
+});
+
+describe("vstup finance.retainer.continue", () => {
+  const f = {
+    ...defaultRetainerForm("u1", new Date("2026-11-15T10:00:00Z")),
+    amountMinor: 1_500_000,
+  };
+  it("pevný fakturující: plochý tvar bez firstIssuerId", () => {
+    expect(toRetainerContinueInput("j1", f, "u2")).toEqual({
+      jobId: "j1",
+      amountMinor: 1_500_000,
+      fromMonth: "2026-12",
+      issueDay: 1,
+      issuerMode: "fixed",
+      issuerId: "u1",
+    });
+    expect(toRetainerContinueInput("j1", { ...f, amountMinor: null }, "u2")).toBeNull();
+  });
+  it("střídavě: firstIssuerId začíná, issuerId je druhý v pořadí", () => {
+    expect(toRetainerContinueInput("j1", { ...f, issuerMode: "alternate" }, "u2")).toMatchObject({
+      issuerMode: "alternate",
+      issuerId: "u2",
       firstIssuerId: "u1",
     });
   });

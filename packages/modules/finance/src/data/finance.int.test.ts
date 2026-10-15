@@ -493,6 +493,56 @@ describe("AS-04: změna poměru retaineru bez přepočtu minulosti, ukončení",
   });
 });
 
+describe("metriky vystaveno / plánováno / blízko splatnosti", () => {
+  it("jen podíl přihlášeného a bez soukromých pro partnera", async () => {
+    const j = await makeJob();
+    const priv = await makeJob({}, true);
+    await run("finance.split.set", O.ctx, { jobId: j.id, rules: [pct(O.id, 50), pct(P.id, 50)] });
+    await run("finance.split.set", O.ctx, { jobId: priv.id, rules: [pct(O.id, 100)] });
+    const input = {
+      from: "2026-11-01",
+      to: "2026-11-30",
+      jobId: null,
+      userId: null,
+      bucket: null,
+      limit: 10,
+      params: {},
+      today: "2026-10-15",
+    };
+    const metric = (k: string) => financeMetrics.find((m) => m.key === k)!;
+    const val = async (k: string, ctx: Ctx, i = input) =>
+      ((await metric(k).compute(ctx, i, deps)) as { value: number }).value;
+    const before = {
+      oi: await val("finance.income_month_issued", O.ctx),
+      pi: await val("finance.income_month_issued", P.ctx),
+      pp: await val("finance.income_month_planned", P.ctx),
+    };
+    for (const jobId of [j.id, priv.id])
+      await run("finance.payment.create", O.ctx, {
+        jobId,
+        description: "I",
+        amountMinor: K(1_000),
+        issuerId: O.id,
+        status: "issued",
+        invoiceNumber: "N",
+        issuedOn: "2026-11-05",
+        dueOn: "2026-11-19",
+      });
+    await run("finance.payment.create", O.ctx, {
+      jobId: j.id,
+      description: "Pl",
+      amountMinor: K(400),
+      issuerId: O.id,
+      issuedOn: "2026-11-20",
+    });
+    expect(await val("finance.income_month_issued", P.ctx)).toBe(before.pi + K(500));
+    expect(await val("finance.income_month_issued", O.ctx)).toBe(before.oi + K(500) + K(1_000));
+    expect(await val("finance.income_month_planned", P.ctx)).toBe(before.pp + K(200));
+    const soon = await val("finance.unpaid_soon", P.ctx, { ...input, params: { days: 400 } });
+    expect(soon).toBeGreaterThanOrEqual(K(1_000));
+  });
+});
+
 describe("soukromí", () => {
   it("soukromá zakázka a platba z Fakturoidu nejsou vidět partnerovi ani v saldu", async () => {
     const pub = await makeJob();

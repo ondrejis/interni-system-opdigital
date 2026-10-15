@@ -171,7 +171,7 @@ test("vlastník účtu: změna na klienta a záložka Reklama na kartě klienta"
   await dialog.getByRole("radio", { name: "Klient" }).click();
   // klient je povinný: bez něj nejde uložit
   await expect(dialog.getByTestId("owner-save")).toBeDisabled();
-  await dialog.getByRole("button", { name: "Vyberte klienta" }).click();
+  await dialog.getByRole("button", { name: "Klient", exact: true }).click();
   await page.getByPlaceholder("Hledat firmu…").fill(company);
   await page.getByRole("option", { name: company }).click();
   await dialog.getByTestId("owner-save").click();
@@ -183,13 +183,16 @@ test("vlastník účtu: změna na klienta a záložka Reklama na kartě klienta"
   await page.getByRole("tab", { name: /Reklama/ }).click();
   const tab = page.getByTestId("ads-tab");
   await expect(tab).toBeVisible();
-  await expect(tab.getByTestId("ads-campaigns-table").getByRole("link", { name: campaignName })).toBeVisible();
+  await expect(
+    tab.getByTestId("ads-campaigns-table").getByRole("link", { name: campaignName }),
+  ).toBeVisible();
   await expect(tab.getByTestId("ads-monthly")).toBeVisible();
   await expect(tab.getByTestId("client-accounts")).toContainText(accountName);
 });
 
 test("Obnovit bez napojené Meta ukáže srozumitelnou chybu", async ({ page }) => {
   await page.goto("/reklama");
+  await expect(page.getByTestId("accounts-summary")).not.toHaveText("Načítám…");
   const notConnected = await page.getByText("Meta zatím není napojená").isVisible();
   test.skip(!notConnected, "Meta je v této instanci napojená, ruční obnova by volala skutečné API");
   await page.getByTestId("sync-button").click();
@@ -201,9 +204,7 @@ test("mobil: účty jsou karty, ne tabulka", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto("/reklama");
   await expect(page.getByTestId("accounts-table")).toBeHidden();
-  await expect(
-    page.getByTestId("account-card").filter({ hasText: accountName }),
-  ).toBeVisible();
+  await expect(page.getByTestId("account-card").filter({ hasText: accountName })).toBeVisible();
   await page.goto(`/reklama/kampane/${ids.campaign}`);
   await expect(page.getByTestId("adsets-table-cards")).toBeVisible();
 });

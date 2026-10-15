@@ -19,7 +19,7 @@ export function DialogRoot({
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
         <D.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] anim-fade" />
-        <D.Content className="fixed left-1/2 top-[14vh] z-50 w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-xl border border-line bg-bg shadow-float anim-pop outline-none">
+        <D.Content data-palette="" className="fixed left-1/2 top-[14vh] z-50 w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-xl border border-line bg-bg shadow-float anim-pop outline-none">
           <D.Title className="sr-only">{title}</D.Title>
           <D.Description className="sr-only">{title}</D.Description>
           {children}

@@ -15,7 +15,9 @@ import { taskType } from "@rebar/ukoly/schema";
 import { eq } from "drizzle-orm";
 import type { Ctx } from "@rebar/core/rbac";
 import { connectAppDb } from "@rebar/core/testing";
+import { createMyTasks } from "@rebar/prehled/my-tasks";
 import { WIDGET_PRESETS } from "@rebar/prehled/presets";
+import { assertCommandPermission } from "../apps/web/src/server/command-gate";
 import { opsysDashboards } from "../clients/opsys/dashboards";
 import {
   CANARY_PREFIX,
@@ -38,6 +40,14 @@ let discard: () => Promise<void>;
 let owner: Ctx;
 let partner: Ctx;
 let env: DashboardEnv;
+
+/** Spuštění příkazu modulu jako v aplikaci (`runModuleCommand`): oprávnění příkazu, validace vstupu, handler. */
+async function run(ctx: Ctx, name: string, input: unknown): Promise<unknown> {
+  const cmd = f.collected.commands.get(name);
+  if (!cmd) throw new Error(`Příkaz ${name} není zapnutý.`);
+  assertCommandPermission(ctx, cmd);
+  return cmd.handler(ctx, cmd.input.parse(input), f.deps);
+}
 
 const widget = (w: Omit<DashboardWidget, "id" | "w" | "h"> & { w?: number; h?: number }) =>
   ({ id: "w-int-test", w: 6, h: 3, ...w }) as DashboardWidget;
@@ -126,6 +136,7 @@ beforeAll(async () => {
     deps: f.deps,
     metrics: new Map(f.collected.dashboardMetrics.map((m) => [m.key, m])),
     builtins: {
+      myTasks: createMyTasks(run),
       tiles: async (ctx) =>
         (await Promise.all(f.collected.widgets.map((w) => w(ctx, f.deps)))).flat(),
     },
@@ -209,6 +220,65 @@ describe("Číslo z pohledu a Seznam z pohledu: soukromí", () => {
   });
 });
 
+describe("Úkoly na dnes", () => {
+  const w = widget({
+    type: "list",
+    title: "Úkoly na dnes",
+    source: { kind: "builtin", builtin: "my_tasks" },
+  });
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Prague" });
+  const yesterday = new Date(Date.now() - 86_400_000).toLocaleDateString("sv-SE", {
+    timeZone: "Europe/Prague",
+  });
+  const items = async (c: Ctx) => {
+    const r = await result(c, w);
+    return r.kind === "list" ? r.items : [];
+  };
+
+  it("dnes a po termínu (po termínu první), odškrtnutí ve widgetu úkol dokončí a ze seznamu zmizí", async () => {
+    const taskDef = await resolveEntity(db, f.registry.get("task")!);
+    const mk = async (title: string, dueDate: string) =>
+      (
+        await createRecord(partner, f.registry, taskDef, {
+          title,
+          dueDate,
+          assignee: f.people.partner.id,
+        })
+      ).row;
+    const late = await mk("Úkol po termínu přehled", yesterday);
+    const now = await mk("Úkol na dnes přehled", today);
+    await mk("Úkol na příště přehled", "2099-01-01");
+    const before = await items(partner);
+    expect(before.map((i) => i.title)).toEqual(["Úkol po termínu přehled", "Úkol na dnes přehled"]);
+    expect(before.every((i) => i.completeId)).toBe(true);
+    expect(before[0]!.tone).toBe("danger");
+    expect(hasCanary(before)).toBe(false);
+    await run(partner, "ukoly.complete", { id: before[0]!.completeId });
+    expect((await items(partner)).map((i) => i.id)).toEqual([now.id]);
+    expect(late.id).toBe(before[0]!.id);
+  });
+
+  it("delegované úkoly přibudou jen na žádost a nejdou odškrtnout z widgetu", async () => {
+    const taskDef = await resolveEntity(db, f.registry.get("task")!);
+    await createRecord(owner, f.registry, taskDef, {
+      title: "Delegovaný úkol přehled",
+      dueDate: today,
+      assignee: f.people.partner.id,
+    });
+    const withDelegated = widget({
+      type: "list",
+      title: "Úkoly",
+      source: { kind: "builtin", builtin: "my_tasks", params: { includeDelegated: true } },
+    });
+    const r = await result(owner, withDelegated);
+    const list = r.kind === "list" ? r.items : [];
+    const d = list.find((i) => i.title === "Delegovaný úkol přehled");
+    expect(d?.badge).toBe("Delegované");
+    expect(d?.completeId).toBeUndefined();
+    expect((await items(owner)).some((i) => i.title === "Delegovaný úkol přehled")).toBe(false);
+  });
+});
+
 describe("Rychlé odkazy a Poslední změny", () => {
   it("odkazy: vlastní odkazy a pohledy; pohled, který partner nesmí, se mu nenabídne; nebezpečná adresa neprojde", async () => {
     const shared = await view("company", "Sdílený pohled firem");
@@ -271,13 +341,19 @@ describe("Rychlé odkazy a Poslední změny", () => {
     expect(p.kind === "list" && p.items.length).toBeGreaterThan(0);
   });
 
-  it("poslední změny „jen moje“: partner bez vlastních změn dostane prázdný seznam", async () => {
+  it("poslední změny „jen moje“: jen vlastní změny uživatele", async () => {
     const mine = {
       ...recent,
       source: { kind: "metric", metric: "prehled.recent_changes", params: { scope: "mine" } },
     } as DashboardWidget;
     const p = await result(partner, mine);
-    expect(p.kind === "list" && p.items).toEqual([]);
+    const items = p.kind === "list" ? p.items : [];
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.every((i) => i.subtitle?.endsWith(f.people.partner.name))).toBe(true);
+    const o = await result(owner, mine);
+    expect(
+      o.kind === "list" && o.items.every((i) => i.subtitle?.endsWith(f.people.owner.name)),
+    ).toBe(true);
   });
 
   it("privatePaths modulu: partner nedostane canary, vlastník ano", async () => {

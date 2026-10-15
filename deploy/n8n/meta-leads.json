@@ -11,10 +11,7 @@
       "name": "Poznámka 1",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [
-        -320,
-        20
-      ]
+      "position": [-320, 20]
     },
     {
       "parameters": {
@@ -28,10 +25,7 @@
       "name": "Nový lead z Meta",
       "type": "n8n-nodes-base.facebookLeadAdsTrigger",
       "typeVersion": 1,
-      "position": [
-        0,
-        300
-      ],
+      "position": [0, 300],
       "webhookId": "opsys-meta-leads",
       "credentials": {
         "facebookLeadAdsOAuth2Api": {
@@ -48,10 +42,7 @@
       "name": "Ruční test (ukázkový lead)",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [
-        0,
-        520
-      ],
+      "position": [0, 520],
       "notes": "Pro zkoušku bez Meta: spusť ručně. Odešle ukázkový lead s označením TEST (po zkoušce ho v OPSYS smaž).",
       "notesInFlow": true
     },
@@ -64,10 +55,7 @@
       "name": "Ukázkový lead",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        220,
-        520
-      ]
+      "position": [220, 520]
     },
     {
       "parameters": {
@@ -78,10 +66,7 @@
       "name": "Normalizovat lead",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        440,
-        300
-      ],
+      "position": [440, 300],
       "notes": "Jedna položka na lead. Nepoznaná pole OPSYS ignoruje, celé tělo si ale uloží do protokolu příchozích požadavků.",
       "notesInFlow": true
     },
@@ -94,10 +79,7 @@
       "name": "Podepsat",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        660,
-        300
-      ],
+      "position": [660, 300],
       "notes": "Tajemství a adresa z proměnných prostředí n8n, nic se neukládá do workflow.",
       "notesInFlow": true
     },
@@ -126,10 +108,7 @@
       "name": "Odeslat do OPSYS",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        880,
-        300
-      ],
+      "position": [880, 300],
       "retryOnFail": true,
       "maxTries": 5,
       "waitBetweenTries": 60000,

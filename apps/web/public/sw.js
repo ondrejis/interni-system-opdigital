@@ -1,6 +1,122 @@
-/* Service worker. Část 1: společný základ a upozornění v telefonu (push). Záměrně nic nekešuje – data jsou citlivá a vždy čerstvá. */
+/* Service worker. Část 1: společný základ (instalace, aktivace). Část 2: čtení naposledy načtených stránek bez spojení
+   (MOB-10), viz dole. Část 3: upozornění v telefonu (push; OPSYS push nepoužívá, kód zůstal v platformě). */
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+
+/* ===========================================================================================================
+   Čtení bez spojení (MOB-10, v2). Pravidla:
+   - Jen čtení: ukládají se odpovědi na GET (stránky, jejich RSC data, hašované soubory aplikace). Cokoli jiného
+     (POST, server actions, /api/*, SSE) jde vždy rovnou na server a nikdy se neukládá ani neopakuje – zápisy se
+     bez spojení prostě nepovedou, žádná fronta.
+   - Stránky: nejdřív síť (po 4 s se při slabém signálu vezme uložená kopie, pokud existuje); bez sítě uložená kopie,
+     jinak /offline.html.
+   - Přihlašovací a jednorázové stránky se neukládají. Při odhlášení (POST /api/auth/sign-out) se všechny mezipaměti
+     OPSYS smažou, aby na sdíleném zařízení nezůstala cizí data.
+   =========================================================================================================== */
+const PAGES_CACHE = "opsys-pages-v1";
+const STATIC_CACHE = "opsys-static-v1";
+const OFFLINE_URL = "/offline.html";
+const OWN_CACHES = [PAGES_CACHE, STATIC_CACHE, "opsys-data-v1"];
+const NETWORK_WAIT_MS = 4000;
+const NO_CACHE_PAGES = /^\/(prihlaseni|start|overeni|pozvanka|zapomenute-heslo|obnova-hesla|ui|tv)(\/|$)/;
+
+/** Rozhodne, co se s požadavkem stane: "static" (cache-first), "page" (síť, pak kopie) nebo "bypass" (nechat být). */
+function cachePolicy(request) {
+  if (request.method !== "GET") return "bypass";
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch {
+    return "bypass";
+  }
+  if (url.origin !== self.location.origin) return "bypass";
+  const path = url.pathname;
+  if (path.startsWith("/api/") || path === "/sw.js" || path === "/manifest.webmanifest") return "bypass";
+  if (path.startsWith("/_next/static/") || path.startsWith("/pwa-icon/")) return "static";
+  if (path === OFFLINE_URL) return "static";
+  if (NO_CACHE_PAGES.test(path)) return "bypass";
+  const accept = request.headers.get("accept") || "";
+  const wantsPage =
+    request.mode === "navigate" ||
+    request.headers.get("rsc") === "1" ||
+    accept.includes("text/html") ||
+    accept.includes("text/x-component");
+  return wantsPage ? "page" : "bypass";
+}
+
+/** Do mezipaměti jen úspěšná odpověď bez přesměrování (přesměrování na přihlášení se nesmí uložit jako stránka). */
+function cacheable(response) {
+  return !!response && response.status === 200 && !response.redirected && response.type !== "opaqueredirect";
+}
+
+async function clearOwnCaches() {
+  const keys = await caches.keys();
+  await Promise.all(keys.filter((k) => k.startsWith("opsys-")).map((k) => caches.delete(k)));
+}
+
+async function staticResponse(request) {
+  const cache = await caches.open(STATIC_CACHE);
+  const hit = await cache.match(request);
+  if (hit) return hit;
+  const res = await fetch(request);
+  if (cacheable(res)) await cache.put(request, res.clone());
+  return res;
+}
+
+async function pageResponse(request) {
+  const cache = await caches.open(PAGES_CACHE);
+  const network = fetch(request).then(async (res) => {
+    if (cacheable(res)) await cache.put(request, res.clone());
+    return res;
+  });
+  const cached = await cache.match(request, { ignoreVary: true });
+  try {
+    if (!cached) return await network;
+    // slabý signál: po chvíli se ukáže uložená kopie, síť dobíhá na pozadí a kopii obnoví
+    network.catch(() => {});
+    return await Promise.race([
+      network,
+      new Promise((resolve) => setTimeout(() => resolve(cached), NETWORK_WAIT_MS)),
+    ]);
+  } catch (err) {
+    if (cached) return cached;
+    if (request.mode === "navigate") {
+      const offline = await caches.match(OFFLINE_URL);
+      if (offline) return offline;
+    }
+    throw err;
+  }
+}
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(STATIC_CACHE)
+      .then((cache) => cache.add(OFFLINE_URL))
+      .catch(() => {}),
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  let path = "";
+  try {
+    path = new URL(request.url).pathname;
+  } catch {
+    return;
+  }
+  if (path === "/api/auth/sign-out") {
+    event.waitUntil(clearOwnCaches().catch(() => {}));
+    return;
+  }
+  const policy = cachePolicy(request);
+  if (policy === "static") event.respondWith(staticResponse(request));
+  else if (policy === "page") event.respondWith(pageResponse(request));
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "clear-offline") event.waitUntil(clearOwnCaches());
+});
 
 /* ===========================================================================================================
    Upozornění v telefonu (push): příjem, zobrazení, klepnutí, akce „Odložit“ a obnova odběru po rotaci.
@@ -167,14 +283,18 @@ function urlBase64ToBytes(base64url) {
   return out;
 }
 
-/* Úklid po odstraněném terminálu řemeslníka: staré offline cache se při aktivaci smažou. */
+/* Úklid: staré offline cache po odstraněném terminálu a starší verze mezipamětí OPSYS se při aktivaci smažou. */
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
       .then((keys) =>
         Promise.all(
-          keys.filter((k) => k.startsWith("terminal-offline-")).map((k) => caches.delete(k)),
+          keys
+            .filter(
+              (k) => k.startsWith("terminal-offline-") || (k.startsWith("opsys-") && !OWN_CACHES.includes(k)),
+            )
+            .map((k) => caches.delete(k)),
         ),
       )
       .catch(() => {}),

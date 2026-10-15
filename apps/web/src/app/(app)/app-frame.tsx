@@ -176,6 +176,7 @@ function AppFrameInner({
               pathname={pathname}
               openMenu={openMenu}
               openSearch={() => setPalette(true)}
+              userId={user.id}
             />
           )}
         >

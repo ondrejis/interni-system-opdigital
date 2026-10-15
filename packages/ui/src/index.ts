@@ -95,3 +95,20 @@ export { ThemeSwitch, themeScript } from "./shell/theme";
 export * from "./data";
 export * from "./charts";
 export * from "./dashboards";
+export {
+  ContactActionBar,
+  InstallHint,
+  OfflineBridge,
+  contactActions,
+  telHref,
+  smsHref,
+  whatsappHref,
+  mailHref,
+  mapsLink,
+  addressText,
+  useOnline,
+  useVisualViewportVar,
+  shouldOpenStartSearch,
+  installState,
+} from "./mobile";
+export type { ContactAction, ContactActionKind, InstallState } from "./mobile";

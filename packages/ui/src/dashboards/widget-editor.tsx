@@ -138,9 +138,10 @@ const DEFAULT_SIZE: Record<WidgetType, { w: number; h: number }> = {
   builtin: { w: 12, h: 2 },
 };
 
-/** Nový prázdný widget daného typu s rozumným výchozím zdrojem. */
+/** Nové id widgetu (pro widgety z katalogu). */
 export const newWidgetId = () => newId();
 
+/** Nový prázdný widget daného typu s rozumným výchozím zdrojem. */
 export function newWidget(type: WidgetType, catalog: SourceCatalog | undefined): DashboardWidget {
   const entity = catalog?.entities[0]?.key ?? "job";
   const base = { id: newId(), type, title: TYPE_LABEL[type], ...DEFAULT_SIZE[type] };
@@ -369,6 +370,10 @@ export function WidgetEditor({ widget, catalog, filters, isNew, onSave, onClose 
                   ).map((b) => ({ value: b, label: BUILTIN_LABEL[b] }))}
                 />
               </Field>
+            )}
+
+            {!special && src.kind === "builtin" && src.builtin === "my_tasks" && (
+              <SpecialFields w={w} set={set} catalog={catalog} />
             )}
 
             {!special && (src.kind === "entity" || src.kind === "records") && (

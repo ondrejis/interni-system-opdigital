@@ -1,6 +1,6 @@
 "use client";
 
-import type { RetainerSetup, ServiceType } from "@rebar/core/contracts";
+import type { ServiceType } from "@rebar/core/contracts";
 import {
   Button,
   Dialog,
@@ -11,6 +11,7 @@ import {
   SegmentedControl,
   Slot,
   successToast,
+  useEntityApi,
   useCommandMutation,
   useSlotComponents,
 } from "@rebar/ui";
@@ -20,7 +21,7 @@ import {
   defaultRetainerForm,
   monthLabel,
   retainerErrors,
-  toRetainerSetup,
+  toRetainerContinueInput,
   type RetainerForm,
 } from "./logic";
 import { UserCombobox } from "./parts";
@@ -119,9 +120,6 @@ export function RetainerFields({
   );
 }
 
-/** Vstup `finance.retainer.continue`: zakázka a nastavení retaineru. */
-type ContinueInput = { jobId: string; setup: RetainerSetup };
-
 /**
  * Okno „Pokračovat na retainer“ po vyhodnocení úvodní fáze marketingu: nastaví částku, měsíc, den vystavení,
  * fakturujícího a rozdělení a zavolá službu financí; ta zakázku přesune do fáze Retainer (`setMarketingStage`).
@@ -142,15 +140,21 @@ export function RetainerDialog({
   const [form, setForm] = useState<RetainerForm>(() => defaultRetainerForm(ownerId));
   const [showErrors, setShowErrors] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const run = useCommandMutation<ContinueInput>("finance.retainer.continue");
+  const api = useEntityApi();
+  const run = useCommandMutation<NonNullable<ReturnType<typeof toRetainerContinueInput>>>(
+    "finance.retainer.continue",
+  );
   const financeOn = useModuleEnabled("finance");
 
   async function submit() {
     setError(null);
-    const setup = toRetainerSetup(form);
-    if (!setup) return setShowErrors(true);
     try {
-      await run.mutateAsync({ jobId, setup });
+      // střídání: druhý v pořadí je jiný uživatel než ten, kdo fakturuje první měsíc
+      const users = form.issuerMode === "alternate" ? await api.lookups.users("") : [];
+      const other = users.find((u) => u.value !== form.issuerId)?.value ?? null;
+      const input = toRetainerContinueInput(jobId, form, other);
+      if (!input) return setShowErrors(true);
+      await run.mutateAsync(input);
       successToast("Zakázka pokračuje jako retainer.");
       onOpenChange(false);
     } catch (e) {

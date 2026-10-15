@@ -10,7 +10,8 @@
     "./ui": "./src/ui.tsx",
     "./api": "./src/api.ts",
     "./presets": "./src/presets.ts",
-    "./metrics": "./src/metrics.ts"
+    "./metrics": "./src/metrics.ts",
+    "./my-tasks": "./src/my-tasks.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
