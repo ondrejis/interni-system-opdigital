@@ -24,8 +24,20 @@ export const manifest = defineModule({
       group: "Finance",
       order: 20,
     },
+    {
+      label: "Přehledy",
+      href: "/finance/prehledy",
+      icon: "chart-column",
+      permission: "finance.read",
+      group: "Finance",
+      order: 30,
+    },
   ],
-  pages: [{ path: "/finance/vyrovnani", title: "Vyrovnání", permission: "finance.read" }],
+  pages: [
+    { path: "/finance", title: "Platby a rozdělení", permission: "finance.read" },
+    { path: "/finance/vyrovnani", title: "Vyrovnání", permission: "finance.read" },
+    { path: "/finance/prehledy", title: "Přehledy", permission: "finance.read" },
+  ],
   entities: ["payment", "settlement"],
   permissions: [
     {

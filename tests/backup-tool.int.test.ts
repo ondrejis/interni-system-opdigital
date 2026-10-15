@@ -153,7 +153,7 @@ describe("zálohovací nástroj", () => {
     expect(r.code).toBe(0);
     const s = status();
     expect(new Date(s.lastSuccessAt).getTime()).toBeGreaterThan(Date.now() - 60_000);
-    expect(s).toMatchObject({ lastSnapshot: "abc12345" });
+    expect(s).toMatchObject({ lastSnapshot: "abc12345", snapshots: 1 });
     expect(s.dumpBytes).toBeGreaterThan(100);
     expect(fs.existsSync(path.join(root, "work", "db.dump"))).toBe(false);
     const snap = fs.readdirSync(path.join(root, "repo")).find((n) => n.startsWith("snap-"))!;

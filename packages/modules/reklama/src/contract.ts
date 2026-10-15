@@ -21,6 +21,7 @@ export const adLevel = z.enum(AD_LEVELS);
 export const period = z
   .object({ from: isoDate, to: isoDate })
   .refine((p) => p.from <= p.to, { message: "Začátek období musí být před koncem." });
+/** Období (včetně obou konců), ve kterém se počítají statistiky. */
 export type Period = z.output<typeof period>;
 
 /** Čísla výkonu za období (útrata, zobrazení, kliky, leady Meta × OPSYS, vyhrané obchody). */
@@ -75,6 +76,7 @@ export type AccountRow = {
   campaignCount: number;
   spendThisMonthMinor: number;
 };
+/** Výstup `reklama.accounts.list`: účty a zda je Meta napojená. */
 export type AccountsListOutput = { accounts: AccountRow[]; connected: boolean };
 
 export const accountSetOwnerInput = z
@@ -98,6 +100,7 @@ export type CampaignRow = {
   jobTitle: string | null;
   metrics: PerformanceMetrics;
 };
+/** Výstup `reklama.account.detail`: účet, jeho kampaně s výkonem, součty a graf po dnech. */
 export type AccountDetailOutput = {
   account: AccountRow;
   campaigns: CampaignRow[];
@@ -135,6 +138,7 @@ export type CampaignLead = {
   stageId: string;
   companyId: string | null;
 };
+/** Výstup `reklama.campaign.detail`: kampaň, sady a reklamy s výkonem, graf po dnech a leady. */
 export type CampaignDetailOutput = {
   campaign: CampaignRow;
   account: { id: string; name: string; currency: string | null };
@@ -155,6 +159,7 @@ export const metricsScope = z.object({
   jobId: id.optional(),
 });
 export const metricsInput = z.object({ scope: metricsScope.optional(), period });
+/** Výstup `reklama.metrics`: součty a graf po dnech pro zvolený rozsah. */
 export type MetricsOutput = { totals: PerformanceMetrics; daily: DailyPoint[]; currency: string };
 
 export const forClientInput = z.object({ companyId: id, period });
@@ -191,6 +196,7 @@ export type ConnectionStatus = {
   status: "ok" | "reauth" | "error" | null;
   updatedAt: string | null;
 };
+/** Výsledek zkoušky napojení na Meta (počet nalezených účtů, nebo důvod selhání). */
 export type ConnectionTestOutput = { ok: boolean; accounts: number; message: string | null };
 
 /* ---------- mapování formulářů ---------- */
@@ -202,7 +208,10 @@ export const mappingSaveInput = z.object({
   pipelineId: id,
   stageId: id,
   ownerId: id,
-  defaultServices: z.array(z.enum(["web", "marketing", "systemy"])).max(3).default([]),
+  defaultServices: z
+    .array(z.enum(["web", "marketing", "systemy"]))
+    .max(3)
+    .default([]),
 });
 export const mappingDeleteInput = z.object({ id });
 /** Mapování formuláře na pipeline, fázi a vlastníka. */
@@ -217,11 +226,15 @@ export type MappingRow = {
 };
 /** Formulář, ze kterého už přišel lead (nabídka při zakládání mapování), s počtem leadů a zda je namapovaný. */
 export type SeenForm = { formId: string; name: string | null; leads: number; mapped: boolean };
+/** Výstup `reklama.mappings.list`: mapování, formuláře bez mapování a výchozí cíl. */
 export type MappingsOutput = {
   mappings: MappingRow[];
   seenForms: SeenForm[];
   /** Co se použije u nemapovaného formuláře (R-44): výchozí pipeline, první fáze, vlastník Ondřej. */
   fallback: { pipelineId: string | null; stageId: string | null; ownerId: string | null };
+  /** Fáze pipeline „Obchody“ (nabídka v mapování) a aktivní uživatelé (nabídka vlastníka leadů). */
+  stages: { id: string; name: string }[];
+  users: { id: string; name: string }[];
 };
 
 export const recentLeadsInput = z.object({ limit: z.number().int().min(1).max(100).default(30) });
@@ -276,4 +289,5 @@ export const leadIngestPayload = z.object({
   companyName: optText,
   ico: optText,
 });
+/** Tělo příchozího leadu po ověření a normalizaci (výstup `leadIngestPayload`). */
 export type LeadIngestPayload = z.output<typeof leadIngestPayload>;

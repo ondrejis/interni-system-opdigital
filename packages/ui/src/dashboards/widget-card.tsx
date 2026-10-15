@@ -64,6 +64,8 @@ type Props = {
   /** Obnovovat data každých N ms (režim pro TV). */
   autoRefreshMs?: number | undefined;
   editing?: boolean;
+  /** Telefon: v režimu úprav jen přesouvání (bez nastavení a odebrání). */
+  reorderOnly?: boolean | undefined;
   onEdit?: (() => void) | undefined;
   onRemove?: (() => void) | undefined;
   /** Atributy a posluchače uchopení pro přetahování (dnd-kit). */
@@ -84,6 +86,7 @@ export function WidgetCard({
   refreshKey,
   autoRefreshMs,
   editing,
+  reorderOnly,
   onEdit,
   onRemove,
   dragProps,
@@ -138,26 +141,28 @@ export function WidgetCard({
         )}
         <h3 className="min-w-0 flex-1 truncate text-sm font-medium text-muted">{widget.title}</h3>
         {editing ? (
-          <>
-            <IconButton
-              label="Upravit widget"
-              variant="ghost"
-              size="sm"
-              onClick={onEdit}
-              data-testid="widget-edit"
-            >
-              <Pencil />
-            </IconButton>
-            <IconButton
-              label="Odebrat widget"
-              variant="ghost"
-              size="sm"
-              onClick={onRemove}
-              data-testid="widget-remove"
-            >
-              <Trash2 />
-            </IconButton>
-          </>
+          reorderOnly ? null : (
+            <>
+              <IconButton
+                label="Upravit widget"
+                variant="ghost"
+                size="sm"
+                onClick={onEdit}
+                data-testid="widget-edit"
+              >
+                <Pencil />
+              </IconButton>
+              <IconButton
+                label="Odebrat widget"
+                variant="ghost"
+                size="sm"
+                onClick={onRemove}
+                data-testid="widget-remove"
+              >
+                <Trash2 />
+              </IconButton>
+            </>
+          )
         ) : (
           !hideMenu && (
             <DropdownMenu>

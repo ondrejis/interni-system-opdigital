@@ -105,11 +105,36 @@ TODO: doplnit vyprávění
 
 Služba `tasks` (`src/service.ts#createTasksService`): `createFromTemplate`, `overdueJobIds`, `openCounts`, `logDoneActivity`, `createMeeting`, `createPrivateNote`. Příspěvky: `clientCard` (počet úkolů v záložce, souhrn, poslední aktivita), vrstva kalendáře „Úkoly s termínem“, metriky `ukoly.today|overdue|open`, dlaždice „Úkoly na dnes“, „vyžaduje pozornost“, odznak „po termínu“ u Moje úkoly. Vše čtené ručně je v `privatePaths`. Cizí tabulky se nečtou přímo: obchod, zakázka a organizace přes registr entit, fáze zakázky přes čtecí pohled `src/tasks/external.ts#jobPhaseView`.
 
+## UI úkolů (UKO-B)
+
+- **Moje úkoly** (`/ukoly`, `packages/modules/ukoly/src/ui/my-tasks.tsx#MyTasksPage`): záložky Dnes (včetně po termínu), Nadcházejících 7 dní, Bez termínu, Delegované, Hotové s počty (klávesy 1 až 5), seskupení podle data, zakázky (fáze, „Bez fáze“), klienta nebo priority (`src/ui/logic.ts#groupTasks`), přepínač Seznam / Board podle stavu (tažení mezi sloupci, na telefonu nabídka „Přesunout do“), hledání, filtr typu a priority, Moje / Vše. Klávesy: C rychlé přidání, / hledání, B přepne rozložení; v řádku Enter otevře, F2 přejmenuje, šipky a J/K přecházejí.
+- **Rychlé přidání** (`src/ui/quick-add.tsx#QuickAdd`): z textu parser (`parseQuickTask`) pozná typ, datum, čas, délku a prioritu a hned je ukáže; typ, datum, čas i prioritu jde v náhledu opravit a úkol se uloží až po potvrzení (Enter nebo „Přidat“). Opravy putují jako `override` příkazu `ukoly.quickAdd` (`src/ui/logic.ts#quickOverridePayload`). Na telefonu je to běžné textové pole, takže jde diktovat tlačítkem klávesnice.
+- **Úpravy v řádku**: přejmenování, termín (Dnes, Zítra, příští pondělí, za týden, vlastní datum, bez termínu), priorita a řešitel; hromadné akce (výběr tlačítkem „Vybrat“): Hotovo, termín, priorita, řešitel, smazat (do koše, „Zpět“). Operace sdílí `src/ui/ops.tsx#useTaskOps`; přiřazení soukromého úkolu uživateli bez práva na soukromé (kód `private_assign`) nabídne „Zveřejnit a přiřadit“ s potvrzením (VID-06).
+- **Uložené pohledy**: používají `saved_view` jádra pro entitu `task`; stav stránky se převádí na filtr s relativními operátory a skutečnými atributy (`src/ui/logic.ts#toSavedConfig`, `fromSavedConfig`), takže pohled funguje i v obecném seznamu úkolů.
+- **Dokončení** (`src/ui/complete.tsx#useCompleteFlow`): hovor, schůzka a typ „v kalendáři“ nabídnou zapsat výsledek a naplánovat další aktivitu (předvyplněný návrh); nic se nevytvoří, dokud to uživatel nepotvrdí. Ostatní úkoly se odškrtnou s „Zpět“.
+- **Dialog úkolu** (`src/ui/task-dialog.tsx#TaskDialog`, odkaz `?record=<id>`): každé pole se ukládá při změně, podúkoly (jedna úroveň), komentáře z jádra se zvýrazněním `@jméno`, výsledek, odhad času, štítky, vazby obchod, organizace, kontakt, zakázka a fáze (fáze přes příkaz `zakazky.detail`, je-li zakázky zapnutá), slot `task.dialog.extras` pro „Zapsat čas“ (HOD).
+- **Karty záznamů** (`src/ui/record-tab.tsx#RecordTasksPanel`): záložka „Úkoly a aktivity“ na organizaci, kontaktu, obchodu a zakázce (`recordTabs`, pořadí `CLIENT_TABS.ukoly`), rychlé přidání, composer „Další aktivita“ a „Zapsat hotovou“ (rychlý zápis hovoru, e-mailu, schůzky s výsledkem), další kroky a časová osa; karta „Úkoly a aktivity“ na Přehledu a akce hlavičky „Nový úkol“. Základní záložka „Úkoly“ jádra je skrytá (`hiddenCoreTabs`).
+- **Typy aktivit** (`src/ui/types-page.tsx#TaskTypesPage`): název, ikona, barva, „V kalendáři“, pořadí, mazání vlastních nepoužitých typů; stránka se otevře na `/ukoly/typy`, jakmile entita `task_type` dostane jinou adresu (žádost v `docs/opsys/ZADOSTI.md`).
+- **Mobil**: řádky jsou karty, swipe doleva odkryje Odložit a Hotovo, dlouhý tah rovnou dokončí (`src/ui/logic.ts#swipeOutcome`, `src/ui/task-row.tsx`); ovládací prvky mají na dotyku výšku 44 px. Žádné notifikace.
+
+## Poznámky (UKO-11)
+
+Poznámka je entita `note` s formátovaným textem: nadpisy, seznamy, checklisty, citace, kód a odkazy. Obrázky a soubory do ní nepatří (jdou na Disk). Patří nejvýš k jednomu záznamu (klient, kontakt, obchod, zakázka), nebo je samostatná; samostatné sdílené poznámky nemají položku v navigaci (R-23), otevírají se z Cmd+K („Nová poznámka“, „Poznámky“ → `/poznamky/samostatne`) a samostatné soukromé zakládá Můj prostor → Soukromé přes službu `tasks.createPrivateNote` (`packages/modules/ukoly/src/notes/service.ts#createPrivateNote`). Záložka „Poznámky“ je u klienta, kontaktu, obchodu i zakázky (`packages/modules/ukoly/src/notes/ui/index.tsx#notesUi`), počet u klienta dodává příspěvek `clientCard` (`src/notes/providers.ts#noteClientCard`).
+
+1. **Psaní a autosave.** Editor (`src/notes/ui/note-editor.tsx#NoteEditor`, Tiptap) ukládá 800 ms po poslední změně, nejpozději po 10 s nepřetržitého psaní; pod textem je stav „Neuloženo / Ukládám / Uloženo / Nepodařilo se uložit“. Nová poznámka se založí při prvním psaní (prázdná nevznikne). Logika časování je čistá a testovaná (`src/notes/autosave.ts#Autosaver`): nikdy neběží dva zápisy naráz, změny během zápisu se uloží hned po něm, po chybě se zápis opakuje (2, 5, 15, 30 s) a text zůstane čekající, při zavření okna se uloží, co čeká, a záloha neuloženého textu je v prohlížeči.
+2. **Souběh a ztráta.** Každá poznámka má `version`, která roste při změně obsahu. Autosave posílá verzi, ze které vychází (`baseVersion`); neshoda = konflikt, text se nepřepíše a editor nabídne „Přepsat mou verzí“ (poslední zápis vyhrává, `force`) nebo „Načíst jejich verzi“ (`src/notes/write.ts#saveNote`). Změna samotného názvu verzi nezvedá. Stejný obsah nic nezapíše.
+3. **Sanitizace.** Server nevěří JSON z klienta: `src/notes/doc.ts#sanitizeNoteDoc` povolí jen známé uzly a značky, zahodí obrázky, `style`, `class` a události, odkazy omezí na `http`, `https`, `mailto`, `tel`, adresy v aplikaci a kotvy, a hlídá velikost (200 000 znaků, 40 000 uzlů, hloubka 16). Prostý text (`body_text`) a automatický název (první řádek; ručně zadaný název zůstane) se odvozují na serveru. Vykreslení jde z JSON na prvky Reactu (`src/notes/ui/note-view.tsx#NoteView`), nikdy přes HTML.
+4. **Pořadí a hledání.** Seznam (`ukoly.note.list`): připnuté nahoře, pak nejnovější podle data vzniku; hledání v názvu i textu bez diakritiky a velikosti písmen. Cmd+K najde poznámku podle celého textu (`src/notes/entity.ts#noteEntity`, `search`).
+5. **Historie a soukromí.** Každá uložená změna textu, názvu, štítků, připnutí, přesunu i smazání je v historii (`audit_log`, s kontextem klienta nebo obchodu). Soukromí řeší jádro: poznámka pod soukromým obchodem nebo zakázkou je soukromá, soukromá organizace a kontakt do poznámek nedědí (R-31); poznámku zamyká jen vlastník soukromých záznamů a partner ji nenajde v seznamu, hledání, počtu u klienta, historii ani přímým voláním.
+
+Omezení: rozsah „jen moje“ vidí jen vlastní poznámky; poznámky neposílají žádná upozornění; sdílená poznámka se needituje současně (konflikt se řeší rozhodnutím, ne slučováním).
+
 ## Hrany a známá omezení
 
 <!-- Co funguje jinak, než by uživatel čekal, co zatím chybí, a odkazy na otevřené otázky. -->
 
 - Obnova úkolu z koše nepřepočítá pole obchodu (přepočte se při další změně úkolu obchodu).
+- UI: seznamy čtou příkazy (`useCommandQuery`), ne entity, takže realtime z C3 je zneplatní jen po úpravě `useRealtime`; do té doby se obnovují po 20 s a při akci. Board bere sloupce Hotovo a Zrušeno z posledních 30 záznamů. Hromadné akce volají příkazy po jednom (bez společné transakce).
 - Komentáře k úkolu jsou z jádra (`comment`, `entity_type = task`).
 - Generická tvorba přes seznam (bez příkazu) neodvozuje organizaci z obchodu; to dělá jen `ukoly.create`/`quickAdd`.
 - Úkol s vlastní viditelností pod soukromým obchodem nebo zakázkou zůstává soukromý, dokud rodič není veřejný.
@@ -119,3 +144,5 @@ Služba `tasks` (`src/service.ts#createTasksService`): `createFromTemplate`, `ov
 <!-- Hlavní místa v kódu a testy, které chování zajišťují, ve tvaru `cesta/soubor.ts#symbol`. -->
 
 `packages/modules/ukoly/src/tasks/commands.ts#taskCommands`, `packages/modules/ukoly/src/tasks/logic/quick-parse.ts#parseQuickTask` (test `quick-parse.test.ts`, 88 případů), `packages/modules/ukoly/src/service.ts#createTasksService`; integrační test `tests/ukoly-tasks.int.test.ts`.
+
+Poznámky: `packages/modules/ukoly/src/notes/commands.ts#noteCommands`, `packages/modules/ukoly/src/notes/doc.ts#sanitizeNoteDoc` (test `doc.test.ts`), `packages/modules/ukoly/src/notes/autosave.ts#Autosaver` (test `autosave.test.ts`); integrační test `tests/ukoly-notes.int.test.ts`, e2e `apps/web/e2e/poznamky.spec.ts`.

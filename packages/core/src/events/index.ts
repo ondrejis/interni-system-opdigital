@@ -8,6 +8,7 @@ import type {
 import { newId } from "../db/ids";
 import type { ModuleDeps } from "../modules/server";
 import type { Ctx } from "../rbac/types";
+import { notifyChange } from "../realtime/notify";
 import { enqueueWebhookDeliveries } from "../webhooks/outbox";
 
 export type { DomainEvent, DomainEventMap, DomainEventName } from "../contracts/events";
@@ -75,5 +76,12 @@ export async function emitDomain<K extends DomainEventName>(
   // (2) outbox webhooků (C2): řádky `webhook_delivery` vznikají v téže transakci, odešle je worker po commitu;
   // chyba zápisu se jen nahlásí a změnu nezruší
   await enqueueWebhookDeliveries(ctx, event as unknown as DomainEvent);
-  // (3) sem patří `pg_notify('opsys_change')` pro realtime (C3)
+  // (3) realtime (C3): `pg_notify('opsys_change')`, doručí se při commitu; jen typ, id a akce, ne data
+  if (ctx.db)
+    await notifyChange(ctx.db, {
+      entityType: meta.entity.type,
+      entityId: meta.entity.id,
+      action: name,
+      isPrivate: meta.entity.isPrivate,
+    });
 }

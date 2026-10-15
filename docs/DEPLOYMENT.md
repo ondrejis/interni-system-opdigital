@@ -1,201 +1,169 @@
-# Nasazení
+# Nasazení OPSYS
 
-Krok za krokem nová instance na VPS u Hostingeru (nebo jiném poskytovateli s Ubuntu 24.04 LTS). Jeden klient = jeden server (1 vCPU / 4 GB RAM) = jedna databáze ([ADR 001](adr/001-klientske-instance.md)).
-Na serveru běží jen Docker a image sestavené v CI; **na serveru se nikdy nebuilduje** ([ADR 014](adr/014-nasazeni-a-provoz.md)). Pro správce agentury; provozní postupy po nasazení jsou v [RUNBOOK](RUNBOOK.md).
+OPSYS (interní systém agentury OP Digital) běží jako **jedna instance** na jednom VPS (Ubuntu 24.04 LTS, 1 vCPU / 4 GB RAM) s jednou databází, na veřejné doméně s HTTPS ([ADR 001](adr/001-klientske-instance.md), [ADR 014](adr/014-nasazeni-a-provoz.md)).
+Na serveru běží jen Docker a image sestavené v CI; **na serveru se nikdy nebuilduje**. Pro správce (Ondřeje); provozní postupy po nasazení jsou v [RUNBOOK](RUNBOOK.md), automatizace v n8n v [deploy/n8n/README.md](../deploy/n8n/README.md).
 
-> **Co je ověřeno.** Skripty prochází automatickými testy (syntaxe, logika, `--dry-run`, zálohovací nástroj proti PostgreSQL) a CI. **Instalace na čistém Ubuntu 24.04, skutečný Docker build image a skutečný restic na serveru
-> se při psaní tohoto dokumentu ještě nezkoušely.** První nasazení proto udělej na testovacím VPS a podle něj tento dokument oprav.
+> **Co je ověřeno.** Skripty prochází automatickými testy (syntaxe, `shellcheck`, logika, `--dry-run`, zálohovací nástroj proti PostgreSQL i proti skutečnému resticu s lokálním repozitářem) a CI.
+> **Instalace na čistém Ubuntu 24.04, skutečný Docker build image, validace Caddyfile (`caddy validate`) a běh šablon n8n se dosud nezkoušely** (vývojový Mac nemá Docker). První nasazení proto udělej na testovacím VPS a podle něj tento dokument oprav.
 
 ## Co běží
 
-| Služba         | Co dělá                                                            | Poznámka                                                  |
-| -------------- | ------------------------------------------------------------------ | --------------------------------------------------------- |
-| `caddy`        | reverzní proxy, automatické HTTPS, bezpečnostní hlavičky           | jediná služba s otevřenými porty (80, 443)                |
-| `app`          | webová aplikace (Next.js standalone)                               | `/api/health/live` pro Docker, `/api/health` za tokenem   |
-| `worker`       | úlohy na pozadí (fronta pg-boss, e-maily, připomínky, push)        | stejná image jako `app`                                   |
-| `postgres`     | databáze, jen ve vnitřní síti bez přístupu ven                     | vyladěná pro 4 GB RAM (`deploy/postgres/postgresql.conf`) |
-| `backup`       | denní záloha a měsíční zkouška obnovy (restic, šifrovaně mimo VPS) | image se staví v CI                                       |
-| `beszel-agent` | metriky serveru                                                    | zapíná se, když je v `.env` `BESZEL_KEY` (profil)         |
+| Služba     | Co dělá                                                                                          | Poznámka                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| `caddy`    | reverzní proxy, automatické HTTPS, bezpečnostní hlavičky, limity těla                            | jediná služba s otevřenými porty (80, 443)                |
+| `app`      | webová aplikace OPSYS (Next.js standalone)                                                       | `/api/health/live` pro Docker, `/api/health` za tokenem   |
+| `worker`   | úlohy na pozadí: doručování webhooků do n8n, synchronizace (Google, Meta), retainery, úklid koše | stejná image jako `app`; fronta pg-boss je v databázi     |
+| `postgres` | databáze, jen ve vnitřní síti bez přístupu ven                                                   | vyladěná pro 4 GB RAM (`deploy/postgres/postgresql.conf`) |
+| `backup`   | noční záloha a měsíční zkouška obnovy (restic, šifrovaně mimo server)                            | image se staví v CI                                       |
 
-Jednorázové nástroje (`migrate`, `seed`, `restore`) jsou ve stejném `docker-compose.yml` pod profilem `tools`.
-Dohromady se vejdou do ~2,5 GB RAM při běžném provozu (limity: app 1 GB, worker 512 MB, postgres 1,25 GB, caddy 128 MB, backup 256 MB).
+Volitelně `beszel-agent` (metriky serveru, profil `monitoring`). Jednorázové nástroje (`migrate`, `seed`, `restore`) jsou pod profilem `tools`. **n8n neběží na tomto serveru** (je to samostatná služba agentury).
+Limity paměti: app 1 GB, worker 512 MB, postgres 1,25 GB, caddy 128 MB, backup 256 MB.
 
 ## Co potřebuješ předem
 
-| Co                                | Poznámka                                                                                                                |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| VPS (1 vCPU / 4 GB, Ubuntu 24.04) | u Hostingeru VPS KVM s čistým operačním systémem Ubuntu 24.04 LTS (bez předinstalovaných panelů), s SSH klíčem agentury |
-| Doména nebo subdoména             | např. `system.klient.cz`; DNS spravuje klient nebo agentura                                                             |
-| Úložiště záloh                    | S3 kompatibilní bucket **klienta** (AWS S3, Backblaze B2, Wasabi, MinIO…) a přístupový klíč jen k tomuto bucketu        |
-| Přístup ke stažení image          | token GitHubu s právem `read:packages` (balíčky v GHCR jsou soukromé)                                                   |
-| Sestavená verze                   | tag `vX.Y.Z` v repozitáři, CI dokončeno (viz níže)                                                                      |
-| Údaje majitele                    | jméno a e-mail prvního uživatele                                                                                        |
-| Odesílání e-mailů (SMTP)          | server, port, uživatel, heslo a adresa odesílatele (pozvánky, reset hesla, faktury)                                     |
+| Co                       | Poznámka                                                                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| VPS (Ubuntu 24.04 LTS)   | čistý systém bez panelů, s SSH klíčem                                                                                        |
+| Doména                   | např. `opsys.opdigital.cz`, DNS záznam A (případně AAAA) **míří na server už při instalaci**, jinak Caddy nezíská certifikát |
+| Úložiště záloh           | S3 kompatibilní bucket (AWS S3, Backblaze B2, Wasabi…) **mimo tento server** a přístupový klíč jen k němu                    |
+| Přístup ke stažení image | token GitHubu s `read:packages` (balíčky v GHCR jsou soukromé)                                                               |
+| Sestavená verze          | tag `vX.Y.Z`, CI dokončeno (krok 0)                                                                                          |
+| Odesílání e-mailů (SMTP) | jen pro pozvánky a obnovu hesla (OPSYS jinak žádné e-maily ani upozornění neposílá)                                          |
 
 ## Krok 0: vydání verze (CI)
 
-Tag `vX.Y.Z` spustí `.github/workflows/release.yml`:
-
-1. ověří kód (stejné kroky jako CI: formát, lint, typy, testy, audit),
-2. sestaví image **každého klienta** (`clients/<slug>`, kromě `_template`) a nahraje do GHCR jako `ghcr.io/<org>/<repo>-<slug>:vX.Y.Z`,
-3. sestaví a nahraje zálohovací image `ghcr.io/<org>/<repo>-backup:vX.Y.Z`,
-4. k vydání na GitHubu přiloží `deploy-vX.Y.Z.tgz` (obsah složky `deploy/`).
+Tag `vX.Y.Z` spustí `.github/workflows/release.yml`: ověří kód, sestaví image klienta `opsys` (`ghcr.io/ondrejis/interni-system-opdigital-opsys:vX.Y.Z`), zálohovací image (`…-backup:vX.Y.Z`) a k vydání přiloží `deploy-vX.Y.Z.tgz` (obsah složky `deploy/`).
 
 ```bash
-git tag v0.1.0 && git push origin v0.1.0
+git tag v1.0.0 && git push origin v1.0.0
 ```
-
-Pro nového klienta nejdřív založ klienta v repozitáři (`pnpm client:new`, viz [CUSTOMIZATION](CUSTOMIZATION.md) §4) a zařaď ho do vydání; image `…-<slug>` vznikne jen pro klienty, kteří v tagované verzi existují.
 
 ## Krok 1: server a DNS
 
-1. Objednej VPS (Ubuntu 24.04 LTS) a při zakládání přidej veřejný SSH klíč agentury. Poznamenej si IPv4 adresu.
-2. V DNS domény vytvoř záznam **A** `system.klient.cz → <IPv4 serveru>` (případně AAAA pro IPv6). DNS musí na server mířit **už při instalaci**, jinak Caddy nezíská certifikát. Kontrola:
-
-   ```bash
-   dig +short system.klient.cz
-   ```
-
-3. Přihlas se: `ssh root@system.klient.cz` (nebo na IP, dokud se DNS nešíří).
-4. Doporučeno (mimo `install.sh`): zakázat přihlášení heslem v SSH (`PasswordAuthentication no` v `/etc/ssh/sshd_config.d/`, `systemctl reload ssh`) po ověření, že funguje klíč.
+1. Objednej VPS (Ubuntu 24.04 LTS) a při zakládání přidej veřejný SSH klíč. Poznamenej si IPv4 adresu.
+2. V DNS vytvoř záznam **A** `opsys.opdigital.cz → <IPv4 serveru>`. Kontrola: `dig +short opsys.opdigital.cz`.
+3. Přihlas se `ssh root@opsys.opdigital.cz`. Po ověření klíče doporučeno zakázat heslo v SSH (`PasswordAuthentication no` v `/etc/ssh/sshd_config.d/`).
 
 ## Krok 2: úložiště záloh a přístup k image
 
-1. Vytvoř bucket a přístupový klíč jen k němu. Adresa restic repozitáře má tvar `s3:https://s3.eu-central-1.amazonaws.com/nazev-bucketu` (u jiných poskytovatelů jejich S3 endpoint).
-2. Vytvoř token GitHubu s `read:packages` (uživatel, který má k balíčkům přístup).
-3. Heslo k šifrovaným zálohám (`RESTIC_PASSWORD`) vygeneruje instalace, pokud ho nezadáš; uložit si ho musíš ty.
+1. Bucket a přístupový klíč jen k němu. Adresa restic repozitáře: `s3:https://s3.eu-central-1.amazonaws.com/nazev-bucketu` (u jiných poskytovatelů jejich S3 endpoint).
+2. Token GitHubu s `read:packages`.
+3. Heslo k zálohám (`RESTIC_PASSWORD`) vygeneruje instalace, pokud ho nezadáš; **uložit si ho musíš ty** (správce hesel). Bez něj se záloha neobnoví.
 
-## Krok 3: provozní soubory na server
+## Krok 3: provozní soubory a instalace
 
-Stáhni z vydání `deploy-v0.1.0.tgz` (privátní repozitář: `gh release download v0.1.0 -R ondrejis/stavebni-system-core -p 'deploy-*.tgz'`) a přenes na server:
+Z vydání stáhni `deploy-v1.0.0.tgz` (`gh release download v1.0.0 -R ondrejis/interni-system-opdigital -p 'deploy-*.tgz'`), přenes na server a rozbal:
 
 ```bash
-scp deploy-v0.1.0.tgz root@system.klient.cz:/root/
-ssh root@system.klient.cz
-mkdir -p /root/deploy && tar -xzf deploy-v0.1.0.tgz -C /root/deploy && cd /root/deploy
+scp deploy-v1.0.0.tgz root@opsys.opdigital.cz:/root/
+ssh root@opsys.opdigital.cz
+mkdir -p /root/deploy && tar -xzf deploy-v1.0.0.tgz -C /root/deploy && cd /root/deploy
 ```
 
-## Krok 4: instalace
-
-Nanečisto (zkontroluje parametry a vypíše plán; nepotřebuje root ani Docker a nic nemění):
+Nanečisto (zkontroluje parametry a vypíše plán; nepotřebuje root ani Docker):
 
 ```bash
-./scripts/install.sh --dry-run \
-  --domain system.klient.cz --acme-email info@klient.cz \
-  --client demo --version v0.1.0 \
-  --image ghcr.io/ondrejis/stavebni-system-core-demo \
-  --backup-image ghcr.io/ondrejis/stavebni-system-core-backup \
-  --owner-email majitel@klient.cz
+./scripts/install.sh --dry-run --domain opsys.opdigital.cz --acme-email info@opdigital.cz \
+  --client opsys --version v1.0.0 \
+  --image ghcr.io/ondrejis/interni-system-opdigital-opsys \
+  --backup-image ghcr.io/ondrejis/interni-system-opdigital-backup
 ```
 
 Ostrá instalace (jako root):
 
 ```bash
-./scripts/install.sh \
-  --domain system.klient.cz --acme-email info@klient.cz \
-  --client demo --version v0.1.0 \
-  --image ghcr.io/ondrejis/stavebni-system-core-demo \
-  --backup-image ghcr.io/ondrejis/stavebni-system-core-backup \
-  --owner-email majitel@klient.cz --owner-name "Jan Novák" \
-  --restic-repository s3:https://s3.eu-central-1.amazonaws.com/zalohy-klient \
-  --aws-key … --aws-secret … \
+./scripts/install.sh --domain opsys.opdigital.cz --acme-email info@opdigital.cz \
+  --client opsys --version v1.0.0 \
+  --image ghcr.io/ondrejis/interni-system-opdigital-opsys \
+  --backup-image ghcr.io/ondrejis/interni-system-opdigital-backup \
+  --owner-email dvorak@opdigital.cz --owner-name "Ondřej Dvořák" \
+  --restic-repository s3:https://s3.eu-central-1.amazonaws.com/nazev-bucketu --aws-key … --aws-secret … \
   --ghcr-user ondrejis --ghcr-token …
 ```
 
-(`--client` je složka klienta v `clients/`, v příkladu `demo`; `--image` je image tohoto klienta.) Bez parametrů se skript zeptá; parametry lze předat i proměnnými `INSTALL_DOMAIN` apod.
-Nepovinné: `--heartbeat-url` (monitoring agentury), `--beszel-key` (metriky serveru), `--restic-password`, `--install-dir` (výchozí `/opt/system`), `--non-interactive`.
+Nepovinné: `--heartbeat-url` (monitoring, hlášení jednou za hodinu), `--beszel-key`, `--restic-password`, `--install-dir` (výchozí `/opt/system`), `--non-interactive`; parametry jde předat i proměnnými `INSTALL_DOMAIN` apod.
+Skript: nainstaluje Docker, firewall `ufw` (22, 80, 443), `fail2ban`, jen bezpečnostní aktualizace, 2 GB swap, soubory do `/opt/system`, `.env` s vygenerovanými tajemstvími (práva 600), stáhne image, spustí databázi, migrace, výchozí data (role, pipeline, číselníky)
+a založí **prvního uživatele (vlastníka Ondřeje)**. Je **idempotentní** (opakované spuštění nerotuje tajemství ani nevytvoří uživatele znovu).
 
-Co skript udělá: balíčky a Docker z oficiálního repozitáře, firewall `ufw` (22, 80, 443), `fail2ban`, automatické **jen bezpečnostní** aktualizace, 2 GB swap, rotaci logů Dockeru, soubory do `/opt/system`,
-`.env` s vygenerovanými tajemstvími (práva 600), stažení image, databázi, migrace, výchozí data (role, pipeline, číselníky, řady, DPH), klíče pro push a prvního uživatele.
-Je **idempotentní**: při opakovaném spuštění nerotuje tajemství, nepřepíše verzi a nevytvoří uživatele znovu.
+Na konci vypíše a **uložit do správce hesel** je třeba: heslo prvního uživatele (jen jednou) a heslo k záloze (restic). Ulož také kopii `/opt/system/.env`: klíče `AUTH_SECRET` a `APP_ENCRYPTION_KEY` **nejsou v záloze** a bez nich nejde obnovit 2FA ani šifrovaná nastavení (Google, Meta, Fakturoid, SMTP) ([RUNBOOK](RUNBOOK.md) §3).
 
-Na konci vypíše a **uložit do správce hesel** je třeba:
-
-- **heslo prvního uživatele** (jen jednou),
-- **heslo k šifrovaným zálohám** (restic): bez něj zálohu nikdo neobnoví.
-
-Ulož také kopii souboru `/opt/system/.env` (klíče `AUTH_SECRET` a `APP_ENCRYPTION_KEY` nejsou v záloze; bez nich nejde obnovit 2FA a šifrovaná nastavení, [RUNBOOK](RUNBOOK.md) §3).
-
-## Krok 5: ověření
+## Krok 4: ověření
 
 ```bash
 cd /opt/system
 docker compose ps                                   # caddy, app, worker, postgres, backup: running / healthy
-curl -fsS https://system.klient.cz/api/health/live  # běží a vidí databázi
-curl -fsS -H "Authorization: Bearer $(grep '^HEALTH_TOKEN=' .env | cut -d= -f2)" https://system.klient.cz/api/health
+curl -fsS https://opsys.opdigital.cz/api/health/live
+curl -fsS -H "Authorization: Bearer $(grep '^HEALTH_TOKEN=' .env | cut -d= -f2)" https://opsys.opdigital.cz/api/health
+curl -sSI https://opsys.opdigital.cz | grep -i 'strict-transport\|content-security\|x-frame'   # bezpečnostní hlavičky
 ```
 
-`/api/health` vrací `status` (`ok` / `degraded` / `fail`), databázi, disk, zálohu, frontu a seznam problémů. Hned po instalaci je `degraded`, dokud neproběhne první záloha (krok 7).
+`/api/health` vrací `status` (`ok` / `degraded` / `fail`); hned po instalaci je `degraded`, dokud neproběhne první záloha (krok 6). Totéž vidí vlastník v **Nastavení → Systém**.
+Ověř také, že ve `docker compose logs worker` je řádek „úlohy: …“ se všemi frontami (`core.webhooks.deliver`, `disk.timeout`, `kalendar.sync`, `finance.retainer.generate`, `reklama.sync.daily`, `muj-prostor.invoices.prepare`…).
 
-## Krok 6: první přihlášení a nastavení
+## Krok 5: první přihlášení a nastavení
 
-1. Otevři `https://system.klient.cz`, přihlas se e-mailem a heslem z výpisu instalace.
-2. Systém **vyžádá nastavení dvoufázového ověření** (2FA je povinné pro majitele a administrátory): naskenuj QR kód v autentikační aplikaci, potvrď kód a uschovej záložní kódy.
-3. Heslo z výpisu instalace je počáteční. **Změň si ho hned v aplikaci:** Nastavení → Můj účet → Změna hesla (zadáš současné heslo z výpisu a nové, alespoň 12 znaků; ostatní přihlášená zařízení se odhlásí, tohle zůstane). Na e-mail ani na krok 4 nemusíš čekat. Tamtéž si doplníš jméno a telefon.
-4. **E-maily (SMTP).** Bez nastaveného odesílání se pozvánky, reset hesla ani faktury neodešlou (e-maily jdou frontou a odesílá je `worker`). Nastavení → E-maily: zapnout odesílání, server, port, zabezpečení, uživatel, heslo
-   (v databázi je zašifrované), odesílatel. Tlačítkem „Ověřit spojení“ zkontroluješ přihlášení k serveru a „Poslat zkušební e-mail“ odešle zprávu přes frontu na adresu přihlášeného uživatele (dorazí do minuty).
-   Chyby odesílání jsou v tabulce `email_log` ([RUNBOOK](RUNBOOK.md) §8).
-5. Nastavení → Firma a vzhled: údaje na dokladech, název systému, barva a logo.
-6. Nastavení → Uživatelé a Role: pozvi uživatele (pozvánka platí 7 dní) a přiřaď role; ověř oprávnění rolí.
-7. Případné úpravy stavů, číselníků, číselných řad, sazeb DPH a vlastních polí: Nastavení ([CUSTOMIZATION](CUSTOMIZATION.md) §1).
+1. Otevři `https://opsys.opdigital.cz`, přihlas se e-mailem a heslem z výpisu. Systém **vyžádá nastavení dvoufázového ověření** (povinné pro všechny): QR kód do autentikační aplikace, záložní kódy uschovej.
+2. Změň si počáteční heslo: Nastavení → Profil.
+3. **E-maily (SMTP):** Nastavení → E-maily. Bez nich se neodešle pozvánka pro Patrika ani obnova hesla. Pak v Nastavení → Uživatelé pozvi Patrika (role partner).
+4. **Integrace:** viz níže (Google, Meta, Fakturoid, n8n).
 
-## Krok 7: zálohy a první zkouška obnovy
+## Integrace a adresy (OAuth, n8n)
+
+Všechny adresy se skládají z `DOMAIN` (`APP_URL = https://$DOMAIN`). **Tajné hodnoty se do `.env` nepíšou**: Google OAuth klient, Meta, Fakturoid a tajemství pro n8n se zadávají v aplikaci (Nastavení) a v databázi jsou zašifrované klíčem `APP_ENCRYPTION_KEY`. V `.env` jsou jen adresa, tajemství instance a zálohy; přehled adres je i v `deploy/.env.example`.
+
+| Služba                        | Co nastavit u služby                                                                                                                                                         | Kde v OPSYS                                     |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Google Kalendář (OAuth)       | Google Cloud Console → OAuth klient typu Web → **Authorized redirect URI** `https://<DOMAIN>/api/kalendar/google/callback`                                                   | Nastavení → Google Kalendář (client ID, secret) |
+| Google Kalendář (push kanály) | nic; Google volá `https://<DOMAIN>/api/kalendar/google/webhook` (jen přes HTTPS, jinak běží jen pravidelná synchronizace)                                                    | automaticky po připojení účtu                   |
+| Meta (Ads, Lead Ads)          | Meta for Developers → Facebook Login → **Valid OAuth Redirect URIs**: adresu ukáže Nastavení → Integrace → Meta (předpokládaně `https://<DOMAIN>/api/reklama/meta/callback`) | Nastavení → Integrace → Meta                    |
+| Fakturoid                     | bez OAuth: přístup se zadá v aplikaci                                                                                                                                        | Nastavení → Integrace (jen vlastník)            |
+| n8n → OPSYS (callback, leady) | n8n volá `https://<DOMAIN>/api/ingest/drive` a `https://<DOMAIN>/api/ingest/leads`, podepsané tajemstvím příchozích požadavků                                                | Nastavení → Integrace → Příchozí požadavky      |
+| OPSYS → n8n (události)        | adresa webhooku z n8n a výběr událostí (`drive.*`…)                                                                                                                          | Nastavení → Integrace → Webhooky                |
+
+**Veřejné jsou jen** `/api/ingest/*` (podpis HMAC, limit těla 512 kB, 120 požadavků za minutu z jedné adresy), `/api/kalendar/google/webhook` (Google) a přihlašovací/pozvánkové cesty. Caddy pro `/api/ingest/*` povolí tělo do 1 MB (aplikace sama odmítne nad 512 kB s českou chybou) a adresu klienta předává aplikaci, která z ní počítá limit. Rate limit je v aplikaci, ne v Caddy (Caddy ho bez pluginu neumí).
+Workflow pro n8n (složky na Disku, Meta leady) a jejich zapnutí krok za krokem: [deploy/n8n/README.md](../deploy/n8n/README.md).
+
+## Krok 6: zálohy a první zkouška obnovy
 
 1. Okamžitá záloha: `./scripts/backup.sh` (jinak proběhne denně v 02:30). Při prvním spuštění se inicializuje restic repozitář.
-2. `/api/health` → `backup.lastSuccessAt` je vyplněné.
-3. Zkouška obnovy: `./scripts/restore-test.sh` — skončí řádkem „Zkouška obnovy v pořádku“. Poté běží měsíčně sama.
-4. Tuto zkoušku zopakuj u každého nového klienta a zapiš datum.
+2. **Nastavení → Systém → Zálohy** ukáže poslední zálohu, snapshot, velikost a počet uložených záloh; `/api/health` → `backup.lastSuccessAt` je vyplněné.
+3. Zkouška obnovy: `./scripts/restore-test.sh` skončí řádkem „Zkouška obnovy v pořádku“. Poté běží sama měsíčně (výchozí 1. dne v 04:30) a výsledek je v Nastavení → Systém.
 
-## Krok 8: předání a kontrolní seznam
+## Krok 7: předání a kontrolní seznam
 
-- [ ] adresa funguje s platným certifikátem, `/api/health` je `ok`
-- [ ] majitel se přihlásil, má nastavené 2FA a uložené záložní kódy
+- [ ] adresa funguje s platným certifikátem, `/api/health` je `ok`, Nastavení → Systém je bez problémů
+- [ ] Ondřej se přihlásil, má 2FA a záložní kódy; Patrik je pozván a také má 2FA
 - [ ] SMTP funguje (pozvánka dorazila)
 - [ ] záloha proběhla, zkouška obnovy prošla
-- [ ] heslo k záloze a kopie `.env` jsou ve správci hesel agentury
-- [ ] heartbeat chodí do monitoringu agentury (`HEARTBEAT_URL`), případně Beszel
-- [ ] uživatelé pozváni, role odpovídají (montér nevidí ceny a cizí výkazy)
-- [ ] klient zná kontakt pro hlášení závad a incidentů ([SECURITY](SECURITY.md) §9)
+- [ ] heslo k záloze a kopie `.env` jsou ve správci hesel
+- [ ] Google Kalendář připojen, Meta napojena, n8n workflow aktivní a vyzkoušená na testovacím klientovi
+- [ ] heartbeat chodí do monitoringu (`HEARTBEAT_URL`), případně Beszel
 
 ## Aktualizace
 
 ```bash
-/opt/system/scripts/update.sh v0.2.0
+/opt/system/scripts/update.sh v1.1.0
 ```
 
-Záloha → stažení image → **migrace** → restart → kontrola zdraví → při selhání **automatický návrat** na předchozí verzi. Výstup jde do `/opt/system/logs/update-*.log`.
-Přepínače: `--skip-backup`, `--force`, `--dry-run`. Postup a rollback podrobně: [RUNBOOK](RUNBOOK.md) §1–2.
-
-Migrace jsou jen dopředné a **zpětně kompatibilní (expand → contract)**: vydání N přidá (expand), vydání N+1 teprve odstraní, co už nikdo nečte (contract).
-Díky tomu starší aplikace běží i nad novějším schématem a návrat na předchozí verzi nerozbije data. Každá migrace běží v transakci.
+Záloha → stažení image → **migrace** → restart → kontrola zdraví → při selhání **automatický návrat** na předchozí verzi. Výstup jde do `/opt/system/logs/update-*.log`. Přepínače: `--skip-backup`, `--force`, `--dry-run`. Postup a rollback: [RUNBOOK](RUNBOOK.md) §1–2.
+Migrace jsou jen dopředné a zpětně kompatibilní (expand → contract), každá běží v transakci.
 
 ## Zálohy
 
-Kontejner `backup` denně (výchozí 02:30) udělá `pg_dump` a spolu se složkou souborů ji uloží do restic repozitáře (šifrovaně, S3 kompatibilní úložiště **klienta**). Retence: 30 denních a 12 měsíčních snapshotů, týdně kontrola integrity.
-Výsledek je v `/data/status/backup.json`; `/api/health` hlásí „degraded“, když je záloha starší než 36 hodin.
-
-| Skript                           | Co dělá                                                                                           |
-| -------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `deploy/scripts/backup.sh`       | okamžitá záloha                                                                                   |
-| `deploy/scripts/restore.sh`      | obnova databáze i souborů (zastaví aplikaci, před obnovou zálohuje současný stav, spustí migrace) |
-| `deploy/scripts/restore-test.sh` | obnoví poslední zálohu do **dočasné databáze**, porovná počty záznamů se zálohou a databázi smaže |
-
-(Na serveru jsou ve složce `/opt/system/scripts/`.) **Zkouška obnovy** běží sama měsíčně (výchozí 1. dne v 04:30); její výsledek je ve stavu zálohy, v `/api/health` a v heartbeatu.
-Selhání nebo zkouška starší než 45 dní zhorší stav na „degraded“. Záloha, kterou nikdo nezkusil obnovit, není záloha.
+Kontejner `backup` denně (výchozí 02:30) udělá `pg_dump`, spolu se složkou souborů ho uloží do restic repozitáře (šifrovaně, S3 mimo server), ponechá **30 denních a 12 měsíčních** snapshotů a v neděli zkontroluje integritu. Stav zapisuje do `/data/status/backup.json`;
+`/api/health` hlásí „degraded“, když je záloha starší než 36 hodin nebo selhala zkouška obnovy (nebo je starší než 45 dní). Skripty (na serveru v `/opt/system/scripts/`): `backup.sh` (okamžitá záloha), `restore.sh` (obnova databáze i souborů, před ní záloha současného stavu), `restore-test.sh` (obnova do dočasné databáze + porovnání počtů záznamů).
+Záloha, kterou nikdo nezkusil obnovit, není záloha: měsíční zkouška běží sama a její výsledek je v Nastavení → Systém.
 
 ## Monitoring
 
-- `GET /api/health` s hlavičkou `Authorization: Bearer <HEALTH_TOKEN>`: databáze, volné místo, záloha a zkouška obnovy, zpoždění fronty.
-- `GET /api/health/live`: bez tokenu, jen „běží a vidí databázi“ (Docker a proxy).
-- Heartbeat: jednou za hodinu `POST` na `HEARTBEAT_URL` (instance, verze, stav; žádné osobní údaje).
-- Beszel agent pro metriky serveru; chyby do GlitchTip/Sentry přes `SENTRY_DSN` (osobní údaje se odstraňují).
-- Aktualizace závislostí hlídá Renovate (`renovate.json`): týdně v pondělí, seskupené; hlavní verze ručně schválit, PostgreSQL major nikdy automaticky. V CI se hlídá velikost JavaScriptu (`scripts/bundle-report.mjs`, rozpočet 700 kB gzip) a `pnpm audit`.
+- `GET /api/health` s `Authorization: Bearer <HEALTH_TOKEN>`: databáze, disk, záloha a zkouška obnovy, fronta. `GET /api/health/live` bez tokenu (Docker, proxy).
+- **Nastavení → Systém** (jen vlastník): totéž včetně verze, heartbeatu, velikosti databáze, front, chyb integrací a chybných doručení webhooků s ruční opakováním; odkaz do Koše. Stránka nic neposílá (žádné e-maily ani upozornění), stav se čte při otevření.
+- Heartbeat: jednou za hodinu `POST` na `HEARTBEAT_URL` (instance, verze, stav; žádné osobní údaje). Beszel pro metriky serveru; chyby do GlitchTip/Sentry přes `SENTRY_DSN`.
 
 ## Konfigurace (`.env`)
 
-Vzor je `deploy/.env.example`; skutečné `.env` má práva 600 a nikdy se nedává do gitu. Aplikace dostane jen to, co potřebuje:
-heslo k záloze ani superuživatel databáze se do kontejnerů `app` a `worker` nedostanou. Databáze má dvě role: vlastníka schématu pro migrace
-a aplikační roli bez práva měnit schéma (ADR 009). Po úpravě `.env` služby znovu vytvoř: `docker compose up -d <služba>` (ne `restart`).
+Vzor je `deploy/.env.example`; skutečné `.env` má práva 600 a nikdy se nedává do gitu. Aplikace dostane jen to, co potřebuje: heslo k záloze ani superuživatel databáze se do `app` a `worker` nedostanou. Databáze má dvě role: vlastníka schématu (migrace) a aplikační roli bez práva měnit schéma. Po úpravě `.env` služby znovu vytvoř: `docker compose up -d <služba>` (ne `restart`).
+OPSYS nepoužívá push ani e-mailová upozornění: `VAPID_*` zůstávají prázdné.
 
 ## Řešení potíží
 
@@ -204,6 +172,7 @@ a aplikační roli bez práva měnit schéma (ADR 009). Po úpravě `.env` služ
 | web neodpovídá                    | `docker compose ps`, `docker compose logs --tail=100 app caddy`                        |
 | Caddy nezískal certifikát         | DNS neukazuje na server, nebo jsou zavřené porty 80/443 (`ufw status`)                 |
 | `degraded`: není záznam o záloze  | `docker compose logs backup`; chybí `RESTIC_REPOSITORY`, nebo nejde spojení k úložišti |
+| webhooky do n8n se nedoručují     | Nastavení → Systém → Chybná doručení; [RUNBOOK](RUNBOOK.md) §11 (výpadek n8n)          |
 | aktualizace skončila návratem     | `/opt/system/logs/update-*.log`; verze se vrátila, systém běží na předchozí            |
 | potřeba obnovit z poslední zálohy | `./scripts/restore.sh` (potvrzením je napsání adresy systému)                          |
 | instalace skončila chybou         | oprav příčinu a spusť `install.sh` znovu (je idempotentní)                             |

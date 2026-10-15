@@ -31,6 +31,7 @@ import { FilterBar } from "../data/filter-bar";
 import { completeFilters } from "../data/filters";
 import { cn } from "../lib/cn";
 import type { SourceCatalog } from "./api";
+import { isSpecialSource, SpecialFields, validateSpecial } from "./widget-special";
 import { WidgetCard } from "./widget-card";
 
 const TYPE_LABEL: Record<WidgetType, string> = {
@@ -138,6 +139,8 @@ const DEFAULT_SIZE: Record<WidgetType, { w: number; h: number }> = {
 };
 
 /** Nový prázdný widget daného typu s rozumným výchozím zdrojem. */
+export const newWidgetId = () => newId();
+
 export function newWidget(type: WidgetType, catalog: SourceCatalog | undefined): DashboardWidget {
   const entity = catalog?.entities[0]?.key ?? "job";
   const base = { id: newId(), type, title: TYPE_LABEL[type], ...DEFAULT_SIZE[type] };
@@ -202,12 +205,14 @@ export function WidgetEditor({ widget, catalog, filters, isNew, onSave, onClose 
     src.kind === "metric" ? catalog?.metrics.find((m) => m.key === src.metric) : undefined;
 
   // druhy zdroje, které typ widgetu připouští
-  const kinds: Record<WidgetType, ("entity" | "metric" | "records" | "builtin")[]> = {
+  type Kind = "entity" | "metric" | "records" | "builtin";
+  const special = isSpecialSource(w, metric);
+  const kinds: Record<WidgetType, Kind[]> = {
     kpi: ["entity", "metric"],
     gauge: ["entity", "metric"],
     chart: ["entity", "metric"],
     table: ["records", "entity", "metric"],
-    list: ["records", "builtin"],
+    list: ["records", "builtin", "metric"],
     status: ["entity"],
     builtin: ["builtin"],
   };
@@ -229,14 +234,18 @@ export function WidgetEditor({ widget, catalog, filters, isNew, onSave, onClose 
     }));
   }
 
-  function changeKind(kind: "entity" | "metric" | "records" | "builtin") {
+  function changeKind(kind: Kind) {
     const entity = entityKey ?? catalog?.entities[0]?.key ?? "job";
     if (kind === "entity") set({ source: { kind: "entity", entity, agg: { fn: "count" } } });
     else if (kind === "records")
       set({ source: { kind: "records", entity, columns: [], limit: 10 } });
     else if (kind === "metric") {
       const m = catalog?.metrics.find((x) =>
-        w.type === "kpi" || w.type === "gauge" ? x.shape === "scalar" : x.shape === "series",
+        w.type === "kpi" || w.type === "gauge"
+          ? x.shape === "scalar"
+          : w.type === "list"
+            ? x.shape === "list"
+            : x.shape === "series",
       );
       set({
         source: { kind: "metric", metric: m?.key ?? "" },
@@ -305,17 +314,19 @@ export function WidgetEditor({ widget, catalog, filters, isNew, onSave, onClose 
             }}
             data-testid="widget-editor"
           >
-            <Field label="Typ widgetu" htmlFor="we-type" hint={TYPE_HINT[w.type]}>
-              <Select
-                id="we-type"
-                value={w.type}
-                onChange={changeType}
-                options={(Object.keys(TYPE_LABEL) as WidgetType[]).map((t) => ({
-                  value: t,
-                  label: TYPE_LABEL[t],
-                }))}
-              />
-            </Field>
+            {!special && (
+              <Field label="Typ widgetu" htmlFor="we-type" hint={TYPE_HINT[w.type]}>
+                <Select
+                  id="we-type"
+                  value={w.type}
+                  onChange={changeType}
+                  options={(Object.keys(TYPE_LABEL) as WidgetType[]).map((t) => ({
+                    value: t,
+                    label: TYPE_LABEL[t],
+                  }))}
+                />
+              </Field>
+            )}
             <Field label="Název widgetu" htmlFor="we-title">
               <Input
                 id="we-title"
@@ -325,18 +336,20 @@ export function WidgetEditor({ widget, catalog, filters, isNew, onSave, onClose 
               />
             </Field>
 
-            {kinds[w.type].length > 1 && (
+            {special && <SpecialFields w={w} set={set} catalog={catalog} />}
+
+            {!special && kinds[w.type].length > 1 && (
               <Field label="Odkud data jsou" htmlFor="we-kind">
                 <Select
                   id="we-kind"
-                  value={src.kind}
+                  value={src.kind as Kind}
                   onChange={changeKind}
                   options={kinds[w.type].map((k) => ({ value: k, label: KIND_LABEL[k] }))}
                 />
               </Field>
             )}
 
-            {src.kind === "builtin" && (
+            {!special && src.kind === "builtin" && (
               <Field label="Blok" htmlFor="we-builtin">
                 <Select
                   id="we-builtin"
@@ -358,7 +371,7 @@ export function WidgetEditor({ widget, catalog, filters, isNew, onSave, onClose 
               </Field>
             )}
 
-            {(src.kind === "entity" || src.kind === "records") && (
+            {!special && (src.kind === "entity" || src.kind === "records") && (
               <>
                 <Field label="Záznamy" htmlFor="we-entity">
                   <Select
@@ -472,7 +485,7 @@ export function WidgetEditor({ widget, catalog, filters, isNew, onSave, onClose 
               />
             )}
 
-            {src.kind === "metric" && (
+            {!special && src.kind === "metric" && (
               <>
                 <Field label="Metrika" htmlFor="we-metric" hint={metric?.description}>
                   <Select
@@ -491,7 +504,9 @@ export function WidgetEditor({ widget, catalog, filters, isNew, onSave, onClose 
                         .filter((m) =>
                           w.type === "kpi" || w.type === "gauge"
                             ? m.shape === "scalar"
-                            : m.shape === "series",
+                            : w.type === "list"
+                              ? m.shape === "list"
+                              : m.shape === "series",
                         )
                         .map((m) => ({ value: m.key, label: m.label })),
                     ]}
@@ -698,6 +713,8 @@ function entityFormat(src: DashboardWidget["source"], attrs: AttributeDescriptor
 export function validate(w: DashboardWidget, attrs: AttributeDescriptor[]): string | null {
   if (!w.title.trim()) return "Vyplňte název widgetu.";
   const s = w.source;
+  const specialProblem = validateSpecial(w);
+  if (specialProblem) return specialProblem;
   if (s.kind === "metric" && !s.metric) return "Vyberte metriku.";
   if (s.kind === "records") {
     if (!s.columns.length) return "Vyberte aspoň jeden sloupec.";

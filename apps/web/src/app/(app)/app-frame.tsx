@@ -2,28 +2,26 @@
 
 import {
   AppShell,
-  CommandPalette,
   EntityApiProvider,
-  Icon,
   PaletteActionsProvider,
+  PaletteHost,
   ModuleUiProvider,
+  RealtimeBridge,
   ShortcutsDialog,
   useHotkeys,
   useNav,
-  type PaletteGroup,
+  useUndoShortcut,
   type PaletteItem,
   type ShortcutGroup,
 } from "@rebar/ui";
-import { Keyboard, Plus } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { makeEntityApi } from "@/lib/entity-api";
-import { searchEntities } from "@/server/entity-actions";
+import { paletteRecent, paletteSearch } from "@/server/palette-actions";
 import { authClient } from "@/lib/auth-client";
 import type { ShellData } from "@/server/shell";
 import { MODULE_UI } from "@/modules-ui";
 import { MobileBottomNav } from "./mobile-nav";
-import { readRecent } from "./recent";
 
 type Props = {
   brand: { name: string; logoUrl: string | null };
@@ -32,13 +30,26 @@ type Props = {
   children: ReactNode;
 };
 
+/** Přechod „g + písmeno“ (přehled, obchody, kontakty, zakázky, úkoly, finance, historie). */
+const GO_KEYS: Record<string, string> = {
+  p: "/prehled",
+  o: "/obchody",
+  k: "/kontakty",
+  z: "/zakazky",
+  u: "/ukoly",
+  f: "/finance",
+  h: "/historie",
+};
+
 const SHORTCUTS: ShortcutGroup[] = [
   {
     heading: "Obecné",
     items: [
       { keys: ["Ctrl/⌘", "K"], label: "Hledání a příkazy" },
+      { keys: ["Ctrl/⌘", "Z"], label: "Vrátit poslední smazání nebo hromadnou změnu (10 s)" },
       { keys: ["?"], label: "Přehled zkratek" },
-      { keys: ["g", "u"], label: "Přejít na Moje úkoly" },
+      { keys: ["g", "p"], label: "Přejít na Přehled (g o obchody, g k kontakty, g z zakázky)" },
+      { keys: ["g", "u"], label: "Přejít na úkoly (g f finance, g h historie)" },
     ],
   },
   {
@@ -100,77 +111,41 @@ function AppFrameInner({
     [user.id, user.name, shell.entityPaths],
   );
 
-  useHotkeys({
-    "mod+k": () => setPalette((p) => !p),
-    "?": () => setHelp(true),
-    "g u": () => nav.push("/ukoly"),
-  });
+  useUndoShortcut();
 
-  const search = useCallback(
-    async (q: string): Promise<PaletteItem[]> => {
-      const res = await searchEntities({ q });
-      if (!res.ok) return [];
-      return res.data.map((h) => ({
-        id: `${h.entityType}:${h.id}`,
-        label: h.title,
-        hint: [h.label, h.subtitle].filter(Boolean).join(" · "),
-        onSelect: () => nav.push(h.url),
-      }));
-    },
-    [nav],
+  const search = useCallback(async (q: string) => {
+    const res = await paletteSearch({ q });
+    return res.ok ? res.data : [];
+  }, []);
+  const recent = useCallback(async () => {
+    const res = await paletteRecent({});
+    return res.ok ? res.data : [];
+  }, []);
+  const onHelp = useCallback(() => setHelp(true), []);
+
+  const navItems = useMemo(
+    () =>
+      [
+        ...shell.top,
+        ...shell.sections.flatMap((s) => s.items.flatMap((i) => [i, ...(i.children ?? [])])),
+      ].map((n) => ({ href: n.href, label: n.label, icon: n.icon })),
+    [shell],
   );
 
-  const groups = useMemo<PaletteGroup[]>(() => {
-    const recent = palette ? readRecent() : [];
-    const navItems = [
-      ...shell.top,
-      ...shell.sections.flatMap((s) => s.items.flatMap((i) => [i, ...(i.children ?? [])])),
-    ];
-    return [
-      ...(contextual.length ? [{ heading: "Tento záznam", items: contextual }] : []),
-      ...(recent.length
-        ? [
-            {
-              heading: "Nedávné",
-              items: recent.map((r) => ({
-                id: `recent:${r.href}`,
-                label: r.title,
-                hint: r.label,
-                onSelect: () => nav.push(r.href),
-              })),
-            },
-          ]
-        : []),
-      {
-        heading: "Přejít na",
-        items: navItems.map((n) => ({
-          id: `nav:${n.href}`,
-          label: n.label,
-          icon: <Icon name={n.icon} className="size-4" />,
-          onSelect: () => nav.push(n.href),
-        })),
-      },
-      {
-        heading: "Akce",
-        items: [
-          ...shell.creatable.map((c) => ({
-            id: `new:${c.key}`,
-            label: `Nový záznam: ${c.label.toLowerCase()}`,
-            keywords: "přidat vytvořit nový",
-            icon: <Plus className="size-4" />,
-            onSelect: () => nav.push(`${c.listPath}?novy=1`),
-          })),
-          {
-            id: "shortcuts",
-            label: "Klávesové zkratky",
-            shortcut: "?",
-            icon: <Keyboard className="size-4" />,
-            onSelect: () => setHelp(true),
-          },
-        ],
-      },
-    ];
-  }, [shell, palette, nav, contextual]);
+  // Cmd/Ctrl+K, ? a „g + písmeno“ pro přechod na modul (jen na položky, které v navigaci jsou)
+  const goKeys = useMemo(() => {
+    const target = (href: string) =>
+      href === "/historie"
+        ? href
+        : navItems.find((n) => n.href === href || n.href.startsWith(`${href}/`))?.href;
+    return Object.fromEntries(
+      Object.entries(GO_KEYS).flatMap(([k, href]) => {
+        const to = target(href);
+        return to ? [[`g ${k}`, () => nav.push(to)] as const] : [];
+      }),
+    );
+  }, [navItems, nav]);
+  useHotkeys({ "mod+k": () => setPalette((p) => !p), "?": () => setHelp(true), ...goKeys });
 
   return (
     <EntityApiProvider api={api}>
@@ -206,7 +181,22 @@ function AppFrameInner({
         >
           {children}
         </AppShell>
-        <CommandPalette open={palette} onOpenChange={setPalette} groups={groups} search={search} />
+        <PaletteHost
+          open={palette}
+          onOpenChange={setPalette}
+          navItems={navItems}
+          creatable={shell.creatable}
+          contextual={contextual}
+          search={search}
+          recent={recent}
+          onHelp={onHelp}
+        />
+        {/* změna u druhého uživatele je vidět do 2 s; serverově vykreslený Přehled se obnoví router.refresh */}
+        <RealtimeBridge
+          onChange={() => {
+            if (pathname === "/prehled" || pathname === "/") router.refresh();
+          }}
+        />
         <ShortcutsDialog open={help} onOpenChange={setHelp} groups={SHORTCUTS} />
       </ModuleUiProvider>
     </EntityApiProvider>

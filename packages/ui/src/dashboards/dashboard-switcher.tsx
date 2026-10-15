@@ -13,14 +13,18 @@ export function DashboardSwitcher({
   overviewHref,
   boardHref,
   onCreate,
+  createLabel,
   onOrder,
 }: {
   boards: DashboardSummary[];
   /** Id aktivní nástěnky, `null` = klasický Přehled. */
   activeId: string | null;
-  overviewHref: string;
+  /** Adresa klasického Přehledu; bez ní se záložka „Přehled“ nezobrazí (OPSYS: každý přehled je nástěnka). */
+  overviewHref?: string | undefined;
   boardHref: (id: string) => string;
   onCreate?: (() => void) | undefined;
+  /** Popisek tlačítka pro založení (výchozí „Nová nástěnka“). */
+  createLabel?: string | undefined;
   onOrder?: (() => void) | undefined;
 }) {
   const { Link } = useNav();
@@ -35,13 +39,15 @@ export function DashboardSwitcher({
       className="scrollbar-thin -mx-1 flex items-center gap-1 overflow-x-auto px-1 pb-1"
       data-testid="dashboard-switcher"
     >
-      <Link
-        href={overviewHref}
-        className={tab(activeId === null)}
-        aria-current={activeId === null ? "page" : undefined}
-      >
-        Přehled
-      </Link>
+      {overviewHref && (
+        <Link
+          href={overviewHref}
+          className={tab(activeId === null)}
+          aria-current={activeId === null ? "page" : undefined}
+        >
+          Přehled
+        </Link>
+      )}
       {boards.map((b) => (
         <Link
           key={b.id}
@@ -58,7 +64,7 @@ export function DashboardSwitcher({
       ))}
       {onCreate && (
         <Button variant="ghost" size="sm" onClick={onCreate} data-testid="new-dashboard">
-          <Plus /> Nová nástěnka
+          <Plus /> {createLabel ?? "Nová nástěnka"}
         </Button>
       )}
       {onOrder && boards.length > 1 && (

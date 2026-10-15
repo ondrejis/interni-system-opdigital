@@ -1,9 +1,9 @@
 # Provozní příručka (runbook)
 
-Postupy pro správce instance. Všechny příkazy se spouštějí **na serveru klienta jako root** ve složce instalace (výchozí `/opt/system`), pokud není uvedeno jinak:
+Postupy pro správce OPSYS (jedna instance pro OP Digital). Všechny příkazy se spouštějí **na serveru OPSYS jako root** ve složce instalace (výchozí `/opt/system`), pokud není uvedeno jinak:
 
 ```bash
-ssh root@system.klient.cz
+ssh root@opsys.opdigital.cz
 cd /opt/system
 ```
 
@@ -26,11 +26,11 @@ Vysvětlení, co kde běží: [DEPLOYMENT](DEPLOYMENT.md) a [ARCHITECTURE](ARCHI
 8. [Fronta úloh](#8-fronta-úloh)
 9. [Vypnutí a zapnutí modulu](#9-vypnutí-a-zapnutí-modulu)
 10. [Obnova přístupu majitele](#10-obnova-přístupu-majitele)
-11. [Předání systému klientovi](#11-předání-systému-klientovi-při-ukončení-správy)
+11. [n8n: tajemství webhooků a ingestu, výpadek n8n](#11-n8n-tajemství-webhooků-a-ingestu-výpadek-n8n)
 
 ## 1. Aktualizace
 
-Novou verzi vyrobí CI po vytvoření tagu `vX.Y.Z` (image klienta `ghcr.io/<org>/<repo>-<slug>:vX.Y.Z`, zálohovací image a balíček `deploy-vX.Y.Z.tgz`). Na serveru se nikdy nebuilduje.
+Novou verzi vyrobí CI po vytvoření tagu `vX.Y.Z` (image `ghcr.io/ondrejis/interni-system-opdigital-opsys:vX.Y.Z`, zálohovací image a balíček `deploy-vX.Y.Z.tgz`). Na serveru se nikdy nebuilduje.
 
 1. Přečti změny verze v `CHANGELOG.md` (zvlášť položky o migracích a o změně konfigurace).
 2. Nanečisto: `./scripts/update.sh v1.1.0 --dry-run` vypíše plán a nic nemění.
@@ -44,7 +44,7 @@ Novou verzi vyrobí CI po vytvoření tagu `vX.Y.Z` (image klienta `ghcr.io/<org
    Přepínače: `--skip-backup` (jen když záloha právě proběhla), `--force` (nasadí i běžící verzi znovu), `--dry-run`.
 
 4. Výstup je i v `/opt/system/logs/update-*.log`. Úspěch končí řádkem „Aktualizace na … hotová (stav systému: ok|degraded)“.
-5. Ověř: `curl -fsS https://system.klient.cz/api/health/live` a přihlášení do aplikace.
+5. Ověř: `curl -fsS https://opsys.opdigital.cz/api/health/live` a přihlášení do aplikace.
 6. Pokud verze mění provozní soubory (`docker-compose.yml`, `Caddyfile`, skripty), rozbal `deploy-vX.Y.Z.tgz` z vydání na GitHubu a přepiš jimi soubory v `/opt/system` (kromě `.env`, `logs/`, `.state/`) **před** krokem 3.
    Aktualizace skriptem mění jen verzi image.
 
@@ -66,7 +66,7 @@ Když aplikace po aktualizaci **poškodila data** (ne jen se chová špatně), s
 
 ## 3. Obnova ze zálohy a zkouška obnovy
 
-Záloha: kontejner `backup` denně (výchozí 02:30) udělá `pg_dump` a spolu se složkou souborů ji uloží do restic repozitáře (S3 úložiště klienta, šifrovaně).
+Záloha: kontejner `backup` denně (výchozí 02:30) udělá `pg_dump` a spolu se složkou souborů ji uloží do restic repozitáře (S3 úložiště mimo server, šifrovaně).
 Retence: 30 denních a 12 měsíčních snapshotů. **Soubor `.env` v záloze není** — viz upozornění níže.
 
 ### Obnova
@@ -98,19 +98,19 @@ Retence: 30 denních a 12 měsíčních snapshotů. **Soubor `.env` v záloze ne
 
 ### Zkouška obnovy
 
-Měsíčně (výchozí 1. dne v 04:30) ji spustí kontejner `backup` sám: obnoví poslední zálohu do dočasné databáze, porovná počty záznamů v tabulkách se zálohou a databázi smaže.
-Výsledek je v `/api/health` (`backup.restoreTest`) a v heartbeatu; zkouška starší než 45 dní nebo neúspěšná zhorší stav na `degraded`.
+Měsíčně (výchozí 1. dne v 04:30) ji spustí kontejner `backup` sám (noční záloha běží v 02:30): obnoví poslední zálohu do dočasné databáze, porovná počty záznamů v tabulkách se zálohou a databázi smaže.
+Výsledek je vidět v **Nastavení → Systém → Zálohy** (poslední záloha, snapshot, velikost, počet záloh, výsledek zkoušky), v `/api/health` (`backup.restoreTest`) a v heartbeatu; zkouška starší než 45 dní nebo neúspěšná zhorší stav na `degraded`.
 
 Ručně: `./scripts/restore-test.sh`. Úspěch končí řádkem „Zkouška obnovy v pořádku: obnoveno N tabulek, počty záznamů sedí“.
 Zkouška neověřuje, že aplikace nad obnovenými daty nastartuje; to ověř při ostré obnově (krok 3).
 
 ## 4. Výpadek
 
-1. **Co nefunguje.** Z vlastního počítače: `curl -sS -o /dev/null -w '%{http_code}\n' https://system.klient.cz/api/health/live` (200 = běží a vidí databázi).
+1. **Co nefunguje.** Z vlastního počítače: `curl -sS -o /dev/null -w '%{http_code}\n' https://opsys.opdigital.cz/api/health/live` (200 = běží a vidí databázi).
    Podrobný stav (token je `HEALTH_TOKEN` v `.env`):
 
    ```bash
-   curl -fsS -H "Authorization: Bearer $(grep '^HEALTH_TOKEN=' .env | cut -d= -f2)" https://system.klient.cz/api/health
+   curl -fsS -H "Authorization: Bearer $(grep '^HEALTH_TOKEN=' .env | cut -d= -f2)" https://opsys.opdigital.cz/api/health
    ```
 
    Odpověď obsahuje `status` (`ok` / `degraded` / `fail`), databázi, disk, zálohu a zkoušku obnovy, zpoždění fronty a seznam `problems`.
@@ -130,15 +130,15 @@ Zkouška neověřuje, že aplikace nad obnovenými daty nastartuje; to ověř p�
 
 5. **Typické příčiny:**
 
-   | Příznak                                       | Postup                                                                                                                                  |
-   | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-   | `app` se restartuje, v logu chyba konfigurace | špatná hodnota v `.env` nebo neplatná konfigurace klienta; aplikace při startu vypíše všechny chyby, oprav a `docker compose up -d app` |
-   | `app` hlásí jiného klienta                    | proměnná `CLIENT` v `.env` neodpovídá image (`APP_IMAGE`); image se staví per klient                                                    |
-   | Caddy nezískal certifikát                     | DNS nemíří na server nebo jsou zavřené porty 80/443 (`ufw status`)                                                                      |
-   | databáze nenaběhla                            | `docker compose logs postgres`; plný disk (kapitola 5)                                                                                  |
-   | `degraded`, záloha je stará                   | `docker compose logs backup`; chybí `RESTIC_REPOSITORY`, přihlašovací údaje k úložišti, nebo nejde spojení                              |
-   | e-maily nechodí                               | kapitola 8 (fronta), nastavení SMTP v administraci, `email_log`                                                                         |
-   | po aktualizaci nejde nic                      | kapitola 2                                                                                                                              |
+   | Příznak                                       | Postup                                                                                                                                          |
+   | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+   | `app` se restartuje, v logu chyba konfigurace | špatná hodnota v `.env` nebo neplatná konfigurace `clients/opsys`; aplikace při startu vypíše všechny chyby, oprav a `docker compose up -d app` |
+   | `app` hlásí jiného klienta                    | proměnná `CLIENT` v `.env` není `opsys` nebo neodpovídá image (`APP_IMAGE`)                                                                     |
+   | Caddy nezískal certifikát                     | DNS nemíří na server nebo jsou zavřené porty 80/443 (`ufw status`)                                                                              |
+   | databáze nenaběhla                            | `docker compose logs postgres`; plný disk (kapitola 5)                                                                                          |
+   | `degraded`, záloha je stará                   | `docker compose logs backup`; chybí `RESTIC_REPOSITORY`, přihlašovací údaje k úložišti, nebo nejde spojení                                      |
+   | e-maily nechodí                               | kapitola 8 (fronta), nastavení SMTP v administraci, `email_log`                                                                                 |
+   | po aktualizaci nejde nic                      | kapitola 2                                                                                                                                      |
 
 6. **Heartbeat.** Worker jednou za hodinu pošle `POST` na `HEARTBEAT_URL` (instance, verze, stav). Když heartbeaty přestanou chodit, monitoring agentury hlásí výpadek:
    zkontroluj `worker` (`docker compose ps worker`, log), nejde-li o výpadek celého serveru.
@@ -161,7 +161,7 @@ Zkouška neověřuje, že aplikace nad obnovenými daty nastartuje; to ověř p�
 2. **Staré image** (po aktualizacích): `docker image prune -f`. Aktualizace to dělá sama; po delší době `docker image prune -af` smaže všechny nepoužívané image.
 3. **Logy Dockeru** jsou omezené na 3 × 10 MB na službu. Systémové logy: `journalctl --vacuum-size=200M`.
 4. **Zálohovací pracovní složka:** `docker compose exec backup du -sh /work`; při selhané záloze může zůstat dump.
-5. **Soubory a fotky** (`system_files`) rostou s provozem. Když nestačí disk, zvětši VPS u poskytovatele (a souborový systém: `resize2fs`) nebo se s klientem domluv na archivaci starých zakázek. Soubory se nemaž ručně z volumes.
+5. **Soubory a fotky** (`system_files`) rostou s provozem. Když nestačí disk, zvětši VPS u poskytovatele (a souborový systém: `resize2fs`) nebo vyčisti Koš a staré přílohy. Soubory se nemaž ručně z volumes.
 6. **Databáze:** neřeš ručním mazáním tabulek. Velikost: `docker compose exec postgres psql -U postgres -d system -c "select pg_size_pretty(pg_database_size('system'))"`.
 7. Po uvolnění místa ověř `/api/health` a že proběhla poslední záloha (`backup.lastSuccessAt`).
 
@@ -170,15 +170,16 @@ Zkouška neověřuje, že aplikace nad obnovenými daty nastartuje; to ověř p�
 Tajemství jsou v `/opt/system/.env` (práva 600). Aplikace dostává jen to, co potřebuje; po každé změně `.env` se musí dotčené služby **znovu vytvořit** (`docker compose up -d <služba>`, ne `restart`).
 Po rotaci aktualizuj kopii `.env` ve správci hesel.
 
-| Tajemství                  | Co se stane při změně                                                         | Postup |
-| -------------------------- | ----------------------------------------------------------------------------- | ------ |
-| `HEALTH_TOKEN`             | monitoring agentury musí dostat nový token                                    | 6.1    |
-| `APP_ENCRYPTION_KEY(S)`    | šifrování tajemství v databázi (heslo SMTP, adresy kalendářů); bez ztráty dat | 6.2    |
-| `AUTH_SECRET`              | odhlásí všechny a znehodnotí nastavené 2FA (viz níže)                         | 6.3    |
-| `DB_*_PASSWORD`            | hesla databázových rolí (`migrator`, `app`, superuživatel)                    | 6.4    |
-| `RESTIC_PASSWORD`, `AWS_*` | přístup k záloze                                                              | 6.5    |
-| `VAPID_*`                  | všechna zařízení musí znovu povolit push upozornění                           | 6.6    |
-| heslo uživatele            | —                                                                             | 6.7    |
+| Tajemství                       | Co se stane při změně                                                         | Postup |
+| ------------------------------- | ----------------------------------------------------------------------------- | ------ |
+| `HEALTH_TOKEN`                  | monitoring agentury musí dostat nový token                                    | 6.1    |
+| `APP_ENCRYPTION_KEY(S)`         | šifrování tajemství v databázi (heslo SMTP, adresy kalendářů); bez ztráty dat | 6.2    |
+| `AUTH_SECRET`                   | odhlásí všechny a znehodnotí nastavené 2FA (viz níže)                         | 6.3    |
+| `DB_*_PASSWORD`                 | hesla databázových rolí (`migrator`, `app`, superuživatel)                    | 6.4    |
+| `RESTIC_PASSWORD`, `AWS_*`      | přístup k záloze                                                              | 6.5    |
+| `VAPID_*`                       | OPSYS push nepoužívá (nemá notifikace), klíče jsou prázdné                    | 6.6    |
+| tajemství n8n (ingest, webhook) | callback Disku a leady, odchozí webhooky; spravuje se v aplikaci              | 11     |
+| heslo uživatele                 | —                                                                             | 6.7    |
 
 **6.1 `HEALTH_TOKEN`:** `NEW=$(openssl rand -hex 24)`, nahraď `HEALTH_TOKEN=` v `.env`, `docker compose up -d app worker`, předej `NEW` monitoringu.
 
@@ -203,22 +204,21 @@ vynuť nové nastavení (administrátor jim v Nastavení → Uživatelé resetuj
 
 Heslo superuživatele (`DB_SUPERUSER_PASSWORD`) se mění `ALTER ROLE postgres PASSWORD '…'` a v `.env`; na hesle se nic dalšího nezakládá.
 
-**6.5 Záloha.** `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`: vytvoř nový klíč v úložišti klienta, změň v `.env`, `docker compose up -d backup`, ověř `./scripts/backup.sh`, starý klíč zruš.
+**6.5 Záloha.** `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`: vytvoř nový klíč v úložišti záloh, změň v `.env`, `docker compose up -d backup`, ověř `./scripts/backup.sh`, starý klíč zruš.
 `RESTIC_PASSWORD`: do repozitáře přidej nové heslo (`docker compose exec backup restic key add`), změň v `.env`, `docker compose up -d backup`, ověř `./scripts/restore-test.sh` a teprve potom starý klíč odeber (`restic key list`, `restic key remove <id>`).
 
-**6.6 VAPID:** `docker compose run --rm --no-deps -T seed node_modules/.bin/tsx scripts/vapid-generate.ts` vypíše nové klíče; vlož je do `.env`, `docker compose up -d app worker`. Uživatelé musí na stránce Upozornění znovu povolit push.
+**6.6 VAPID:** OPSYS push upozornění nepoužívá, `VAPID_*` zůstávají prázdné; rotace se netýká. Tajemství n8n jsou v části 11.
 
 **6.7 Heslo uživatele.** Nastavení → Uživatelé → uživatel → odeslat odkaz pro obnovu hesla (platí hodinu); odhlášení všech jeho zařízení tamtéž. Odkaz se v administraci nikdy nezobrazuje, jde jen e-mailem.
 
 ## 7. Bezpečnostní incident
 
-Kontakty (doplň při nasazení; **zástupné údaje**):
+Kontakty (doplň telefony při nasazení):
 
 | Role                         | Jméno                 | Telefon / e-mail               |
 | ---------------------------- | --------------------- | ------------------------------ |
-| Správce instance (agentura)  | `<jméno správce>`     | `<telefon>` / `<e-mail>`       |
-| Záložní kontakt agentury     | `<jméno>`             | `<telefon>` / `<e-mail>`       |
-| Zodpovědná osoba u klienta   | `<jméno>`             | `<telefon>` / `<e-mail>`       |
+| Správce OPSYS (vlastník)     | Ondřej Dvořák         | dvorak@opdigital.cz            |
+| Záložní kontakt (partner)    | Patrik Šilhánek       | silhanek@opdigital.cz          |
 | Poskytovatel VPS (Hostinger) | podpora poskytovatele | `<kontakt z administrace VPS>` |
 | Pověřenec / právní zástupce  | `<jméno>`             | `<kontakt>`                    |
 
@@ -230,7 +230,7 @@ Postup (nejdřív zastavit škodu, potom zjišťovat příčinu):
 3. **Zajisti stav.** Okamžitá záloha (`./scripts/backup.sh`), uložení logů: `docker compose logs --no-color > /root/incident-$(date +%F).log` (mimo `/opt/system/logs`).
 4. **Zjisti rozsah.** V aplikaci Historie změn (audit, `audit.read`) a historie přihlášení (`login_event`: úspěšné i neúspěšné s IP a prohlížečem); logy Caddy (`docker compose logs caddy`); seznam relací uživatelů.
 5. **Odstraň příčinu a obnov důvěru.** Rotace všech dotčených tajemství (kapitola 6), reset hesel dotčených uživatelů, aktualizace na opravenou verzi (kapitola 1). Při kompromitaci serveru nasaď novou instanci a obnov data ze zálohy před incidentem (kapitola 3).
-6. **Oznam.** Klienta bez zbytečného odkladu. Zasáhl-li incident osobní údaje, má klient (správce údajů) povinnost oznámit porušení Úřadu pro ochranu osobních údajů do 72 hodin od zjištění; agentura jako zpracovatel pomáhá podklady. Právní posouzení patří právníkovi.
+6. **Oznam.** Partnerovi (Patrikovi) bez zbytečného odkladu. V OPSYS jsou osobní údaje kontaktů klientů; zasáhl-li incident osobní údaje, posuď s právníkem povinnost oznámit porušení Úřadu pro ochranu osobních údajů do 72 hodin od zjištění a případně informovat dotčené klienty. Právní posouzení patří právníkovi.
 7. **Po incidentu:** zpráva (časová osa, příčina, dopad, opatření), oprava v kódu nebo postupu, doplnění tohoto runbooku.
 
 Obecný postup hlášení a model hrozeb: [SECURITY](SECURITY.md).
@@ -262,10 +262,10 @@ heartbeat (hodinově), upozornění (`notification.dispatch`: ihned po vzniku a 
 
 ## 9. Vypnutí a zapnutí modulu
 
-Moduly určuje pole `modules` v `clients/<slug>/config.ts` ([CUSTOMIZATION](CUSTOMIZATION.md) §1); je to **změna konfigurace s novým vydáním**, ne přepínač za běhu.
+Moduly určuje pole `modules` v `clients/opsys/config.ts` ([CUSTOMIZATION](CUSTOMIZATION.md) §1); je to **změna konfigurace s novým vydáním**, ne přepínač za běhu.
 
-1. V repozitáři uprav `modules` v `clients/<slug>/config.ts` (závislosti: fakturace i realizace vyžadují zakázky; `pnpm config:check` chybnou sestavu odmítne).
-2. `pnpm check`, commit, tag nové verze (`vX.Y.Z`), počkej na CI (image klienta).
+1. V repozitáři uprav `modules` v `clients/opsys/config.ts` (závislosti modulů hlídá `pnpm config:check`, chybnou sestavu odmítne).
+2. `pnpm check`, commit, tag nové verze (`vX.Y.Z`), počkej na CI (image OPSYS).
 3. Na serveru `./scripts/update.sh vX.Y.Z`.
 
 Důsledky:
@@ -285,7 +285,7 @@ Majitel ztratil heslo i 2FA a není jiný administrátor:
 2. Není-li takový uživatel: na serveru vytvoř nového majitele (`seed` je idempotentní a existující účty nemění):
 
    ```bash
-   docker compose run --rm -T -e OWNER_EMAIL=majitel@klient.cz -e OWNER_NAME="Jméno" -e OWNER_PASSWORD="$(openssl rand -base64 18)" seed
+   docker compose run --rm -T -e OWNER_EMAIL=dvorak@opdigital.cz -e OWNER_NAME="Jméno" -e OWNER_PASSWORD="$(openssl rand -base64 18)" seed
    ```
 
    Heslo, které jsi zadal, předej bezpečným kanálem; systém při prvním přihlášení vyžádá nastavení 2FA. Pokud účet s tímto e-mailem už existuje, skript to oznámí a heslo nezmění.
@@ -294,25 +294,38 @@ Majitel ztratil heslo i 2FA a není jiný administrátor:
 
 ### Změna hesla a podezřelé přihlášení
 
-- **Vlastní heslo si každý mění sám** v Nastavení → Můj účet (po instalaci i majitel; krok 6 v [DEPLOYMENT](DEPLOYMENT.md)). Po změně se odhlásí ostatní zařízení.
-- **Podezření na cizí přístup:** uživatel v Můj účet → Přihlášená zařízení odhlásí neznámé zařízení (nebo „Odhlásit všechna ostatní“) a změní heslo. Správce může u uživatele zvolit „Odhlásit všude“
+- **Vlastní heslo si každý mění sám** v Nastavení → Profil (po instalaci i majitel; krok 6 v [DEPLOYMENT](DEPLOYMENT.md)). Po změně se odhlásí ostatní zařízení.
+- **Podezření na cizí přístup:** uživatel v Profil → Přihlášená zařízení odhlásí neznámé zařízení (nebo „Odhlásit všechna ostatní“) a změní heslo. Správce může u uživatele zvolit „Odhlásit všude“
   a „Poslat odkaz pro nové heslo“. Historie přihlášení (včetně neúspěšných) je v nabídce uživatele.
 - **Ztracený telefon s 2FA:** přihlášení záložním kódem, pak Zabezpečení účtu → nové záložní kódy. Povinné 2FA (majitel, administrátor) vypnout nejde; když chybí záložní kódy, použije se postup výše (jiný správce odkaz pro heslo a majitel přes `seed`).
 - Pokusy o změnu hesla jsou omezené (6 za 10 minut na uživatele); při překročení počkej, nebo požádej správce o odkaz pro nové heslo.
 
-## 11. Předání systému klientovi při ukončení správy
+## 11. n8n: tajemství webhooků a ingestu, výpadek n8n
 
-Podmínky (licence jádra, co klient dostane: zdrojový kód, image, návod) **dosud nejsou rozhodnuty** — viz otázka Q5 v [OPEN-QUESTIONS](OPEN-QUESTIONS.md). Tento postup proto popisuje jen
-**technické kroky**, které jsou nezávislé na tom rozhodnutí; co se klientovi smí předat, určí až dohoda.
+Automatizace (složky na Google Disku, leady z Meta) běží v n8n mimo OPSYS ([deploy/n8n/README.md](../deploy/n8n/README.md)). Mezi OPSYS a n8n jsou **dvě nezávislá tajemství**, obě se spravují v aplikaci (Nastavení → Integrace), ne v `.env`, a v databázi jsou šifrovaná klíčem `APP_ENCRYPTION_KEY`:
 
-1. **Dohoda a termín.** Písemně: co se předává, kdy končí správa, kdo nese provoz po předání.
-2. **Poslední záloha** a zkouška obnovy: `./scripts/backup.sh`, `./scripts/restore-test.sh`.
-3. **Export dat.**
-   - databáze: `docker compose exec -T postgres pg_dump -U postgres -Fc system > system-$(date +%F).dump` (obnova `pg_restore`);
-   - soubory a fotky: obsah volume `system_files` (např. `docker run --rm -v system_files:/data -v "$PWD":/out alpine tar -czf /out/files-$(date +%F).tgz -C /data .`);
-   - čitelné exporty z aplikace: v každém seznamu tlačítko Export (XLSX nebo CSV, celá filtrovaná sada podle viditelných sloupců, ne jen načtené řádky; `POST /api/export/<klíč entity>`) a měsíční balík pro účetní (PDF faktur + souhrn) na stránce Fakturace → Export. Exportuje se jen to, na co má exportující uživatel oprávnění; pro úplné předání dat slouží databázový výpis výše.
-4. **Předání serveru** (pokud ho vlastní agentura): převod VPS na účet klienta u poskytovatele, nebo klient zřídí vlastní server a data se obnoví z exportu/zálohy (kapitola 3, „Obnova na novém serveru“).
-5. **Předání přístupů:** přístup k VPS, DNS, GHCR (token pro stahování image), úložiště záloh a heslo `RESTIC_PASSWORD`, `.env` (jen předat, ne kopírovat jinam), uživatelé s rolí majitele. Seznam předaných přístupů s datem podepíšou obě strany.
-6. **Ukončení vlastního přístupu agentury:** odeber SSH klíče agentury (`~/.ssh/authorized_keys`), zruš tokeny GHCR, vypni heartbeat a error tracking směřující do agentury (`HEARTBEAT_URL`, `SENTRY_DSN` v `.env`),
-   vymaž kopie `.env` a záloh ze systémů agentury podle dohody. Servisní přístup agentury je ve výchozím stavu vypnutý (`agency.serviceAccess: off`).
-7. **Co dostane klient jako návod:** [DEPLOYMENT](DEPLOYMENT.md), tento runbook a [SECURITY](SECURITY.md). Rozsah předaného zdrojového kódu a licence: viz Q5.
+| Tajemství                      | Podepisuje                                           | Kde se mění                                                      | Kde se musí změnit v n8n |
+| ------------------------------ | ---------------------------------------------------- | ---------------------------------------------------------------- | ------------------------ |
+| tajemství webhooku (`whsec_…`) | odchozí události OPSYS → n8n (`X-Opsys-Signature`)   | Integrace → Webhooky → webhook → Vyměnit tajemství               | `OPSYS_WEBHOOK_SECRET`   |
+| tajemství příchozích požadavků | callback Disku a leady n8n → OPSYS (`/api/ingest/*`) | Integrace → Příchozí požadavky → Vygenerovat (Vyměnit) tajemství | `OPSYS_INGEST_SECRET`    |
+
+**Rotace tajemství příchozích požadavků** (plánovaně, nebo při podezření na únik):
+
+1. V OPSYS vyměň tajemství (Vyměnit tajemství). Zobrazí se jednou. Staré platí ještě **24 hodin**, takže mezi výměnou a úpravou n8n se neztratí žádný callback ani lead. Při podezření na únik zaškrtni „Staré tajemství zneplatnit hned“ (callbacky a leady pak do úpravy n8n selžou; selhané se zpracují z n8n znovu).
+2. V n8n změň `OPSYS_INGEST_SECRET` a n8n restartuj (obě workflow ho čtou z prostředí).
+3. Ověř: ruční test v `meta-leads` (větev „Ruční test“) a v Nastavení → Systém nejsou nové chyby integrací. Po 24 hodinách staré tajemství přestane platit samo.
+
+**Rotace tajemství webhooku:**
+
+1. V Integrace → Webhooky u webhooku zvol „Vyměnit tajemství“ a zkopíruj nové (zobrazí se jednou). **Staré přestává platit hned**: webhooky odeslané mezi výměnou a úpravou n8n n8n odmítne (401) a OPSYS je zkusí znovu podle plánu (1, 5, 15, 30 min, 1 h).
+2. Hned v n8n změň `OPSYS_WEBHOOK_SECRET`, restartuj n8n.
+3. Nastavení → Integrace → **Odeslat test** (musí být doručeno), pak v Nastavení → Systém **Opakovat všechna** chybná doručení z okna výměny.
+
+**Výpadek n8n (nebo jeho přihlášení ke Googlu/Meta):**
+
+- OPSYS **funguje dál**: uložení klienta, zakázky ani obchodu se kvůli n8n nikdy neblokuje. Události `drive.*` se řadí do fronty (odeslání zkouší worker 5× během zhruba 2 hodin, pak doručení zůstane jako chybné a čeká).
+- Zjištění: Nastavení → **Systém** → Chyby integrací a Chybná doručení webhooků; u klientů a zakázek tlačítko „Otevřít Disk“ po 10 minutách bez odpovědi nabídne „Zkusit znovu“. Leady z Meta se v tu dobu hromadí u Meta (n8n trigger je stáhne po obnovení; leady starší než pár dní zkontroluj ručně v Meta Lead Center).
+- Postup: 1) opravit n8n (restart, obnovit přihlášení Google/Meta, zkontrolovat proměnné prostředí), 2) v Nastavení → Systém **Opakovat všechna** chybná doručení, 3) ve výpisu „Selhané příchozí události“ použít **Zpracovat znovu**, 4) u klientů, jejichž složka nevznikla, v kartě klienta „Zkusit znovu“ nebo „Vytvořit složku“. Opakované doručení je bezpečné: callback i lead jsou idempotentní.
+- Dlouhý výpadek (dny): po obnově zkontroluj Nastavení → Google Disk → stav požadavků a leady v Meta Lead Center proti obchodům v OPSYS (zdroj „Meta“).
+
+**Kdo je n8n podepsaný:** `X-Opsys-Signature` platí ±5 minut, proto musí mít server OPSYS i server n8n správný čas (`timedatectl`). Chyba 401 s „expired“ v protokolu příchozích požadavků je téměř vždy rozjetý čas.

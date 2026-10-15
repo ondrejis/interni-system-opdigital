@@ -33,6 +33,7 @@ async function countWhere(
   ctx: Parameters<typeof visibleTasks>[0],
   ...conds: (ReturnType<typeof sql> | undefined)[]
 ) {
+  if (noRead(ctx)) return 0;
   const [r] = await ctx.db
     .select({ n: count() })
     .from(task)
@@ -116,6 +117,7 @@ export const metrics: DashboardMetricDef[] = [
 
 /** Dlaždice „Úkoly na dnes“ (s upozorněním na úkoly po termínu). */
 export const widget: WidgetProvider = async (ctx) => {
+  if (noRead(ctx)) return [];
   const [today, overdue] = await Promise.all([todayCount(ctx), overdueCount(ctx)]);
   return [
     {
@@ -133,6 +135,7 @@ export const widget: WidgetProvider = async (ctx) => {
 
 /** „Vyžaduje pozornost“: nejstarší úkoly po termínu přidělené aktérovi. */
 export const attention: AttentionProvider = async (ctx) => {
+  if (noRead(ctx)) return [];
   const me = ctx.actor.userId;
   if (!me) return [];
   const rows = await ctx.db
@@ -166,6 +169,7 @@ export const calendarLayer: CalendarLayerProvider = {
   label: "Úkoly s termínem",
   color: "#6366f1",
   items: async (ctx, range) => {
+    if (noRead(ctx)) return [];
     const me = ctx.actor.userId;
     if (!me) return [];
     const rows = await ctx.db
@@ -205,6 +209,7 @@ export const calendarLayer: CalendarLayerProvider = {
 /** Příspěvek ke kartě klienta: počet úkolů v záložce, souhrn a „poslední aktivita“ v tabulce klientů. */
 export const clientCard: ClientTabProvider = {
   async tabCounts(ctx, companyId) {
+    if (noRead(ctx)) return {};
     const [r] = await ctx.db
       .select({ n: count() })
       .from(task)
@@ -212,6 +217,7 @@ export const clientCard: ClientTabProvider = {
     return { ukoly: r?.n ?? 0 };
   },
   async summary(ctx, companyId) {
+    if (noRead(ctx)) return {};
     const now = new Date();
     const [r] = await ctx.db
       .select({
@@ -227,6 +233,7 @@ export const clientCard: ClientTabProvider = {
     };
   },
   async listMetrics(ctx, companyIds) {
+    if (noRead(ctx)) return {};
     if (!companyIds.length) return {};
     const rows = await ctx.db
       .select({

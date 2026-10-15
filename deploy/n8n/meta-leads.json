@@ -1,0 +1,206 @@
+{
+  "name": "OPSYS: Meta leady",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Meta Lead Ads → OPSYS\n\nNový lead z formuláře Meta (Lead Ads) se normalizuje a odešle podepsaně na `POST /api/ingest/leads`. OPSYS lead zařadí do obchodů (mapování formuláře v Nastavení → Integrace → Meta, jinak výchozí pipeline), založí kontakt a firmu a nic neposílá e-mailem.\n\nIdempotence: klíč je `leadgenId`, takže opakované odeslání téhož leadu nic nezdvojí. Při chybě OPSYS (HTTP 5xx) n8n opakuje.\n\n**Před zapnutím:** přiřaď přihlášení Facebook Lead Ads OAuth2, vyplň ID aplikace, stránky a (volitelně) formuláře v uzlu triggeru, nastav `OPSYS_BASE_URL` a `OPSYS_INGEST_SECRET`. Postup: `deploy/n8n/README.md`.",
+        "width": 560,
+        "height": 280
+      },
+      "id": "lead-01",
+      "name": "Poznámka 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "app": "<<DOPLNIT: ID aplikace Meta>>",
+        "page": "<<DOPLNIT: ID stránky>>",
+        "event": "newLead",
+        "form": "<<DOPLNIT: ID formuláře (nebo nechat prázdné pro všechny)>>",
+        "options": {}
+      },
+      "id": "lead-02",
+      "name": "Nový lead z Meta",
+      "type": "n8n-nodes-base.facebookLeadAdsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "opsys-meta-leads",
+      "credentials": {
+        "facebookLeadAdsOAuth2Api": {
+          "id": "",
+          "name": "<<DOPLNIT: Facebook Lead Ads OAuth2>>"
+        }
+      },
+      "notes": "Trigger Facebook Lead Ads. Aplikace Meta musí mít oprávnění leads_retrieval a pages_manage_metadata.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {},
+      "id": "lead-03",
+      "name": "Ruční test (ukázkový lead)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        520
+      ],
+      "notes": "Pro zkoušku bez Meta: spusť ručně. Odešle ukázkový lead s označením TEST (po zkoušce ho v OPSYS smaž).",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Ukázkový lead ve tvaru, v jakém ho vrací trigger Facebook Lead Ads. Smyšlené údaje, žádná reálná osoba.\nconst stamp = Date.now();\nreturn [{ json: {\n  id: 'TEST-' + stamp,\n  created_time: new Date().toISOString(),\n  form_id: '000000000000001',\n  form_name: 'TEST formulář',\n  campaign_id: '000000000000002',\n  campaign_name: 'TEST kampaň',\n  ad_id: '000000000000003',\n  field_data: [\n    { name: 'full_name', values: ['Test Testovič'] },\n    { name: 'email', values: ['test@example.test'] },\n    { name: 'phone_number', values: ['+420 777 000 000'] },\n    { name: 'company_name', values: ['Test s.r.o.'] },\n  ],\n} }];"
+      },
+      "id": "lead-04",
+      "name": "Ukázkový lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Převede lead z Meta na tělo, které OPSYS přijímá (viz packages/modules/reklama/src/contract.ts#leadIngestPayload).\n// Povinné: leadgenId a formId. Údaje o člověku posílá fieldData tak, jak je dodala Meta (OPSYS si pole rozpozná podle názvu).\nconst out = [];\nfor (const item of $input.all()) {\n  const j = item.json || {};\n  const leadgenId = String(j.leadgen_id || j.leadgenId || j.id || '').trim();\n  const formId = String(j.form_id || j.formId || '').trim();\n  if (!leadgenId || !formId) throw new Error('Lead nemá leadgenId nebo formId, nelze ho předat OPSYS.');\n  const fieldData = (j.field_data || j.fieldData || [])\n    .filter((f) => f && f.name)\n    .map((f) => ({ name: String(f.name), values: Array.isArray(f.values) ? f.values.map((v) => String(v)) : [String(f.values == null ? '' : f.values)] }));\n  const body = { leadgenId, formId, fieldData };\n  const put = (key, value) => { if (value !== undefined && value !== null && String(value).trim() !== '') body[key] = String(value).trim(); };\n  put('formName', j.form_name || j.formName);\n  put('pageId', j.page_id || j.pageId);\n  put('createdTime', j.created_time || j.createdTime);\n  put('campaignId', j.campaign_id || j.campaignId);\n  put('campaignName', j.campaign_name || j.campaignName);\n  put('adsetId', j.adset_id || j.adsetId);\n  put('adsetName', j.adset_name || j.adsetName);\n  put('adId', j.ad_id || j.adId);\n  put('adName', j.ad_name || j.adName);\n  out.push({ json: { body } });\n}\nreturn out;"
+      },
+      "id": "lead-05",
+      "name": "Normalizovat lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "notes": "Jedna položka na lead. Nepoznaná pole OPSYS ignoruje, celé tělo si ale uloží do protokolu příchozích požadavků.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Podpis příchozího požadavku: X-Opsys-Signature = t=<unix>,v1=<hex HMAC-SHA256(tajemství, t + \".\" + tělo)>.\n// Tělo se serializuje jednou a HTTP uzel níže ho posílá přesně tak. Vyžaduje NODE_FUNCTION_ALLOW_BUILTIN=crypto.\nconst crypto = require('crypto');\nlet env = {};\ntry { env = $env; } catch (e) { env = {}; }\nconst secret = env.OPSYS_INGEST_SECRET || '<<DOPLNIT: tajemství příchozích požadavků>>';\nconst base = String(env.OPSYS_BASE_URL || '<<DOPLNIT: adresa OPSYS>>').replace(/\\/+$/, '');\nif (secret.includes('DOPLNIT') || base.includes('DOPLNIT')) throw new Error('Workflow není nastavené: chybí OPSYS_INGEST_SECRET nebo OPSYS_BASE_URL.');\nreturn $input.all().map((item) => {\n  const body = JSON.stringify(item.json.body);\n  const t = Math.floor(Date.now() / 1000);\n  const sig = crypto.createHmac('sha256', secret).update(t + '.' + body).digest('hex');\n  return { json: { url: base + '/api/ingest/leads', body, signature: 't=' + t + ',v1=' + sig } };\n});"
+      },
+      "id": "lead-06",
+      "name": "Podepsat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ],
+      "notes": "Tajemství a adresa z proměnných prostředí n8n, nic se neukládá do workflow.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Opsys-Signature",
+              "value": "={{ $json.signature }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "lead-07",
+      "name": "Odeslat do OPSYS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 60000,
+      "notes": "200 = zpracováno (nebo duplicita). 401 = špatné tajemství nebo čas serveru, 422 = tělo neodpovídá schématu, 500 = OPSYS lead nezpracoval (opakuje se). Nastav Error Workflow podle README.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "Nový lead z Meta": {
+      "main": [
+        [
+          {
+            "node": "Normalizovat lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ruční test (ukázkový lead)": {
+      "main": [
+        [
+          {
+            "node": "Ukázkový lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ukázkový lead": {
+      "main": [
+        [
+          {
+            "node": "Normalizovat lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizovat lead": {
+      "main": [
+        [
+          {
+            "node": "Podepsat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Podepsat": {
+      "main": [
+        [
+          {
+            "node": "Odeslat do OPSYS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

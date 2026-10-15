@@ -97,7 +97,7 @@ export const commands = [
     name: "reklama.sync",
     permission: M,
     input: syncInput,
-    handler: (ctx, i, deps) => syncMeta(ctx.db as never, deps, { accountId: i.accountId }),
+    handler: (ctx, i, deps) => syncMeta(ctx.db, deps, { accountId: i.accountId }),
   }),
   defineCommand({
     name: "reklama.mappings.list",

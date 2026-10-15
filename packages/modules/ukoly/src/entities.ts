@@ -257,7 +257,7 @@ export const taskEntity = defineEntity({
 /** Typ úkolu (Úkol, Hovor, Schůzka, E-mail, Termín…); správa v Nastavení přes `ukoly.types`, systémové typy se nemažou. */
 export const taskTypeEntity = defineEntity({
   key: "task_type",
-  listPath: "/ukoly/typy",
+  listPath: "/ukoly/typy/zaznamy",
   module: "ukoly",
   label: { one: "Typ úkolu", many: "Typy úkolů" },
   table: taskType,
@@ -323,7 +323,7 @@ export const taskTypeEntity = defineEntity({
     },
   ],
   search: (r) => ({ title: String(r.name), extra: String(r.key) }),
-  url: (id) => `/ukoly/typy/${id}`,
+  url: (id) => `/ukoly/typy/zaznamy/${id}`,
 });
 
 export const entities = [taskEntity, noteEntity, taskTypeEntity];

@@ -18,7 +18,8 @@ import { metricsFor } from "./queries";
 */
 
 const PERM = ["reklama.read"] as const;
-const czk = (minor: number) => `${new Intl.NumberFormat("cs-CZ").format(Math.round(minor / 100))} Kč`;
+const czk = (minor: number) =>
+  `${new Intl.NumberFormat("cs-CZ").format(Math.round(minor / 100))} Kč`;
 
 function periodOf(input: Pick<DashboardMetricInput, "from" | "to" | "today">) {
   const to = input.to ?? input.today;
@@ -38,7 +39,8 @@ export const adMetrics = [
   defineDashboardMetric({
     key: "reklama.leads_cpl",
     label: "Leady z reklam po dnech",
-    description: "Leady podle Mety a leady, které opravdu dorazily do OPSYS (obchody se zdrojem Meta), po dnech.",
+    description:
+      "Leady podle Mety a leady, které opravdu dorazily do OPSYS (obchody se zdrojem Meta), po dnech.",
     format: "number",
     shape: "series",
     permissions: PERM,
@@ -103,7 +105,9 @@ export const adMetrics = [
 export const adWidgets: WidgetProvider = async (ctx) => {
   if (!scopeOf(ctx, "reklama.read")) return [];
   const today = todayIso();
-  const { totals: t } = await metricsFor(ctx, { period: { from: addDaysIso(today, -29), to: today } });
+  const { totals: t } = await metricsFor(ctx, {
+    period: { from: addDaysIso(today, -29), to: today },
+  });
   if (!t.spendMinor && !t.leadsMeta) return [];
   return [
     {
@@ -158,9 +162,7 @@ export const adPrivatePaths: readonly PrivatePathDef[] = [
         .select({ id: adAccount.companyId })
         .from(adAccount)
         .where(and(isNull(adAccount.deletedAt), eq(adAccount.ownerKind, "client")));
-      return Promise.all(
-        rows.flatMap((r) => (r.id ? [adClientCard.tabCounts?.(ctx, r.id)] : [])),
-      );
+      return Promise.all(rows.flatMap((r) => (r.id ? [adClientCard.tabCounts?.(ctx, r.id)] : [])));
     },
   },
 ];

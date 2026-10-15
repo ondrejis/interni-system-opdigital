@@ -10,6 +10,7 @@ import type { PushSender } from "../push/push";
 import { getActiveRegistry } from "../entities/active-registry";
 import { systemCtx } from "../rbac/context";
 import { purgeExpiredTrash } from "../trash/trash";
+import { webhookJobs } from "../webhooks/deliver";
 import { defineJob, type JobDef } from "./jobs";
 
 export type CoreJobDeps = MailDeps &
@@ -115,5 +116,7 @@ export const coreJobs: readonly JobDef<z.ZodType, CoreJobDeps>[] = [
   dispatchJob,
   notificationCleanupJob,
   trashPurgeJob,
+  // odchozí webhooky do n8n: doručení (minutově + po NOTIFY) a denní úklid (C2)
+  ...(webhookJobs as readonly JobDef<z.ZodType, CoreJobDeps>[]),
   ...(exportJobs as readonly JobDef<z.ZodType, CoreJobDeps>[]),
 ];

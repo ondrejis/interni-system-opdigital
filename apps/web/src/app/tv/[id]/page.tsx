@@ -35,7 +35,7 @@ export default async function TvPage({
       widgets={board.definition.widgets}
       filters={filters}
       // zpět na stejnou nástěnku v běžné aplikaci
-      backHref={`/?board=${id}`}
+      backHref={`/prehled?board=${id}`}
     />
   );
 }

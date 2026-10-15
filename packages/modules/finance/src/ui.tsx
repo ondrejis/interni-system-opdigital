@@ -5,3 +5,5 @@ import { areaUi } from "./ui/index";
 
 /** UI modulu „finance“ složené z oblastí. */
 export const ui: ModuleUi = mergeModuleUi(areaUi);
+
+export { FinanceSettings, SplitEditor } from "./ui/index";

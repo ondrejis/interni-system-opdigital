@@ -66,6 +66,14 @@ Owner (Ondřej) a partner (Patrik) mají výchozí přístup ke všem obchodům;
 
 **Lead z Meta.** `createDealFromLead` je idempotentní podle `meta.leadgenId` (unikátní index), založí obchod ve fázi z mapování formuláře se zdrojem Meta a kampaní. Nový lead je „neotevřený“, dokud někdo nezavolá `obchody.markOpened`.
 
+**UI: board a seznam (OBC-B).** Stránka `/obchody` je statická trasa aplikace (`apps/web/src/app/(app)/obchody/page.tsx`), která předběhne generický seznam entity; vykresluje ji `packages/modules/obchody/src/ui/board-page.tsx#ObchodyPage` (přepínač Board / Seznam v `?zobrazeni=`, vlastník v `?vlastnik=`, „Nový obchod“ nebo klávesa C = `?novy=1`). Board je kanban jádra nad otevřenými obchody: karta (`packages/modules/obchody/src/ui/deal-card.tsx#DealCardBody`) ukazuje název, firmu, služby, hodnotu a vlastníka, patička (`DealCardFooter`) datum další aktivity nebo výstražnou ikonu bez aktivity a červený čip „Bez pohybu N dní“, když obchod ve fázi stojí déle než práh fáze; neotevřený Meta lead má štítek „Nový lead“. Hlavička sloupce (`DealColumnHeader`) přidává k počtu a součtu váženou hodnotu a pravděpodobnost. Při tažení se dole objeví zóny Vyhráno a Prohráno (klávesy W a L nad kartou). Seznam je tabulka jádra s filtry, uloženými pohledy a hromadnými akcemi, výchozí filtr jsou otevřené obchody. Na telefonu (`packages/modules/obchody/src/ui/mobile-board.tsx#MobileBoard`, data z `obchody.board`) jsou fáze posuvné sloupce a obchod se přesouvá nabídkou „Přesunout do fáze“ (a Vyhráno / Prohráno).
+
+**UI: detail obchodu.** Hlavička (`packages/modules/obchody/src/ui/deal-header.tsx#DealHeaderBand`): klikací pás fází s dny ve fázi (`obchody.moveStage`), tlačítka Vyhráno a Prohráno, u uzavřeného obchodu výsledek, důvod, poznámka a „Znovu otevřít“; první otevření Meta leadu zavolá `obchody.markOpened`. Karty Přehledu (`packages/modules/obchody/src/ui/deal-cards.tsx#dealOverview`): „Další aktivita“ s rychlým přidáním (hovor, schůzka, úkol, e-mail; text parsuje `ukoly.quickAdd`), rychlé zápisy (poznámka, proběhlá aktivita; „E-mail ze šablony“ je akce hlavičky od modulu Šablony e-mailů), časová osa (změny fází, polí, hotové aktivity, poznámky, komentáře), kontakty (hlavní a další), dny ve fázích a původ (kampaň, sada, reklama). Karty Úkolů a Poznámek se zobrazují jen při zapnutém modulu Úkoly (komunikují přes jeho příkazy, bez importu). Údaje (firma, hodnota, služby, očekávané uzavření, vlastník, zdroj, štítky, vlastní pole) edituje generický panel „Údaje“ jádra.
+
+**UI: výhra a prohra.** Prohra (`packages/modules/obchody/src/ui/win-lose.tsx#LoseDealDialog`): důvod z číselníku je povinný, poznámka volitelná, toast „Vrátit“ obchod znovu otevře. Výhra (`WinDealFlow`): potvrzení s datem a potom `JobsFromDealDialog` z modulu Zakázky; dialog sám volá `obchody.win` s řádky (prázdné = „Přeskočit“). Obchod bez organizace se jen označí jako vyhraný.
+
+**UI: rychlé založení.** `packages/modules/obchody/src/ui/quick-add.tsx#QuickAddDealDialog`: název, firma (existující nebo nová s IČO), kontakt (existující nebo nový s e-mailem a telefonem), hodnota, služby a očekávané uzavření v jednom kroku (`obchody.quickAdd`); „+“ pod sloupcem boardu zakládá rovnou do fáze.
+
 ## Stavy a přechody
 
 <!-- Stavové automaty (pipeline, fáze, stavy dokladů): z čeho kam se smí, za jakých podmínek, co přechod automaticky udělá. Hodí se tabulka nebo diagram Mermaid. -->
@@ -92,7 +100,7 @@ Fáze pipeline `deal/default` jsou jen otevřené. Výsledek obchodu: `open` →
 
 <!-- Co se nastavuje v administraci a v konfiguraci klienta, co která volba mění a jaké jsou výchozí hodnoty. -->
 
-Nastavení → Stavy: fáze (název, barva, pravděpodobnost, počet dní do zvýraznění, pořadí) a číselník důvodů prohry (přidání, přejmenování, vypnutí, pořadí) obsluhují příkazy `obchody.pipeline.*`. Výchozí pipeline „Obchody“: Nová poptávka 10 % / 1 den, Kontaktováno 20 % / 5, Schůzka / konzultace 40 % / 7, Nabídka odeslaná 60 % / 7, Vyjednávání 80 % / 10.
+Nastavení → Pipeline a stavy (`/nastaveni/stavy`, stránku vlastní C1, OBC-B ji neduplikuje; důvody prohry jdou upravit také v Nastavení → Číselníky): fáze (název, barva, pravděpodobnost, počet dní do zvýraznění, pořadí) a číselník důvodů prohry (přidání, přejmenování, vypnutí, pořadí) obsluhují příkazy `obchody.pipeline.*`. Výchozí pipeline „Obchody“: Nová poptávka 10 % / 1 den, Kontaktováno 20 % / 5, Schůzka / konzultace 40 % / 7, Nabídka odeslaná 60 % / 7, Vyjednávání 80 % / 10.
 
 ## Události a upozornění
 
@@ -117,6 +125,7 @@ Zakázky (`createJobsFromWonDeal`), Kontakty (rychlé založení, jména firem a
 <!-- Co funguje jinak, než by uživatel čekal, co zatím chybí, a odkazy na otevřené otázky. -->
 
 - Board a engine entity znají jedinou pipeline (`deal/default`); více pipeline z OBCH-03 vyžaduje změnu atributu `status` v jádru. API fází pracuje s touto jedinou pipeline.
+- UI: zóny Vyhráno a Prohráno, zkratky W a L a „+“ pod sloupcem jsou jen na desktopovém boardu; mobilní board (`obchody.board`) nahrazuje tažení nabídkou „Přesunout do fáze“. Karty „Další aktivita“ a „Rychlé zápisy“ i položky časové osy z úkolů a poznámek vyžadují zapnutý modul Úkoly. Detail `/obchody/<id>` je generická stránka jádra s příspěvky modulu.
 - Archivace je Koš; samostatný stav „archivováno“ spec nemá.
 - Řádky dialogu zakázek se v kontraktu duplikují (zod kopie `JobFromDealRow` ze Zakázek).
 

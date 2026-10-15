@@ -2,9 +2,13 @@
 
 import { formatValue, type TableColumn, type WidgetResult } from "@rebar/core/dashboards-shared";
 import { formatDate } from "@rebar/core/shared";
-import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ArrowDownRight, ArrowUpRight, Check, Minus } from "lucide-react";
+import { useState } from "react";
 import { Chip } from "../components/badges";
+import { errorToast, successToast } from "../components/toast";
 import { useNav } from "../nav";
+import { useDashboardApi } from "./api";
 import { BarChart, DonutChart, Gauge, LineChart } from "../charts";
 import { cn } from "../lib/cn";
 
@@ -44,6 +48,47 @@ function Cell({ column, value, format }: { column: TableColumn; value: unknown; 
     default:
       return <span className="truncate">{String(value)}</span>;
   }
+}
+
+/**
+ * Odškrtnutí úkolu přímo ve widgetu: volá příkaz `ukoly.complete` (stejná pravidla jako v seznamu úkolů), položka se hned
+ * přeškrtne a ostatní widgety s úkoly se načtou znovu. Při chybě (úkol mezitím změnil jiný) se vrátí zpět a ukáže se věta.
+ */
+function TaskCheck({ id, title }: { id: string; title: string }) {
+  const api = useDashboardApi();
+  const qc = useQueryClient();
+  const [state, setState] = useState<"open" | "busy" | "done">("open");
+  async function complete() {
+    if (state !== "open") return;
+    setState("busy");
+    try {
+      await api.completeTask(id);
+      setState("done");
+      successToast("Úkol je hotový.");
+      void qc.invalidateQueries({ queryKey: ["dashboards", "widget"] });
+    } catch (e) {
+      setState("open");
+      errorToast((e as Error).message);
+    }
+  }
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={state === "done"}
+      aria-label={`Hotovo: ${title}`}
+      data-testid="widget-task-check"
+      disabled={state === "busy"}
+      onClick={() => void complete()}
+      className={cn(
+        "flex size-5 shrink-0 items-center justify-center rounded border border-line-strong bg-bg hover:border-accent",
+        state === "done" && "border-accent bg-accent text-white",
+        state === "busy" && "opacity-50",
+      )}
+    >
+      {state === "done" && <Check className="size-3.5" aria-hidden />}
+    </button>
+  );
 }
 
 const isNum = (t: TableColumn["type"]) => !["text", "date", "status"].includes(t);
@@ -226,20 +271,24 @@ export function WidgetBody({
               </>
             );
             return (
-              <li key={i.id}>
+              <li key={i.id} className="flex items-center gap-2" data-testid="widget-list-item">
+                {i.completeId && <TaskCheck id={i.completeId} title={i.title} />}
                 {i.href ? (
-                  <Link href={i.href} className="flex items-center gap-2 py-2 hover:bg-subtle">
+                  <Link
+                    href={i.href}
+                    className="flex min-w-0 flex-1 items-center gap-2 py-2 hover:bg-subtle"
+                  >
                     {inner}
                   </Link>
                 ) : (
-                  <div className="flex items-center gap-2 py-2">{inner}</div>
+                  <div className="flex min-w-0 flex-1 items-center gap-2 py-2">{inner}</div>
                 )}
               </li>
             );
           })}
         </ul>
       ) : (
-        <p className="py-6 text-center text-muted">Nic k zobrazení.</p>
+        <p className="py-6 text-center text-muted">{result.emptyText ?? "Nic k zobrazení."}</p>
       );
     case "status": {
       const total = result.stages.reduce((n, s) => n + s.count, 0) || 1;

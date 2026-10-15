@@ -66,12 +66,23 @@ export {
 export { SegmentedControl } from "./components/segmented-control";
 export type { SegmentOption } from "./components/segmented-control";
 export { ConfirmDialog } from "./components/confirm-dialog";
-export { Toaster, toast, successToast, errorToast, undoToast } from "./components/toast";
+export {
+  Toaster,
+  toast,
+  successToast,
+  errorToast,
+  undoToast,
+  runLastUndo,
+  useUndoShortcut,
+} from "./components/toast";
 export { Combobox } from "./components/combobox";
 export type { ComboOption, ComboboxProps } from "./components/combobox";
 export { DatePicker } from "./components/date-picker";
 export { CommandPalette } from "./components/command-palette";
-export type { PaletteItem, PaletteGroup } from "./components/command-palette";
+export type { PaletteItem, PaletteGroup, PaletteRowAction } from "./components/command-palette";
+export { PaletteHost } from "./palette";
+export type { PaletteHostProps, PaletteRecent, PaletteHit } from "./palette";
+export { RealtimeBridge } from "./realtime";
 export { PaletteActionsProvider, usePaletteActions } from "./components/palette-actions";
 export { ShortcutsDialog } from "./components/shortcuts-dialog";
 export type { ShortcutGroup } from "./components/shortcuts-dialog";

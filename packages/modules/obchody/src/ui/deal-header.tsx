@@ -35,9 +35,10 @@ export const DealHeaderBand: RecordHeader = ({ id, row, entity }) => {
   const can = useCan();
   const detail = useDealDetail(id);
   const [dialog, setDialog] = useState<"win" | "lose" | null>(null);
-  const move = useCommandMutation<{ dealId: string; stageId: string; expectedUpdatedAt?: string }, DealChangeResult>(
-    "obchody.moveStage",
-  );
+  const move = useCommandMutation<
+    { dealId: string; stageId: string; expectedUpdatedAt?: string },
+    DealChangeResult
+  >("obchody.moveStage");
   const reopen = useCommandMutation<{ dealId: string }, DealChangeResult>("obchody.reopen", {
     onSuccess: () => successToast("Obchod je znovu otevřený."),
   });
@@ -67,7 +68,8 @@ export const DealHeaderBand: RecordHeader = ({ id, row, entity }) => {
       kind: "open",
       daysInStage: days[s.id] ?? s.daysIn ?? null,
     }));
-    if (mode === "won") out.push({ id: WON_ID, name: "Vyhráno", color: "green", kind: "won", daysInStage: null });
+    if (mode === "won")
+      out.push({ id: WON_ID, name: "Vyhráno", color: "green", kind: "won", daysInStage: null });
     return out;
   }, [d?.stages, days, mode]);
   const current = mode === "open" ? String(row.status ?? "") : mode === "won" ? WON_ID : null;
@@ -84,7 +86,12 @@ export const DealHeaderBand: RecordHeader = ({ id, row, entity }) => {
             >
               <Icon name="trophy" /> Vyhráno
             </Button>
-            <Button variant="danger" className="font-semibold" onClick={() => setDialog("lose")} data-testid="deal-lose">
+            <Button
+              variant="danger"
+              className="font-semibold"
+              onClick={() => setDialog("lose")}
+              data-testid="deal-lose"
+            >
               <Icon name="thumbs-down" /> Prohráno
             </Button>
           </>
@@ -116,7 +123,11 @@ export const DealHeaderBand: RecordHeader = ({ id, row, entity }) => {
         )}
       </div>
       {mode === "lost" && d?.deal.lostNote && (
-        <p className="rounded-md bg-danger-soft px-3 py-1.5 text-sm" role="status" data-testid="deal-lost-note">
+        <p
+          className="rounded-md bg-danger-soft px-3 py-1.5 text-sm"
+          role="status"
+          data-testid="deal-lost-note"
+        >
           {d.deal.lostNote}
         </p>
       )}
@@ -137,7 +148,10 @@ export const DealHeaderBand: RecordHeader = ({ id, row, entity }) => {
         />
       )}
       <WinDealFlow deal={dialog === "win" ? { id, title } : null} onClose={() => setDialog(null)} />
-      <LoseDealDialog deal={dialog === "lose" ? { id, title } : null} onClose={() => setDialog(null)} />
+      <LoseDealDialog
+        deal={dialog === "lose" ? { id, title } : null}
+        onClose={() => setDialog(null)}
+      />
     </div>
   );
 };

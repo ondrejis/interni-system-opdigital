@@ -28,6 +28,9 @@ export const DEFAULT_VARIABLES: readonly TemplateVariable[] = [
   { key: "odesilatel", label: "Jméno odesílatele (vy)", source: "sender", available: true },
 ];
 
+/** Proměnné, které dodává víc zdrojů (kontakt i organizace): v katalogu patří tam, kam je čeká uživatel. */
+const PREFERRED_SOURCE: Record<string, TemplateVariable["source"]> = { firma: "company" };
+
 /** Zdroj proměnné, který poskytuje jádro (jméno přihlášeného), ne modul. */
 export const SENDER_KEY = "odesilatel";
 
@@ -44,7 +47,12 @@ export function buildCatalog(deps: Pick<ModuleDeps, "services">): TemplateVariab
   for (const p of deps.services.all("emailVars"))
     for (const v of p.vars)
       if (!byKey.has(v.key))
-        byKey.set(v.key, { key: v.key, label: v.label, source: p.entityType, available: true });
+        byKey.set(v.key, {
+          key: v.key,
+          label: v.label,
+          source: PREFERRED_SOURCE[v.key] ?? p.entityType,
+          available: true,
+        });
   for (const d of DEFAULT_VARIABLES) if (!byKey.has(d.key)) byKey.set(d.key, d);
   const sender = byKey.get(SENDER_KEY);
   byKey.set(SENDER_KEY, {
@@ -114,9 +122,9 @@ export async function contextFromTarget(
   entityType: EmailEntityType,
   id: string,
 ): Promise<EmailContext> {
-  if (entityType === "company") return { companyId: id };
-  if (entityType === "person") return { personId: id };
   const t = await load(ctx, deps, entityType, id);
+  if (entityType === "company") return { companyId: id };
+  if (entityType === "person") return { personId: id, companyId: str(t.row.company) };
   return {
     [entityType === "deal" ? "dealId" : "jobId"]: id,
     companyId: str(t.row.company),

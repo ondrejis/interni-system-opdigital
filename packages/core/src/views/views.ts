@@ -174,7 +174,10 @@ export async function deleteView(ctx: Ctx, id: string) {
   });
 }
 
-/** Oblíbený pohled se ukazuje v postranním panelu; je to věc uživatele, ne pohledu. */
+/**
+ * Připnutí pohledu do levého panelu („Pohledy“ v navigaci): věc uživatele, ne pohledu, proto se drží v `view_favorite`
+ * (partner si může připnout sdílený pohled Ondřeje). U vlastního pohledu se navíc nastaví `saved_view.pinned`.
+ */
 export async function setFavorite(ctx: Ctx, id: string, favorite: boolean) {
   const userId = me(ctx);
   const [v] = await ctx.db
@@ -188,6 +191,11 @@ export async function setFavorite(ctx: Ctx, id: string, favorite: boolean) {
       ),
     );
   if (!v) throw new NotFoundError("Pohled nenalezen.");
+  if (v.ownerId === userId)
+    await ctx.db
+      .update(schema.savedView)
+      .set({ pinned: favorite })
+      .where(eq(schema.savedView.id, id));
   if (favorite)
     await ctx.db.insert(schema.viewFavorite).values({ userId, viewId: id }).onConflictDoNothing();
   else

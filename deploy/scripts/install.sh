@@ -2,10 +2,11 @@
 # Instalace z čistého Ubuntu 24.04 LTS do běžícího systému. Idempotentní: opakované spuštění nic nepřepisuje
 # (tajemství v .env se zachovají, existující uživatel se nevytváří znovu).
 #
-#   sudo ./scripts/install.sh --domain system.klient.cz --acme-email info@klient.cz \
-#        --client opsys --image ghcr.io/ondrejis/stavebni-system-core-opsys --backup-image ghcr.io/ondrejis/stavebni-system-core-backup \
-#        --version v1.0.0 --owner-email majitel@klient.cz --owner-name "Jan Novák" \
-#        --restic-repository s3:https://s3.eu-central-1.amazonaws.com/zalohy-klient --aws-key … --aws-secret … \
+#   sudo ./scripts/install.sh --domain opsys.opdigital.cz --acme-email info@opdigital.cz \
+#        --client opsys --image ghcr.io/ondrejis/interni-system-opdigital-opsys \
+#        --backup-image ghcr.io/ondrejis/interni-system-opdigital-backup \
+#        --version v1.0.0 --owner-email dvorak@opdigital.cz --owner-name "Ondřej Dvořák" \
+#        --restic-repository s3:https://s3.eu-central-1.amazonaws.com/nazev-bucketu --aws-key … --aws-secret … \
 #        --ghcr-user ondrejis --ghcr-token …
 #
 # Chybějící povinné hodnoty se zeptá (bez --non-interactive). Parametry lze předat i proměnnými prostředí stejného jména
@@ -87,7 +88,7 @@ ask() { # ask PROMPT VAR [default]
     printf -v "$var" '%s' "$def"
   fi
 }
-ask "Adresa systému (např. system.klient.cz)" domain
+ask "Adresa systému (např. opsys.opdigital.cz)" domain
 ask "E-mail pro certifikát a upozornění Let's Encrypt" acme_email
 ask "Klient (složka v clients/)" client opsys
 ask "Image aplikace (bez tagu)" image
@@ -217,7 +218,6 @@ if [ -z "$(env_get RESTIC_PASSWORD)" ]; then
   new_restic_password="${restic_password:-$(rand_b64 24)}"
   env_set RESTIC_PASSWORD "$new_restic_password"
 fi
-env_set VAPID_SUBJECT "mailto:$acme_email"
 
 # ---------- 5. image, databáze, migrace, uživatel ----------
 if [ -n "$ghcr_token" ]; then
@@ -233,17 +233,9 @@ wait_postgres || die "Databáze nenaběhla (docker compose logs postgres)."
 log "Migrace…"
 dc run --rm migrate
 
-if [ -z "$(env_get VAPID_PUBLIC_KEY)" ]; then
-  log "Generuji klíče pro push upozornění…"
-  keys="$(dc run --rm --no-deps -T seed node_modules/.bin/tsx scripts/vapid-generate.ts | tr -d '\r')"
-  pub="$(printf '%s\n' "$keys" | sed -n 's/^VAPID_PUBLIC_KEY=//p')"
-  priv="$(printf '%s\n' "$keys" | sed -n 's/^VAPID_PRIVATE_KEY=//p')"
-  [ -n "$pub" ] && [ -n "$priv" ] && { env_set VAPID_PUBLIC_KEY "$pub"; env_set VAPID_PRIVATE_KEY "$priv"; }
-fi
-
 owner_password=""
 if [ -n "$owner_email" ]; then
-  owner_name="${owner_name:-Majitel}"
+  owner_name="${owner_name:-Vlastník}"
   owner_password="$(rand_pass)"
   log "Výchozí data a první uživatel…"
   seed_out="$(dc run --rm -T -e OWNER_EMAIL="$owner_email" -e OWNER_NAME="$owner_name" -e OWNER_PASSWORD="$owner_password" seed)"

@@ -19,6 +19,7 @@ export const manifest = defineModule({
   ],
   pages: [
     { path: "/ukoly", title: "Moje úkoly", permission: "ukoly.read" },
+    { path: "/ukoly/typy", title: "Typy aktivit", permission: "ukoly.types" },
     // samostatné poznámky: bez položky v navigaci (R-23), otevírá se z Cmd+K
     { path: "/poznamky/samostatne", title: "Poznámky", permission: "ukoly.read" },
   ],

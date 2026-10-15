@@ -152,7 +152,9 @@ export type TaskForPush = {
 export const defaultDuration = (typeKey: string) => (typeKey === "call" ? 30 : 60);
 
 /** Začátek, konec a příznak celého dne úkolu. */
-export function taskTimes(t: Pick<TaskForPush, "dueDate" | "dueTime" | "durationMin" | "allDay" | "typeKey">) {
+export function taskTimes(
+  t: Pick<TaskForPush, "dueDate" | "dueTime" | "durationMin" | "allDay" | "typeKey">,
+) {
   const allDay = t.allDay || !t.dueTime;
   const startsAt = zonedToUtc(t.dueDate, allDay ? "00:00" : t.dueTime!, CALENDAR_TIME_ZONE);
   const endsAt = allDay
@@ -173,14 +175,19 @@ export function taskToGoogle(t: TaskForPush): GoogleEventInput {
     end,
     visibility: t.isPrivate ? "private" : "default",
     ...(t.sendInvites && t.attendeeEmails.length
-      ? { attendees: [...new Set(t.attendeeEmails.map((e) => e.toLowerCase()))].map((email) => ({ email })) }
+      ? {
+          attendees: [...new Set(t.attendeeEmails.map((e) => e.toLowerCase()))].map((email) => ({
+            email,
+          })),
+        }
       : {}),
     extendedProperties: { private: { [TASK_PROP]: t.id, opsysSource: "opsys" } },
   };
 }
 
 /** Deterministické id události v Googlu pro úkol (idempotentní zápis; povolené znaky `a–v0–9`). */
-export const googleIdForTask = (taskId: string) => `opsys${taskId.replaceAll("-", "").toLowerCase()}`;
+export const googleIdForTask = (taskId: string) =>
+  `opsys${taskId.replaceAll("-", "").toLowerCase()}`;
 
 /** Čas události → pole úkolu (při přetažení v Googlu): datum, čas, délka, celý den. */
 export function timesToTask(f: Pick<MirrorFields, "startsAt" | "endsAt" | "allDay">) {
@@ -196,11 +203,18 @@ export function timesToTask(f: Pick<MirrorFields, "startsAt" | "endsAt" | "allDa
 
 /** Shodují se pole, která OPSYS do Googlu zapisuje? (zápis, který by nic nezměnil, se vynechá) */
 export function sameWritten(
-  a: Pick<MirrorFields, "title" | "description" | "place" | "startsAt" | "endsAt" | "allDay" | "visibility">,
-  b: Pick<MirrorFields, "title" | "description" | "place" | "startsAt" | "endsAt" | "allDay" | "visibility">,
+  a: Pick<
+    MirrorFields,
+    "title" | "description" | "place" | "startsAt" | "endsAt" | "allDay" | "visibility"
+  >,
+  b: Pick<
+    MirrorFields,
+    "title" | "description" | "place" | "startsAt" | "endsAt" | "allDay" | "visibility"
+  >,
 ): boolean {
   const n = (v: string | null) => v ?? "";
-  const vis = (v: MirrorFields["visibility"]) => (v === "private" || v === "confidential" ? "p" : "d");
+  const vis = (v: MirrorFields["visibility"]) =>
+    v === "private" || v === "confidential" ? "p" : "d";
   return (
     n(a.title) === n(b.title) &&
     n(a.description) === n(b.description) &&
@@ -213,7 +227,9 @@ export function sameWritten(
 }
 
 /** Pole zrcadla, která se skutečně zapisují do Googlu (podoba `GoogleEventInput` jako `MirrorFields`). */
-export function inputToFields(i: GoogleEventInput): Pick<
+export function inputToFields(
+  i: GoogleEventInput,
+): Pick<
   MirrorFields,
   "title" | "description" | "place" | "startsAt" | "endsAt" | "allDay" | "visibility"
 > {

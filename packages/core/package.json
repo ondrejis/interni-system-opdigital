@@ -46,7 +46,9 @@
     "./tags": "./src/tags/index.ts",
     "./webhooks": "./src/webhooks/index.ts",
     "./ingest": "./src/ingest/index.ts",
-    "./integrations": "./src/integrations/index.ts"
+    "./integrations": "./src/integrations/index.ts",
+    "./realtime": "./src/realtime/index.ts",
+    "./history": "./src/history/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

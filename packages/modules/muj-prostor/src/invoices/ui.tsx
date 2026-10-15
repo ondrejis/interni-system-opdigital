@@ -1,6 +1,17 @@
 "use client";
 
 import { defineModuleUi } from "@rebar/ui";
+import { FakturoidPanel } from "./fakturoid-panel";
+import { InvoicesPage } from "./invoices-page";
 
-/** UI oblasti „invoices“ modulu „muj-prostor“ (MPR-3: schválení a odeslání do Fakturoidu); zapojuje ji `ui.tsx` přes `mergeModuleUi`. Seznam dodává generická trasa entity `recurring_invoice`. */
-export const areaUi = defineModuleUi({});
+export { ClientInvoicesSection } from "./client-section";
+
+/**
+ * UI oblasti „invoices“ modulu „muj-prostor“ (MPR-3, v3): stránka Opakované faktury (návrhy, schválení a vytvoření ve
+ * Fakturoidu) a panel Fakturoid v Nastavení → Integrace. Sekce faktur na kartě klienta je `ClientInvoicesSection`
+ * (zapojuje ji záložka „Hosting a domény“). Zapojuje ji `ui.tsx` přes `mergeModuleUi`.
+ */
+export const areaUi = defineModuleUi({
+  pages: [{ path: "/muj-prostor/faktury", render: () => <InvoicesPage /> }],
+  slots: { "settings.integrations": FakturoidPanel },
+});

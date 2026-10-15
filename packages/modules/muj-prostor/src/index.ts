@@ -67,6 +67,11 @@ export const manifest = defineModule({
       permission: "muj-prostor.email_library",
     },
     {
+      path: "/muj-prostor/faktury",
+      title: "Opakované faktury",
+      permission: "muj-prostor.recurring_invoices",
+    },
+    {
       path: "/muj-prostor/soukrome",
       title: "Soukromé",
       permission: "muj-prostor.private_overview",

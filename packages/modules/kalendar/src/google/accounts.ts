@@ -19,15 +19,23 @@ import { googleClient, redirectUri, type KalEnv } from "./env";
   seznam kalendářů a odpojení.
 */
 
+/** Řádek propojeného Google účtu. */
 export type AccountRow = typeof calendarAccount.$inferSelect;
+/** Řádek kalendáře z Google účtu. */
 export type CalendarRow = typeof calendar.$inferSelect;
 
-type StoredTokens = { accessToken: string; refreshToken: string; expiresAt: number; scope?: string };
+type StoredTokens = {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+  scope?: string;
+};
 
 const STATE_TTL_MS = 10 * 60_000;
 
 /** Zašifruje tokeny do podoby pro `tokens_enc`. */
-export const sealTokens = (cipher: KalEnv["cipher"], t: StoredTokens) => cipher.encrypt(JSON.stringify(t));
+export const sealTokens = (cipher: KalEnv["cipher"], t: StoredTokens) =>
+  cipher.encrypt(JSON.stringify(t));
 
 /** Dešifruje `tokens_enc`; `null` při poškození nebo jiném klíči. */
 export function openTokens(cipher: KalEnv["cipher"], enc: string): StoredTokens | null {
@@ -44,7 +52,12 @@ export function openTokens(cipher: KalEnv["cipher"], enc: string): StoredTokens 
 /** Stav návratu z OAuth: zašifrovaný (a tím podepsaný) uživatel, nonce, platnost a cesta návratu. */
 export function sealState(cipher: KalEnv["cipher"], userId: string, returnTo: string): string {
   return cipher.encrypt(
-    JSON.stringify({ u: userId, n: randomBytes(8).toString("hex"), e: Date.now() + STATE_TTL_MS, r: returnTo }),
+    JSON.stringify({
+      u: userId,
+      n: randomBytes(8).toString("hex"),
+      e: Date.now() + STATE_TTL_MS,
+      r: returnTo,
+    }),
   );
 }
 
@@ -57,12 +70,14 @@ export function openState(
 ): { returnTo: string } {
   const plain = cipher.decrypt(state);
   type State = { u?: string; e?: number; r?: string };
-  let s: State | null = null;
-  try {
-    s = plain ? (JSON.parse(plain) as State) : null;
-  } catch {
-    s = null;
-  }
+  const parse = (): State | null => {
+    try {
+      return plain ? (JSON.parse(plain) as State) : null;
+    } catch {
+      return null;
+    }
+  };
+  const s = parse();
   if (!s || s.u !== userId || !s.e || s.e < now)
     throw new UserError("Propojení vypršelo nebo nepatří k vašemu účtu. Zkuste to znovu.");
   return { returnTo: s.r ?? "/nastaveni/google-kalendar" };
@@ -88,7 +103,12 @@ export async function accessTokenFor(
 ): Promise<string> {
   const tokens = openTokens(env.cipher, account.tokensEnc);
   if (!tokens) {
-    await markAccount(ctx, account.id, "reauth", "Uložený přístup nejde přečíst, připojte účet znovu.");
+    await markAccount(
+      ctx,
+      account.id,
+      "reauth",
+      "Uložený přístup nejde přečíst, připojte účet znovu.",
+    );
     throw new GoogleAuthError("Uložený přístup nejde přečíst.");
   }
   if (!opts.force && tokens.expiresAt - 60_000 > Date.now()) return tokens.accessToken;
@@ -97,7 +117,12 @@ export async function accessTokenFor(
     fresh = await client.refresh(tokens.refreshToken);
   } catch (e) {
     if (e instanceof GoogleAuthError)
-      await markAccount(ctx, account.id, "reauth", "Souhlas Google účtu už neplatí, připojte ho znovu.");
+      await markAccount(
+        ctx,
+        account.id,
+        "reauth",
+        "Souhlas Google účtu už neplatí, připojte ho znovu.",
+      );
     throw e;
   }
   const next: StoredTokens = {
@@ -192,7 +217,10 @@ export async function startConnect(
   const userId = ctx.actor.userId;
   if (!userId) throw new UserError("Kalendář si připojí jen přihlášený uživatel.");
   const client = await googleClient(ctx.db, env);
-  const [u] = await ctx.db.select({ email: schema.user.email }).from(schema.user).where(eq(schema.user.id, userId));
+  const [u] = await ctx.db
+    .select({ email: schema.user.email })
+    .from(schema.user)
+    .where(eq(schema.user.id, userId));
   return {
     url: client.authUrl({
       state: sealState(env.cipher, userId, returnTo),
@@ -247,7 +275,13 @@ export async function syncCalendarList(
     await ctx.db.delete(calendarEvent).where(eq(calendarEvent.calendarId, c.id));
     await ctx.db
       .update(calendar)
-      .set({ deletedAt: new Date(), visible: false, isWriteTarget: false, syncToken: null, watchChannelId: null })
+      .set({
+        deletedAt: new Date(),
+        visible: false,
+        isWriteTarget: false,
+        syncToken: null,
+        watchChannelId: null,
+      })
       .where(eq(calendar.id, c.id));
   }
   void opts;
@@ -266,7 +300,9 @@ export async function saveAccountFromConsent(
   tokens: GoogleTokens,
 ): Promise<{ account: AccountRow; calendars: CalendarRow[] }> {
   if (!tokens.refreshToken)
-    throw new UserError("Google nevrátil trvalý přístup. Odeberte aplikaci v účtu Google a připojte znovu.");
+    throw new UserError(
+      "Google nevrátil trvalý přístup. Odeberte aplikaci v účtu Google a připojte znovu.",
+    );
   const infos = await client.listCalendars(tokens.accessToken);
   const primary = infos.find((i) => i.primary) ?? infos[0];
   if (!primary) throw new UserError("V Google účtu není žádný kalendář.");
@@ -280,16 +316,16 @@ export async function saveAccountFromConsent(
     const existing = await myAccount(c, userId);
     let row: AccountRow;
     if (existing) {
-      [row] = await c.db
+      [row] = (await c.db
         .update(calendarAccount)
         .set({ googleEmail: primary.id, tokensEnc: enc, status: "ok", lastError: null })
         .where(eq(calendarAccount.id, existing.id))
-        .returning() as [AccountRow];
+        .returning()) as [AccountRow];
     } else {
-      [row] = await c.db
+      [row] = (await c.db
         .insert(calendarAccount)
         .values({ userId, googleEmail: primary.id, tokensEnc: enc, createdBy: userId })
-        .returning() as [AccountRow];
+        .returning()) as [AccountRow];
     }
     await recordAudit(c, {
       action: existing ? "update" : "create",
@@ -310,12 +346,7 @@ export async function disconnectAccount(ctx: Ctx, env: KalEnv): Promise<{ ok: tr
   const account = await myAccount(ctx);
   if (!account) throw new NotFoundError();
   const cals = await ctx.db.select().from(calendar).where(eq(calendar.accountId, account.id));
-  let client: GoogleCalendarClient | null = null;
-  try {
-    client = await googleClient(ctx.db, env);
-  } catch {
-    client = null;
-  }
+  const client: GoogleCalendarClient | null = await googleClient(ctx.db, env).catch(() => null);
   if (client) {
     try {
       const token = await accessTokenFor(ctx, env, client, account);
@@ -329,10 +360,19 @@ export async function disconnectAccount(ctx: Ctx, env: KalEnv): Promise<{ ok: tr
     if (tokens) await client.revoke(tokens.refreshToken);
   }
   await inTx(ctx, async (c) => {
-    for (const cal of cals) await c.db.delete(calendarEvent).where(eq(calendarEvent.calendarId, cal.id));
+    for (const cal of cals)
+      await c.db.delete(calendarEvent).where(eq(calendarEvent.calendarId, cal.id));
     await c.db
       .update(calendar)
-      .set({ deletedAt: new Date(), visible: false, isWriteTarget: false, syncToken: null, watchChannelId: null, watchResourceId: null, watchTokenHash: null })
+      .set({
+        deletedAt: new Date(),
+        visible: false,
+        isWriteTarget: false,
+        syncToken: null,
+        watchChannelId: null,
+        watchResourceId: null,
+        watchTokenHash: null,
+      })
       .where(eq(calendar.accountId, account.id));
     await c.db
       .update(calendarAccount)

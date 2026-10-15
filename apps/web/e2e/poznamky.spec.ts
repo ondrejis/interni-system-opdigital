@@ -19,13 +19,17 @@ async function write(page: Page, text: string) {
   await expect(status(page)).toHaveText("Uloženo", { timeout: 10_000 });
 }
 
-test("poznámka u klienta: psaní se samo uloží, přežije obnovení a jde upravit", async ({ page }) => {
+test("poznámka u klienta: psaní se samo uloží, přežije obnovení a jde upravit", async ({
+  page,
+}) => {
   await page.goto("/kontakty/firmy");
   await page.getByTestId("create-record").click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel(/Název/).fill(company);
   await dialog.getByRole("button", { name: "Vytvořit", exact: true }).click();
-  await expect(page.getByTestId("record-view").getByRole("heading", { name: company })).toBeVisible();
+  await expect(
+    page.getByTestId("record-view").getByRole("heading", { name: company }),
+  ).toBeVisible();
 
   await page.getByRole("tab", { name: "Poznámky" }).click();
   await page.getByTestId("note-new").click();
@@ -42,7 +46,9 @@ test("poznámka u klienta: psaní se samo uloží, přežije obnovení a jde upr
   // po obnovení stránky je poznámka na místě
   await page.reload();
   await page.getByRole("tab", { name: "Poznámky" }).click();
-  await expect(page.getByTestId("note-card").filter({ hasText: `Úvodní schůzka ${stamp}` })).toBeVisible();
+  await expect(
+    page.getByTestId("note-card").filter({ hasText: `Úvodní schůzka ${stamp}` }),
+  ).toBeVisible();
 
   // úprava: dopsaný text se uloží taky
   await page.getByRole("button", { name: "Upravit poznámku" }).click();
@@ -96,7 +102,10 @@ test("připnutá poznámka je nahoře a hledání najde text bez diakritiky", as
 
   const cards = page.getByTestId("note-card").filter({ hasText: stamp });
   await expect(cards.first()).toContainText("Zelená");
-  await cards.filter({ hasText: "Žlutá" }).getByRole("button", { name: /Připnout/ }).click();
+  await cards
+    .filter({ hasText: "Žlutá" })
+    .getByRole("button", { name: /Připnout/ })
+    .click();
   await expect(cards.first()).toContainText("Žlutá");
   await expect(cards.first()).toHaveAttribute("data-pinned", "true");
 
@@ -108,11 +117,19 @@ test("připnutá poznámka je nahoře a hledání najde text bez diakritiky", as
 test("Cmd+K najde poznámku podle textu", async ({ page }) => {
   await page.goto("/prehled");
   await page.keyboard.press("ControlOrMeta+k");
-  await page.getByPlaceholder(/Hledat|Najít/).first().fill(`zluta ${stamp}`);
-  await expect(page.getByRole("dialog").getByText(/Žlutá/).first()).toBeVisible({ timeout: 10_000 });
+  await page
+    .getByPlaceholder(/Hledat|Najít/)
+    .first()
+    .fill(`zluta ${stamp}`);
+  await expect(page.getByRole("dialog").getByText(/Žlutá/).first()).toBeVisible({
+    timeout: 10_000,
+  });
 });
 
-test("dvě okna: starší okno nepřepíše novější text mlčky, nabídne rozhodnutí", async ({ browser, page }) => {
+test("dvě okna: starší okno nepřepíše novější text mlčky, nabídne rozhodnutí", async ({
+  browser,
+  page,
+}) => {
   await page.goto("/poznamky/samostatne?nova=1");
   await write(page, `Souběh ${stamp} základ`);
   await page.getByRole("button", { name: "Hotovo" }).click();

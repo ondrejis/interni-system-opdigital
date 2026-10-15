@@ -1,4 +1,4 @@
-# Provoz jedné klientské instance. Obrazy se stahují (staví je CI), na serveru se nic nebuilduje.
+# Provoz instance OPSYS (jedna instalace pro OP Digital). Obrazy se stahují (staví je CI), na serveru se nic nebuilduje.
 # Konfigurace je v .env (vzor: .env.example). Spouštět přes scripts/*.sh nebo `docker compose …` v této složce.
 name: system
 

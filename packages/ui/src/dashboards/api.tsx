@@ -6,7 +6,9 @@ import type {
   DashboardSummary,
   DashboardWidget,
   MetricInfo,
+  ViewChoice,
   WidgetOutcome,
+  WidgetPresetInfo,
 } from "@rebar/core/dashboards-shared";
 import { createContext, useContext, type ReactNode } from "react";
 
@@ -15,6 +17,10 @@ export type SourceCatalog = {
   entities: { key: string; label: string; module: string }[];
   metrics: MetricInfo[];
   roles: { key: string; name: string }[];
+  /** Hotové widgety, které aktér smí přidat (jen zapnuté moduly a oprávnění). */
+  presets: WidgetPresetInfo[];
+  /** Uložené pohledy použitelné ve widgetech Číslo, Seznam z pohledu a Rychlé odkazy. */
+  views: ViewChoice[];
 };
 
 /**
@@ -48,6 +54,8 @@ export type DashboardApi = {
     filters: DashboardFilters,
     format: "csv" | "xlsx",
   ): Promise<void>;
+  /** Odškrtne úkol přímo ve widgetu (příkaz `ukoly.complete`). */
+  completeTask(id: string): Promise<void>;
   /** Stáhne snímek nástěnky do PDF. */
   exportBoard(boardId: string, filters: DashboardFilters): Promise<void>;
 };

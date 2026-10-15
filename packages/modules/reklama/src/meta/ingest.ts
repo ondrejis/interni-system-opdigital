@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import type { ServiceType } from "@rebar/core/contracts";
 import { getPipeline } from "@rebar/core/config-data";
 import { schema, type Executor } from "@rebar/core/db";
@@ -30,20 +30,27 @@ export type LeadTarget = {
 };
 
 /**
- * Výchozí cíl nemapovaného formuláře (R-44): pipeline „Obchody“, její první fáze a vlastník Ondřej (první aktivní
- * uživatel s rolí `owner`). `null`, když pipeline nebo vlastník chybí.
+ * Výchozí cíl nemapovaného formuláře (R-44): pipeline „Obchody“, její první fáze a vlastník Ondřej (uživatel s rolí
+ * `owner`, jinak první se systémovou rolí). `null`, když pipeline nebo vlastník chybí.
  */
 export async function defaultLeadTarget(
   db: Executor,
 ): Promise<Omit<LeadTarget, "services" | "mapped"> | null> {
   const pipeline = await getPipeline(db, "deal", "default");
   const stage = pipeline?.stages[0];
+  // vlastník agentury: uživatel s rolí `owner`, jinak první s jakoukoli systémovou rolí (`private.read` se do rolí nezapisuje, vidí ho jen vlastník)
   const [owner] = await db
     .select({ id: schema.user.id })
     .from(schema.user)
     .innerJoin(schema.role, eq(schema.role.id, schema.user.roleId))
-    .where(and(eq(schema.role.key, "owner"), eq(schema.user.active, true), isNull(schema.user.deletedAt)))
-    .orderBy(asc(schema.user.createdAt))
+    .where(
+      and(
+        eq(schema.role.isSystem, true),
+        eq(schema.user.active, true),
+        isNull(schema.user.deletedAt),
+      ),
+    )
+    .orderBy(sql`(${schema.role.key} = 'owner') desc`, asc(schema.user.createdAt))
     .limit(1);
   if (!pipeline || !stage || !owner) return null;
   return { pipelineId: pipeline.id, stageId: stage.id, ownerId: owner.id };

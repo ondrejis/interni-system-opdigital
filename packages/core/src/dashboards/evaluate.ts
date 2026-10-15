@@ -1,5 +1,7 @@
-import { sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { toResult } from "../actions/run";
+import { schema } from "../db/client";
+import { filterGroupSchema } from "../entities/filters";
 import { aggregateRecords, type AggregateGroup, type AggregateSpec } from "../entities/aggregate";
 import { describeEntity } from "../entities/describe";
 import {
@@ -23,14 +25,21 @@ import {
   type ChartKind,
   type CompareMode,
   type DashboardFilters,
+  type BuiltinParams,
   type DashboardWidget,
   type DateRange,
   type EntitySource,
+  type LinksSource,
+  type ListItem,
   type MetricInfo,
   type MetricSource,
   type RecordsSource,
   type TableColumn,
   type ValueFormat,
+  type ViewChoice,
+  type ViewSource,
+  type WidgetPresetDef,
+  type WidgetPresetInfo,
   type WidgetOutcome,
   type WidgetResult,
 } from "./types";
@@ -44,9 +53,26 @@ export type DashboardEnv = {
   builtins?: {
     attention?: (ctx: Ctx) => Promise<AttentionItem[]>;
     tiles?: (ctx: Ctx) => Promise<WidgetData[]>;
-    /** Moje otevřené úkoly (modul `ukoly`; jádro vlastní úkoly nemá). Bez poskytovatele je seznam prázdný. */
-    myTasks?: (ctx: Ctx) => Promise<{ id: string; title: string; dueDate: string | null }[]>;
+    /**
+     * Moje úkoly na dnes a po termínu (modul `ukoly`; jádro vlastní úkoly nemá). Bez poskytovatele je seznam prázdný.
+     * `includeDelegated` přidá úkoly, které jsem zadal já a řeší je jiný; `done` je odškrtnutý úkol (zůstane do obnovy).
+     */
+    myTasks?: (
+      ctx: Ctx,
+      opts: { includeDelegated: boolean; limit: number },
+    ) => Promise<
+      {
+        id: string;
+        title: string;
+        dueDate: string | null;
+        subtitle?: string | undefined;
+        href?: string | undefined;
+        delegated?: boolean | undefined;
+      }[]
+    >;
   };
+  /** Hotové widgety pro „Přidat widget“ (dodává modul `prehled`); nabídnou se jen ty, které aktér smí. */
+  presets?: readonly WidgetPresetDef[];
   /** Doba platnosti mezipaměti na uživatele (ms); 0 = vypnuto. Výchozí 30 s. */
   cacheTtlMs?: number;
   /** Nejdelší doba jednoho dotazu (ms). Výchozí 8 s. */
@@ -122,6 +148,76 @@ export function sourceCatalog(ctx: Ctx, env: DashboardEnv) {
       .map((d) => ({ key: d.key, label: d.label.many, module: d.module })),
     metrics: [...env.metrics.values()].filter((m) => metricAvailable(ctx, m)).map(describeMetric),
   };
+}
+
+/** Je widget z katalogu pro aktéra dostupný (zapnutý modul a všechna oprávnění)? */
+export function presetAvailable(ctx: Ctx, env: DashboardEnv, p: WidgetPresetDef): boolean {
+  const r = p.requires;
+  if (!r) return true;
+  for (const key of r.metrics ?? []) {
+    const m = env.metrics.get(key);
+    if (!m || !metricAvailable(ctx, m)) return false;
+  }
+  for (const key of r.entities ?? []) {
+    const d = env.registry.get(key);
+    if (!d || !scopeOf(ctx, d.permissions.read)) return false;
+  }
+  for (const perm of r.permissions ?? []) if (scopeOf(ctx, perm) === null) return false;
+  for (const b of r.builtins ?? []) {
+    if (b === "my_tasks" && !env.builtins?.myTasks) return false;
+    if (b === "attention" && !env.builtins?.attention) return false;
+    if (b === "tiles" && !env.builtins?.tiles) return false;
+  }
+  return true;
+}
+
+/** Katalog hotových widgetů, které aktér smí přidat (widget zapnutého modulu bez oprávnění se nenabízí). */
+export function availablePresets(ctx: Ctx, env: DashboardEnv): WidgetPresetInfo[] {
+  return (env.presets ?? [])
+    .filter((p) => presetAvailable(ctx, env, p))
+    .map(({ key, title, description, group, phase, widget, configure }) => ({
+      key,
+      title,
+      description,
+      group,
+      phase,
+      widget,
+      ...(configure ? { configure } : {}),
+    }));
+}
+
+/** Uložené pohledy, které aktér smí použít (moje a sdílené nad čitelnou entitou), pro „Číslo“, „Seznam z pohledu“, odkazy. */
+export async function listViewChoices(ctx: Ctx, env: DashboardEnv): Promise<ViewChoice[]> {
+  const me = ctx.actor.userId;
+  if (!me) return [];
+  const rows = await ctx.db
+    .select()
+    .from(schema.savedView)
+    .where(
+      and(
+        isNull(schema.savedView.deletedAt),
+        or(eq(schema.savedView.ownerId, me), eq(schema.savedView.shared, true)),
+      ),
+    )
+    .orderBy(asc(schema.savedView.entityType), asc(schema.savedView.name));
+  const out: ViewChoice[] = [];
+  for (const v of rows) {
+    const def = env.registry.get(v.entityType);
+    if (!def || !scopeOf(ctx, def.permissions.read)) continue;
+    const numeric = def.attributes
+      .filter((a) => a.type === "number" || a.type === "currency")
+      .map((a) => ({ key: a.key, label: a.label }));
+    out.push({
+      id: v.id,
+      name: v.name,
+      entity: def.key,
+      entityLabel: def.label.many,
+      href: `${def.listPath}?pohled=${v.id}`,
+      shared: v.shared,
+      numericAttrs: numeric,
+    });
+  }
+  return out;
 }
 
 function entityOf(ctx: Ctx, env: DashboardEnv, key: string): EntityDef {
@@ -513,6 +609,16 @@ async function evalMetric(c: Context, src: MetricSource): Promise<WidgetResult> 
       c.env.deps,
     );
   const main = await run(c.range);
+  if (main.kind === "list") {
+    if (w.type !== "list") throw new UserError("Tato metrika je seznam, použijte widget Seznam.");
+    return {
+      kind: "list",
+      items: main.items,
+      ...(main.emptyText ? { emptyText: main.emptyText } : {}),
+      meta: meta(c.range, c.now),
+    };
+  }
+  if (w.type === "list") throw new UserError("Widget Seznam potřebuje metriku typu seznam.");
   if (main.kind === "scalar") {
     if (w.type === "gauge") return gaugeOf(main.value, fmt, w, c.range, c.now);
     if (w.type !== "kpi")
@@ -589,11 +695,114 @@ async function evalMetric(c: Context, src: MetricSource): Promise<WidgetResult> 
   };
 }
 
+/* ---------- zdroj: uložený pohled ---------- */
+
+/** Pohled, který aktér smí použít (jeho, nebo sdílený); jinak srozumitelná chyba. */
+async function loadView(c: Context, viewId: string) {
+  const me = c.ctx.actor.userId;
+  const [v] = me
+    ? await c.ctx.db
+        .select()
+        .from(schema.savedView)
+        .where(
+          and(
+            eq(schema.savedView.id, viewId),
+            isNull(schema.savedView.deletedAt),
+            or(eq(schema.savedView.ownerId, me), eq(schema.savedView.shared, true)),
+          ),
+        )
+    : [];
+  if (!v) throw new UserError("Pohled už neexistuje nebo ho s vámi nikdo nesdílí.");
+  return v;
+}
+
+/**
+ * Číslo (`kpi`) a Seznam (`table`) z uloženého pohledu. Pohled se převede na obyčejný zdroj entity: filtr pohledu jde
+ * stejnou datovou vrstvou jako seznam (oprávnění, rozsah „jen moje“, soukromé záznamy, skryté atributy), takže widget nikdy
+ * neukáže víc, než by aktér viděl v seznamu.
+ */
+async function evalView(c: Context, src: ViewSource): Promise<WidgetResult> {
+  const v = await loadView(c, src.viewId);
+  const def = entityOf(c.ctx, c.env, v.entityType);
+  const parsed = v.config.filters ? filterGroupSchema.safeParse(v.config.filters) : null;
+  if (parsed && !parsed.success) throw new UserError("Filtr pohledu je poškozený.");
+  const filters = parsed?.success ? parsed.data : undefined;
+  if (c.widget.type === "kpi") {
+    const agg =
+      src.agg && (src.agg.fn === "count" || src.agg.attr) ? src.agg : { fn: "count" as const };
+    return evalEntityAgg(c, {
+      kind: "entity",
+      entity: def.key,
+      ...(filters ? { filters } : {}),
+      agg,
+    });
+  }
+  const e = visibleTo(c.ctx, await resolveEntity(c.ctx.db, def));
+  const fromView = (v.config.columns ?? []).filter((k) => e.byKey.has(k)).slice(0, 8);
+  const columns = fromView.length
+    ? fromView
+    : e.attributes
+        .filter((a) => !["longtext", "multiselect"].includes(a.type))
+        .map((a) => a.key)
+        .slice(0, 4);
+  if (!columns.length) throw new UserError("Pohled nemá žádné zobrazitelné sloupce.");
+  const sort = (v.config.sort ?? []).filter((x) => e.byKey.has(x.attr)).slice(0, 3);
+  const t = await evalRecords(c, {
+    kind: "records",
+    entity: def.key,
+    ...(filters ? { filters } : {}),
+    columns,
+    ...(sort.length ? { sort } : {}),
+    limit: Math.min(50, src.limit ?? 10),
+  });
+  return t;
+}
+
+/** Rychlé odkazy: vlastní odkazy a uložené pohledy (jen ty, které aktér smí otevřít). */
+async function evalLinks(c: Context, src: LinksSource): Promise<WidgetResult> {
+  const items: ListItem[] = src.links.map((l, i) => ({
+    id: `link-${i}`,
+    title: l.title,
+    href: l.href,
+  }));
+  if (src.viewIds.length && c.ctx.actor.userId) {
+    const rows = await c.ctx.db
+      .select()
+      .from(schema.savedView)
+      .where(
+        and(
+          inArray(schema.savedView.id, src.viewIds),
+          isNull(schema.savedView.deletedAt),
+          or(eq(schema.savedView.ownerId, c.ctx.actor.userId), eq(schema.savedView.shared, true)),
+        ),
+      );
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    for (const id of src.viewIds) {
+      const v = byId.get(id);
+      const def = v ? c.env.registry.get(v.entityType) : undefined;
+      if (!v || !def || !scopeOf(c.ctx, def.permissions.read)) continue;
+      items.push({
+        id: `view-${id}`,
+        title: v.name,
+        subtitle: def.label.many,
+        href: `${def.listPath}?pohled=${id}`,
+      });
+    }
+  }
+  return {
+    kind: "list",
+    items,
+    emptyText: "Zatím žádné odkazy. V režimu Upravit je můžete přidat.",
+    meta: meta(null, c.now),
+  };
+}
+
 /* ---------- vestavěné zdroje ---------- */
 
 async function evalBuiltin(
   c: Context,
   builtin: "attention" | "tiles" | "my_tasks",
+  params: BuiltinParams = {},
 ): Promise<WidgetResult> {
   const m = meta(null, c.now);
   if (builtin === "attention") {
@@ -611,7 +820,11 @@ async function evalBuiltin(
     };
   }
   if (builtin === "tiles") {
-    const tiles = (await c.env.builtins?.tiles?.(c.ctx)) ?? [];
+    const all = (await c.env.builtins?.tiles?.(c.ctx)) ?? [];
+    const ids = params.tileIds;
+    const tiles = ids?.length ? all.filter((t) => ids.includes(t.id)) : all;
+    if (ids?.length && !tiles.length)
+      return { kind: "empty", message: "Tento údaj teď není k dispozici.", meta: m };
     return {
       kind: "tiles",
       tiles: tiles.map((t) => ({
@@ -625,20 +838,30 @@ async function evalBuiltin(
       meta: m,
     };
   }
-  const shown = ((await c.env.builtins?.myTasks?.(c.ctx)) ?? []).slice(0, 8);
+  const limit = params.limit ?? 8;
+  const shown = (
+    (await c.env.builtins?.myTasks?.(c.ctx, {
+      includeDelegated: !!params.includeDelegated,
+      limit,
+    })) ?? []
+  ).slice(0, limit);
   return {
     kind: "list",
     items: shown.map((t) => ({
       id: t.id,
       title: t.title,
+      ...(t.subtitle ? { subtitle: t.subtitle } : {}),
       ...(t.dueDate
         ? {
             date: t.dueDate,
             tone: t.dueDate < c.today ? ("danger" as const) : ("default" as const),
           }
         : {}),
-      href: "/ukoly",
+      // delegovaný úkol řeší někdo jiný: odškrtnout ho jde jen v seznamu úkolů
+      ...(t.delegated ? { badge: "Delegované" } : { completeId: t.id }),
+      href: t.href ?? "/ukoly",
     })),
+    emptyText: "Na dnes nic nemáte. Hotovo.",
     meta: m,
   };
 }
@@ -671,7 +894,11 @@ async function compute(
     case "metric":
       return evalMetric(c, s);
     case "builtin":
-      return evalBuiltin(c, s.builtin);
+      return evalBuiltin(c, s.builtin, s.params);
+    case "view":
+      return evalView(c, s);
+    case "links":
+      return evalLinks(c, s);
   }
 }
 

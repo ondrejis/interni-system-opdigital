@@ -1,6 +1,7 @@
 import type { SplitRuleInput } from "@rebar/core/contracts";
 import {
   FinanceLogicError,
+  type AppliesTo,
   previewSplit,
   validateSplitRules,
   type PaymentKind,
@@ -22,7 +23,8 @@ export function toLogicRules(rules: readonly SplitRuleInput[]): SplitRule[] {
     mode: r.mode,
     percent: r.percent ?? null,
     fixedMinor: r.fixedMinor ?? null,
-    appliesTo: r.appliesTo,
+    // `recurring` (Fakturoid) pravidla nemá; editor ho nenabízí
+    appliesTo: r.appliesTo as AppliesTo,
     validFromMonth: r.validFrom ?? null,
     validToMonth: r.validTo ?? null,
     position: i,

@@ -12,6 +12,7 @@ import {
   Columns3,
   Download,
   KanbanSquare,
+  Link2,
   Plus,
   Search,
   Star,
@@ -52,6 +53,7 @@ import { useIsMobile } from "../hooks/use-media";
 import type { FilterAttributeGroup } from "./filter-attributes";
 import { useFilterUi, type QuickCondition } from "./filter-bar";
 import { completeFilters } from "./filters";
+import { FILTER_PARAM, SEARCH_PARAM, decodeFilter, encodeFilter, sameFilter } from "./list-url";
 import {
   keys,
   useEntityGroups,
@@ -220,6 +222,8 @@ export function EntityList({
     allConfig(entity, defaultFilters, defaultConfig),
   );
   const [applied, setApplied] = useState<string | null>(null); // pohled, jehož konfigurace už je v `cfg`
+  const pendingUrlFilter = useRef<FilterGroup | undefined>(undefined);
+  const urlInitDone = useRef(false);
   const [search, setSearch] = useState("");
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -243,12 +247,33 @@ export function EntityList({
   useEffect(() => {
     if (applied === viewId) return;
     if (viewId && !views.data) return;
-    setCfg(
-      norm(current ? current.config : allConfig(entity, defaultFilters, defaultConfig), entity),
+    const base = norm(
+      current ? current.config : allConfig(entity, defaultFilters, defaultConfig),
+      entity,
     );
+    // filtr z adresy (`?f=`) má přednost před filtrem pohledu
+    setCfg(pendingUrlFilter.current ? { ...base, filters: pendingUrlFilter.current } : base);
+    pendingUrlFilter.current = undefined;
     setApplied(viewId);
     setSelected(new Set());
   }, [viewId, current, views.data, applied, entity, defaultFilters, defaultConfig]);
+
+  // Filtr a hledání z adresy (`?f=`, `?q=`): odkaz na filtrovaný seznam jde poslat (SPOL-09)
+  useEffect(() => {
+    if (compact) return;
+    const p = new URLSearchParams(window.location.search);
+    const f = decodeFilter(p.get(FILTER_PARAM));
+    const q0 = p.get(SEARCH_PARAM)?.slice(0, 200);
+    if (q0) {
+      setSearch(q0);
+      setQ(q0.trim());
+    }
+    if (f) {
+      pendingUrlFilter.current = f;
+      setCfg((c) => ({ ...c, filters: f }));
+    }
+    // jen při prvním zobrazení
+  }, []);
 
   useEffect(() => {
     if (autoOpenCreate && entity.can.create) {
@@ -285,6 +310,27 @@ export function EntityList({
       ...(cfg.group ? { group: cfg.group } : {}),
     };
   }, [cfg.filters, cfg.sort, cfg.group, q, baseFilters]);
+
+  // aktuální filtr a hledání se zapisují do adresy (jen když se liší od pohledu), aby se odkaz dal poslat
+  useEffect(() => {
+    if (compact || typeof window === "undefined") return;
+    if (!urlInitDone.current) {
+      urlInitDone.current = true;
+      return;
+    }
+    if (viewId && applied !== viewId) return;
+    const base = completeFilters(current ? current.config.filters : defaultFilters);
+    const mine = completeFilters(cfg.filters);
+    const url = new URL(window.location.href);
+    const enc = sameFilter(mine, base) ? null : encodeFilter(mine);
+    if (enc) url.searchParams.set(FILTER_PARAM, enc);
+    else url.searchParams.delete(FILTER_PARAM);
+    if (q) url.searchParams.set(SEARCH_PARAM, q);
+    else url.searchParams.delete(SEARCH_PARAM);
+    const next = `${url.pathname}${url.search}${url.hash}`;
+    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`)
+      window.history.replaceState(window.history.state, "", next);
+  }, [cfg.filters, q, viewId, applied, current, defaultFilters, compact]);
 
   const isKanban = cfg.viewType === "kanban" && !!entity.statusKey;
   const rows = useEntityRows(entity.key, params, !isKanban);
@@ -557,7 +603,8 @@ export function EntityList({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 <DropdownMenuItem onSelect={() => favView.mutate(current)}>
-                  <Star /> {current.favorite ? "Odebrat z oblíbených" : "Přidat do oblíbených"}
+                  <Star />{" "}
+                  {current.favorite ? "Odepnout z levého panelu" : "Připnout do levého panelu"}
                 </DropdownMenuItem>
                 {current.mine && (
                   <DropdownMenuItem onSelect={() => setSaveOpen("rename")}>
@@ -607,6 +654,21 @@ export function EntityList({
           )}
         </div>
         {filter.button}
+        {!compact && (hasFilters || !!viewId) && (
+          <IconButton
+            label="Kopírovat odkaz na tento seznam"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              void navigator.clipboard
+                ?.writeText(window.location.href)
+                .then(() => successToast("Odkaz zkopírován."))
+                .catch(() => errorToast("Odkaz se nepodařilo zkopírovat."));
+            }}
+          >
+            <Link2 />
+          </IconButton>
+        )}
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {entity.statusKey && !hideViewToggle && !isMobile && (
             <div
@@ -674,6 +736,44 @@ export function EntityList({
           )}
         </div>
       </div>
+
+      {/* rychlé předvolby (Moje, Dnes, Po termínu, Bez aktivity, Soukromé) */}
+      {!compact && !!entity.quickFilters?.length && (
+        <div
+          className="flex flex-wrap items-center gap-1.5 px-4 pb-2"
+          role="group"
+          aria-label="Rychlé předvolby"
+          data-testid="quick-filters"
+        >
+          {entity.quickFilters.map((qf) => {
+            const active = sameFilter(completeFilters(cfg.filters), qf.filter);
+            return (
+              <button
+                key={qf.key}
+                type="button"
+                aria-pressed={active}
+                data-testid={`quick-filter-${qf.key}`}
+                onClick={() =>
+                  setConfig({
+                    filters: active
+                      ? completeFilters(current ? current.config.filters : defaultFilters)
+                      : qf.filter,
+                  })
+                }
+                className={
+                  "inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-sm transition-colors " +
+                  (active
+                    ? "border-accent-line bg-accent-soft font-medium text-fg"
+                    : "border-line text-muted hover:bg-hover hover:text-fg")
+                }
+              >
+                {qf.key === "private" && <Lock className="size-3" />}
+                {qf.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* aktivní filtry: jen když nějaké jsou */}
       {filter.chips && <div className="px-4 pb-2">{filter.chips}</div>}

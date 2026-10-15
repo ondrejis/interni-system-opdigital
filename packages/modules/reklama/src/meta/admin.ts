@@ -1,6 +1,7 @@
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { auditChange, recordAudit } from "@rebar/core/audit";
+import { getPipeline } from "@rebar/core/config-data";
 import { schema } from "@rebar/core/db";
 import { createCredentialStore } from "@rebar/core/integrations";
 import type { ModuleDeps } from "@rebar/core/module-server";
@@ -35,6 +36,8 @@ export async function setAccountOwner(
     const [before] = await c.db.select().from(adAccount).where(eq(adAccount.id, input.accountId));
     if (!before || before.deletedAt) throw new NotFoundError();
     const companyId = input.ownerKind === "agency" ? null : (input.companyId ?? null);
+    if (input.ownerKind === "client" && !companyId)
+      throw new UserError("U účtu klienta vyberte klienta.");
     if (companyId) {
       const rows = (await c.db.execute(
         sql`select 1 as ok from company where id = ${companyId}::uuid and deleted_at is null`,
@@ -99,7 +102,11 @@ export async function assignCampaignJob(
       if (!job) throw new UserError("Zakázka neexistuje.");
       if (job.type !== "marketing")
         throw new UserError("Kampaň jde přiřadit jen marketingové zakázce.");
-      if (row.account.ownerKind === "client" && row.account.companyId && job.companyId !== row.account.companyId)
+      if (
+        row.account.ownerKind === "client" &&
+        row.account.companyId &&
+        job.companyId !== row.account.companyId
+      )
         throw new UserError("Zakázka patří jinému klientovi, než kterému patří reklamní účet.");
     }
     await c.db
@@ -152,7 +159,15 @@ export async function listMappings(ctx: Ctx): Promise<MappingsOutput> {
     .where(isNull(leadFormMapping.deletedAt))
     .orderBy(leadFormMapping.name);
   const target = await defaultLeadTarget(ctx.db);
+  const pipeline = await getPipeline(ctx.db, "deal", "default");
+  const users = await ctx.db
+    .select({ id: schema.user.id, name: schema.user.name })
+    .from(schema.user)
+    .where(and(eq(schema.user.active, true), isNull(schema.user.deletedAt)))
+    .orderBy(schema.user.name);
   return {
+    stages: (pipeline?.stages ?? []).map((st) => ({ id: st.id, name: st.name })),
+    users,
     mappings: rows.map(toMapping),
     seenForms: await seenForms(ctx, new Set(rows.map((r) => r.metaFormId))),
     fallback: {
@@ -170,10 +185,15 @@ export async function saveMapping(
 ): Promise<MappingRow> {
   return inTx(ctx, async (c) => {
     const [stage] = await c.db
-      .select({ pipelineId: schema.pipelineStage.pipelineId, entityType: schema.pipeline.entityType })
+      .select({
+        pipelineId: schema.pipelineStage.pipelineId,
+        entityType: schema.pipeline.entityType,
+      })
       .from(schema.pipelineStage)
       .innerJoin(schema.pipeline, eq(schema.pipeline.id, schema.pipelineStage.pipelineId))
-      .where(and(eq(schema.pipelineStage.id, input.stageId), isNull(schema.pipelineStage.deletedAt)));
+      .where(
+        and(eq(schema.pipelineStage.id, input.stageId), isNull(schema.pipelineStage.deletedAt)),
+      );
     if (!stage || stage.pipelineId !== input.pipelineId || stage.entityType !== "deal")
       throw new UserError("Fáze nepatří do vybrané pipeline obchodů.");
     const [owner] = await c.db
@@ -193,7 +213,9 @@ export async function saveMapping(
     const [clash] = await c.db
       .select({ id: leadFormMapping.id })
       .from(leadFormMapping)
-      .where(and(eq(leadFormMapping.metaFormId, input.metaFormId), isNull(leadFormMapping.deletedAt)));
+      .where(
+        and(eq(leadFormMapping.metaFormId, input.metaFormId), isNull(leadFormMapping.deletedAt)),
+      );
     if (clash && clash.id !== input.id)
       throw new UserError("Tento formulář už má mapování, upravte existující.");
 

@@ -14,7 +14,7 @@ import type { PrivateGroup, PrivateOverview, PrivateRow } from "./types";
 /** Nejvíc záznamů jednoho typu, které přehled ukáže (nejnověji upravené). */
 export const PRIVATE_GROUP_LIMIT = 100;
 /** Kolik záznamů typu se načte, než se seřadí podle poslední úpravy. */
-const FETCH_LIMIT = 300;
+const FETCH_LIMIT = 200;
 
 /** Typy, které přehled ukazuje jako první (zakázky, úkoly, poznámky); ostatní podle názvu. */
 export const PRIVATE_TYPE_ORDER = ["job", "task", "note"] as const;

@@ -25,6 +25,7 @@ import {
   setVisibility,
   updateRecord,
 } from "@rebar/core/entities";
+import { trackRecent } from "@rebar/core/history";
 import { NotFoundError } from "@rebar/core/rbac";
 import type { Ctx } from "@rebar/core/rbac";
 import {
@@ -72,8 +73,12 @@ export const queryEntityGroups = defineAction({
 
 export const getEntityRecord = defineAction({
   input: z.object({ entity: key, id }),
-  handler: async (ctx, i) =>
-    getRecord(ctx, getServices().registry, await entityOf(ctx, i.entity), i.id),
+  handler: async (ctx, i) => {
+    const r = await getRecord(ctx, getServices().registry, await entityOf(ctx, i.entity), i.id);
+    // otevřený záznam se zapamatuje pro „Naposledy otevřené“ v paletě (HLE-02); selhání zápisu čtení nezastaví
+    await trackRecent(ctx, getServices().registry, i.entity, i.id).catch(() => {});
+    return r;
+  },
 });
 
 export const createEntityRecord = defineAction({

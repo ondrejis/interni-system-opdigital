@@ -37,7 +37,11 @@ export const emailTemplateEntity = defineEntity({
   afterCreate: async (ctx, created) => {
     await ctx.db
       .update(emailTemplate)
-      .set({ bodyJson: textToDoc(String(created.bodyText ?? "")) })
+      .set({
+        bodyJson: textToDoc(String(created.bodyText ?? "")),
+        // čas poslední úpravy zůstane, jaký dostane klient v odpovědi (jinak by první úprava hlásila kolizi)
+        updatedAt: created.updatedAt as Date,
+      })
       .where(eq(emailTemplate.id, String(created.id)));
   },
   attributes: [

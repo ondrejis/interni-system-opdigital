@@ -5,7 +5,7 @@ import { blocking, defaultPreviewKind, fiftyFifty, previewText, ruleIssues } fro
 const O = "00000000-0000-4000-8000-000000000001";
 const P = "00000000-0000-4000-8000-000000000002";
 const names = { [O]: "Ondřej", [P]: "Patrik" };
-const nb = (s: string) => s.replace(/ /g, " ");
+const nb = (s: string) => s.split(String.fromCharCode(160)).join(" ");
 
 describe("náhled rozdělení v editoru", () => {
   it("60/40 z 10 000 Kč: Ondřej 6 000, Patrik 4 000", () => {

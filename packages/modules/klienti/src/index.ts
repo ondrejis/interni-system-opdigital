@@ -1,8 +1,9 @@
 import { defineModule } from "@rebar/core/manifest";
 
 /*
-  Kostra S0 (docs/opsys/D-plan-a-kontrakty.md §1.2): manifest je úplný (navigace, oprávnění, závislosti, stránky).
-  `entities` doplní S1 spolu s `entities.ts`; zástupné stránky (`pages` + `ui.tsx`) nahradí entity a skutečné UI.
+  Manifest modulu „klienti“ (docs/opsys/D-plan-a-kontrakty.md §1.2). Modul nemá entity ani tabulky: klient je organizace
+  (`company`) se stavem klienta. Stránka `/klienti` je vlastní tabulka (ui.tsx), karta klienta je detail organizace
+  `/kontakty/firmy/<id>` složený z příspěvků modulů.
 */
 export const manifest = defineModule({
   id: "klienti",

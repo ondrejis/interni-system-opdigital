@@ -108,9 +108,40 @@ export type MetricSource = {
 
 export const BUILTINS = ["attention", "tiles", "my_tasks"] as const;
 export type BuiltinKind = (typeof BUILTINS)[number];
-export type BuiltinSource = { kind: "builtin"; builtin: BuiltinKind };
+/** Nastavení vestavěného bloku: `tileIds` (jen vybrané dlaždice modulů), `includeDelegated` (Moje úkoly + delegované). */
+export type BuiltinParams = {
+  tileIds?: string[] | undefined;
+  includeDelegated?: boolean | undefined;
+  limit?: number | undefined;
+};
+export type BuiltinSource = {
+  kind: "builtin";
+  builtin: BuiltinKind;
+  params?: BuiltinParams | undefined;
+};
 
-export type WidgetSource = EntitySource | RecordsSource | MetricSource | BuiltinSource;
+/**
+ * Uložený pohled (`saved_view`) jako zdroj: **Číslo z pohledu** (`kpi`: počet nebo součet pole nad filtrem pohledu)
+ * a **Seznam z pohledu** (`table`: prvních `limit` řádků se sloupci a řazením pohledu). Filtr pohledu jde stejnou
+ * datovou vrstvou jako seznamy (rozsah „jen moje“, soukromé záznamy), takže sdílený pohled nic neprozradí.
+ */
+export type ViewSource = {
+  kind: "view";
+  viewId: string;
+  /** Jen u čísla: výchozí je počet. */
+  agg?: { fn: AggFn; attr?: string | undefined } | undefined;
+  limit?: number | undefined;
+};
+
+/** Rychlé odkazy: vlastní odkazy (jen adresy uvnitř aplikace) a uložené pohledy. */
+export type LinksSource = {
+  kind: "links";
+  links: { title: string; href: string }[];
+  viewIds: string[];
+};
+
+export type WidgetSource =
+  EntitySource | RecordsSource | MetricSource | BuiltinSource | ViewSource | LinksSource;
 
 export type WidgetOptions = {
   chart?: ChartKind | undefined;
@@ -131,6 +162,8 @@ export type DashboardWidget = {
   options?: WidgetOptions | undefined;
 };
 
+/** Nejvíc widgetů na jednom přehledu (každý je dotaz). */
+export const MAX_DASHBOARD_WIDGETS = 24;
 export const WIDGET_WIDTHS = [3, 4, 6, 8, 12] as const;
 export const MAX_WIDGET_HEIGHT = 6;
 
@@ -176,6 +209,19 @@ export type TableColumn = {
   type: "text" | "money" | "number" | "percent" | "date" | "minutes" | "hours" | "status";
 };
 
+/** Položka seznamu (widget „list“, metrika s tvarem „list“). */
+export type ListItem = {
+  id: string;
+  title: string;
+  subtitle?: string | undefined;
+  badge?: string | undefined;
+  tone?: "default" | "warning" | "danger" | "success" | undefined;
+  href?: string | undefined;
+  date?: string | undefined;
+  /** Položka je úkol, který jde odškrtnout přímo ve widgetu (příkaz `ukoly.complete`). */
+  completeId?: string | undefined;
+};
+
 export type WidgetResult = (
   | {
       kind: "kpi";
@@ -212,15 +258,9 @@ export type WidgetResult = (
     }
   | {
       kind: "list";
-      items: {
-        id: string;
-        title: string;
-        subtitle?: string | undefined;
-        badge?: string | undefined;
-        tone?: "default" | "warning" | "danger" | "success" | undefined;
-        href?: string | undefined;
-        date?: string | undefined;
-      }[];
+      items: ListItem[];
+      /** Věta, když je seznam prázdný (výchozí „Nic k zobrazení.“). */
+      emptyText?: string | undefined;
     }
   | {
       kind: "status";
@@ -269,7 +309,7 @@ export type MetricInfo = {
   label: string;
   description?: string | undefined;
   format: ValueFormat;
-  shape: "scalar" | "series";
+  shape: "scalar" | "series" | "list";
   supports: { period: boolean; job: boolean; person: boolean; bucket: boolean };
   params: {
     key: string;
@@ -282,6 +322,47 @@ export type MetricInfo = {
 
 export type DashboardKind = "personal" | "shared" | "role_default";
 
+/** Hotový widget z katalogu („Přidat widget“): definice bez id a podmínky, za kterých se uživateli nabízí. */
+export type WidgetPresetDef = {
+  key: string;
+  title: string;
+  description: string;
+  /** Skupina v katalogu (podle modulu / tématu). */
+  group: string;
+  phase: "mvp" | "v2";
+  widget: Omit<DashboardWidget, "id">;
+  /** Nabízí se jen, když platí všechno: metriky existují (modul je zapnutý) a aktér na ně má oprávnění, entity jsou
+   * čitelné, aktér má všechna oprávnění. */
+  requires?: {
+    metrics?: string[] | undefined;
+    entities?: string[] | undefined;
+    permissions?: string[] | undefined;
+    /** Vestavěný poskytovatel („my_tasks“ potřebuje modul úkolů). */
+    builtins?: BuiltinKind[] | undefined;
+  };
+  /** Widget se po přidání nastavuje (pohled, odkazy): otevře se editor místo okamžitého přidání. */
+  configure?: boolean | undefined;
+};
+export type WidgetPresetInfo = Pick<
+  WidgetPresetDef,
+  "key" | "title" | "description" | "group" | "phase" | "widget" | "configure"
+>;
+
+/** Nulové UUID: „pohled ještě není vybrán“ (nově přidaný widget Číslo / Seznam z pohledu; editor ho nenechá uložit). */
+export const NO_VIEW_ID = "00000000-0000-4000-8000-000000000000";
+
+/** Uložený pohled nabízený ve widgetech „Číslo“, „Seznam z pohledu“ a „Rychlé odkazy“. */
+export type ViewChoice = {
+  id: string;
+  name: string;
+  entity: string;
+  entityLabel: string;
+  href: string;
+  shared: boolean;
+  /** Sloupce a pole, podle kterých jde sčítat (pro editor čísla). */
+  numericAttrs: { key: string; label: string }[];
+};
+
 export type DashboardSummary = {
   id: string;
   name: string;
@@ -293,6 +374,8 @@ export type DashboardSummary = {
   ownerName: string | null;
   defaultForRole: string | null;
   isHome: boolean;
+  /** Výchozí sada role (vzor pro osobní přehledy nových uživatelů), ne přehled k přepínání. */
+  template: boolean;
   shared: { roles: string[]; users: string[] };
   widgetCount: number;
   position: number;

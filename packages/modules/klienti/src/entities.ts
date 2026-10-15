@@ -1,4 +1,4 @@
 import type { EntityDef } from "@rebar/core/entities";
 
-/** Entity modulu „klienti“ (doplní S1 podle D §1.2). */
+/** Modul „klienti“ nemá vlastní entity: klient je organizace (`company`) se stavem klienta; pravidla přidává `lifecycle.ts`. */
 export const entities: readonly EntityDef[] = [];

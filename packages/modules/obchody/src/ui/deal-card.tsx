@@ -1,15 +1,32 @@
 "use client";
 
 import { formatDate, formatMinor } from "@rebar/core/shared";
-import { Avatar, Chip, Icon, cn, type KanbanCardContext, type KanbanColumnContext } from "@rebar/ui";
+import {
+  Avatar,
+  Chip,
+  Icon,
+  cn,
+  type KanbanCardContext,
+  type KanbanColumnContext,
+} from "@rebar/ui";
 import { DEAL_SOURCE_LABELS, type DealSource } from "../shared";
 import type { DealHighlight } from "../deals/logic";
 import { columnTotals, highlightOfRow, pluralDays } from "./logic";
 
-const SERVICE_LABEL: Record<string, string> = { web: "Web", marketing: "Marketing", systemy: "Systémy" };
+const SERVICE_LABEL: Record<string, string> = {
+  web: "Web",
+  marketing: "Marketing",
+  systemy: "Systémy",
+};
 
 /** Stav další aktivity: výstražná ikona bez aktivity (OBCH-07), jinak datum, po termínu červeně. */
-export function NextActivity({ nextActivityAt, highlight }: { nextActivityAt: string | null; highlight: DealHighlight }) {
+export function NextActivity({
+  nextActivityAt,
+  highlight,
+}: {
+  nextActivityAt: string | null;
+  highlight: DealHighlight;
+}) {
   if (highlight.noNextActivity)
     return (
       <span
@@ -25,7 +42,10 @@ export function NextActivity({ nextActivityAt, highlight }: { nextActivityAt: st
   const overdue = highlight.activityState === "overdue";
   return (
     <span
-      className={cn("inline-flex items-center gap-1 text-sm", overdue ? "text-danger" : "text-muted")}
+      className={cn(
+        "inline-flex items-center gap-1 text-sm",
+        overdue ? "text-danger" : "text-muted",
+      )}
       title={overdue ? "Další aktivita je po termínu" : "Další aktivita"}
       data-testid="next-activity"
       data-state={highlight.activityState}
@@ -63,13 +83,19 @@ export function DealCardBody({ row, labels, attributes }: KanbanCardContext) {
   const value = typeof row.value === "number" ? row.value : null;
   const services = Array.isArray(row.services) ? (row.services as string[]) : [];
   return (
-    <div className="space-y-1" data-testid="deal-card" data-unopened={highlight.unopenedLead || undefined}>
+    <div
+      className="space-y-1"
+      data-testid="deal-card"
+      data-unopened={highlight.unopenedLead || undefined}
+    >
       {highlight.unopenedLead && (
         <Chip color="blue" dot data-testid="unopened-lead">
           Nový lead{str(row.sourceDetail) ? ` · ${str(row.sourceDetail)}` : ""}
         </Chip>
       )}
-      <div className={cn("line-clamp-2 font-medium leading-snug", highlight.rotting && "text-danger")}>
+      <div
+        className={cn("line-clamp-2 font-medium leading-snug", highlight.rotting && "text-danger")}
+      >
         {String(row.title ?? "Bez názvu")}
       </div>
       {company && <div className="truncate text-sm text-muted">{company}</div>}
@@ -84,7 +110,11 @@ export function DealCardBody({ row, labels, attributes }: KanbanCardContext) {
       )}
       <div className="flex items-center justify-between gap-2 pt-1">
         <span className="tabular text-sm font-semibold">
-          {value !== null && value > 0 ? formatMinor(value) : <span className="font-normal text-faint">Bez ceny</span>}
+          {value !== null && value > 0 ? (
+            formatMinor(value)
+          ) : (
+            <span className="font-normal text-faint">Bez ceny</span>
+          )}
         </span>
         {owner && (
           <span title={`Vlastník: ${owner}`}>

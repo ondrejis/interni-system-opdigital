@@ -144,7 +144,7 @@ export function BoardsAdmin({ canClone }: { canClone: boolean }) {
       className: "@3xl:min-w-44",
       cell: (b) => (
         <Link
-          href={`/?board=${b.id}`}
+          href={`/prehled?board=${b.id}`}
           className="rounded-sm text-fg underline-offset-2 hover:text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-line)]"
         >
           {b.name}
@@ -238,7 +238,7 @@ export function BoardsAdmin({ canClone }: { canClone: boolean }) {
                     </IconButton>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onSelect={() => push(`/?board=${b.id}`)}>
+                    <DropdownMenuItem onSelect={() => push(`/prehled?board=${b.id}`)}>
                       <ExternalLink /> Otevřít
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setDialog({ kind: "rename", board: b })}>
@@ -350,7 +350,7 @@ function RoleDefaults({
                   r.boards.map((b) => (
                     <span key={b.id} className="inline-flex items-center gap-1.5">
                       <Link
-                        href={`/?board=${b.id}`}
+                        href={`/prehled?board=${b.id}`}
                         className="rounded-sm underline-offset-2 hover:text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-line)]"
                       >
                         {b.name}

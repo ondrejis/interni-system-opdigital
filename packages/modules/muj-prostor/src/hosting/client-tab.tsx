@@ -19,6 +19,7 @@ import {
   RECURRING_STATUS_COLORS,
   RECURRING_STATUS_LABELS,
 } from "../labels";
+import { ClientInvoicesSection } from "../invoices/client-section";
 import { ExpiryChip, RenewalCell, useMarkRenewed } from "../shared-ui";
 import type { ClientHostingOverview, ServiceRow } from "../types";
 
@@ -149,6 +150,8 @@ export function ClientHostingTab({ companyId }: { companyId: string }) {
           </ul>
         )}
       </section>
+
+      <ClientInvoicesSection companyId={companyId} />
 
       {serviceDescriptor.data && (
         <CreateDialog

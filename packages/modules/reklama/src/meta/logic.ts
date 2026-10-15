@@ -8,6 +8,8 @@ import type { DailyPoint, LeadIngestPayload, PerformanceMetrics } from "../contr
 
 /** Kolik předchozích dní (kromě dneška) se při synchronizaci přepisuje kvůli korekcím od Meta. */
 export const REWRITE_DAYS = 7;
+/** Kolik dní historie se stáhne při první synchronizaci účtu (aby šla vybrat období do 90 dní). */
+export const BACKFILL_DAYS = 90;
 /** Zdroj příchozích leadů v `inbound_event`. */
 export const LEAD_SOURCE = "leads";
 
@@ -145,6 +147,11 @@ export function periodFromPreset(
 /** Okno, které denní synchronizace přepíše: dnešek a `REWRITE_DAYS` předchozích dní (korekce od Meta). */
 export function rewriteWindow(today: string): { from: string; to: string } {
   return { from: addDaysIso(today, -REWRITE_DAYS), to: today };
+}
+
+/** Okno první synchronizace účtu: `BACKFILL_DAYS` dní zpět včetně dneška. */
+export function backfillWindow(today: string): { from: string; to: string } {
+  return { from: addDaysIso(today, -(BACKFILL_DAYS - 1)), to: today };
 }
 
 /* ---------- převody z Meta API ---------- */
@@ -294,12 +301,18 @@ export function parseLead(p: LeadIngestPayload): ParsedLead {
 /** Čas vytvoření leadu z těla (ISO nebo unixové sekundy); neplatný nebo chybějící = `null`. */
 export function parseLeadTime(v: string | number | null | undefined): Date | null {
   if (v === null || v === undefined || v === "") return null;
-  const d = typeof v === "number" || /^\d{9,11}$/.test(String(v)) ? new Date(Number(v) * 1000) : new Date(v);
+  const d =
+    typeof v === "number" || /^\d{9,11}$/.test(String(v))
+      ? new Date(Number(v) * 1000)
+      : new Date(v);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
 /** Název obchodu z leadu: „Jan Novák – Poptávka web“ (formulář), jinak kampaň, jinak „Meta lead“. */
-export function leadDealTitle(name: string, p: Pick<LeadIngestPayload, "formName" | "campaignName">): string {
+export function leadDealTitle(
+  name: string,
+  p: Pick<LeadIngestPayload, "formName" | "campaignName">,
+): string {
   const suffix = clean(p.formName) ?? clean(p.campaignName) ?? "Meta lead";
   const title = `${name} – ${suffix}`;
   return title.length > 160 ? `${title.slice(0, 159)}…` : title;

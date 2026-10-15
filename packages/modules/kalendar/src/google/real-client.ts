@@ -24,6 +24,7 @@ const REVOKE_URL = "https://oauth2.googleapis.com/revoke";
 const API = "https://www.googleapis.com/calendar/v3";
 const TIMEOUT_MS = 20_000;
 
+/** Přihlašovací údaje OAuth klienta (z nastavení). */
 export type RealClientConfig = {
   clientId: string;
   clientSecret: string;
@@ -56,10 +57,15 @@ export function createGoogleClient(cfg: RealClientConfig): GoogleCalendarClient 
     token: string,
     method: string,
     path: string,
-    opts: { query?: Record<string, string | undefined>; body?: unknown; headers?: Record<string, string> } = {},
+    opts: {
+      query?: Record<string, string | undefined>;
+      body?: unknown;
+      headers?: Record<string, string>;
+    } = {},
   ): Promise<T | null> {
     const url = new URL(path.startsWith("http") ? path : `${API}${path}`);
-    for (const [k, v] of Object.entries(opts.query ?? {})) if (v !== undefined) url.searchParams.set(k, v);
+    for (const [k, v] of Object.entries(opts.query ?? {}))
+      if (v !== undefined) url.searchParams.set(k, v);
     const res = await doFetch(url, {
       method,
       headers: {
@@ -174,21 +180,20 @@ export function createGoogleClient(cfg: RealClientConfig): GoogleCalendarClient 
       return out;
     },
     async listEvents(token, calendarId, o) {
-      const page = await api<{ items?: GoogleEvent[]; nextPageToken?: string; nextSyncToken?: string }>(
-        token,
-        "GET",
-        `/calendars/${encodeURIComponent(calendarId)}/events`,
-        {
-          query: {
-            singleEvents: "true",
-            maxResults: "250",
-            syncToken: o.syncToken,
-            timeMin: o.syncToken ? undefined : o.timeMin,
-            timeMax: o.syncToken ? undefined : o.timeMax,
-            pageToken: o.pageToken,
-          },
+      const page = await api<{
+        items?: GoogleEvent[];
+        nextPageToken?: string;
+        nextSyncToken?: string;
+      }>(token, "GET", `/calendars/${encodeURIComponent(calendarId)}/events`, {
+        query: {
+          singleEvents: "true",
+          maxResults: "250",
+          syncToken: o.syncToken,
+          timeMin: o.syncToken ? undefined : o.timeMin,
+          timeMax: o.syncToken ? undefined : o.timeMax,
+          pageToken: o.pageToken,
         },
-      );
+      });
       return {
         events: page?.items ?? [],
         ...(page?.nextPageToken ? { nextPageToken: page.nextPageToken } : {}),
@@ -196,10 +201,15 @@ export function createGoogleClient(cfg: RealClientConfig): GoogleCalendarClient 
       };
     },
     async insertEvent(token, calendarId, event, o) {
-      const res = await api<GoogleEvent>(token, "POST", `/calendars/${encodeURIComponent(calendarId)}/events`, {
-        query: writeQuery(o),
-        body: { ...event, ...conferenceBody(o.conference) },
-      });
+      const res = await api<GoogleEvent>(
+        token,
+        "POST",
+        `/calendars/${encodeURIComponent(calendarId)}/events`,
+        {
+          query: writeQuery(o),
+          body: { ...event, ...conferenceBody(o.conference) },
+        },
+      );
       return res!;
     },
     async patchEvent(token, calendarId, eventId, patch, o) {

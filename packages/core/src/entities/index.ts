@@ -45,6 +45,7 @@ export { OPERATORS, OPERATORS_BY_TYPE } from "./operators";
 export type { Operator, Condition, FilterGroup } from "./operators";
 export { searchAll, indexRecord, reindexEntity, removeFromIndex } from "./search";
 export type { SearchHit } from "./search";
+export { phoneKeysInText, phoneQueryKey } from "./phone-index";
 export { describeEntity } from "./describe";
 export { setPhaseHooks, phaseHooksFor, stageHooksFor } from "./phase-hooks";
 export { setDeleteBlockers, deleteBlockMessage, countActive } from "./delete-blockers";

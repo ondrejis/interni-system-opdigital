@@ -68,6 +68,8 @@ type Props = {
   refreshKey: number;
   autoRefreshMs?: number | undefined;
   editing?: boolean;
+  /** Telefon: v režimu úprav jen přeskládání (bez přidání, nastavení, odebrání a změny velikosti). */
+  reorderOnly?: boolean | undefined;
   onChange?: ((next: DashboardWidget[]) => void) | undefined;
   onEdit?: ((id: string) => void) | undefined;
   hideMenu?: boolean | undefined;
@@ -83,6 +85,7 @@ export function DashboardGrid({
   refreshKey,
   autoRefreshMs,
   editing,
+  reorderOnly,
   onChange,
   onEdit,
   hideMenu,
@@ -129,6 +132,7 @@ export function DashboardGrid({
           refreshKey={refreshKey}
           autoRefreshMs={autoRefreshMs}
           editing={!!editing}
+          reorderOnly={!!reorderOnly}
           hideMenu={hideMenu}
           gridRef={gridRef}
           onEdit={() => onEdit?.(w.id)}
@@ -160,6 +164,7 @@ function GridItem({
   refreshKey,
   autoRefreshMs,
   editing,
+  reorderOnly,
   hideMenu,
   gridRef,
   onEdit,
@@ -172,6 +177,7 @@ function GridItem({
   refreshKey: number;
   autoRefreshMs: number | undefined;
   editing: boolean;
+  reorderOnly: boolean;
   hideMenu: boolean | undefined;
   gridRef: React.RefObject<HTMLDivElement | null>;
   onEdit: () => void;
@@ -197,6 +203,7 @@ function GridItem({
       refreshKey={refreshKey}
       autoRefreshMs={autoRefreshMs}
       editing={editing}
+      reorderOnly={reorderOnly}
       hideMenu={hideMenu}
       onEdit={onEdit}
       onRemove={onRemove}
@@ -204,7 +211,7 @@ function GridItem({
       style={style}
       dragProps={editing ? { ...sortable.attributes, ...sortable.listeners } : undefined}
       resizeHandle={
-        editing ? (
+        editing && !reorderOnly ? (
           <ResizeHandle widget={widget} layout={layout} gridRef={gridRef} onResize={onResize} />
         ) : null
       }

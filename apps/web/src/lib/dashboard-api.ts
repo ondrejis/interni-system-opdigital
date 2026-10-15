@@ -49,6 +49,7 @@ export const dashboardApi: DashboardApi = {
   share: async (id, to) => void unwrap(await A.shareDashboardAction({ id, ...to })),
   reorder: async (ids) => void unwrap(await A.reorderDashboardsAction({ ids })),
   catalog: async () => unwrap(await A.dashboardCatalogAction({})) as never,
+  completeTask: async (id) => void unwrap(await A.completeDashboardTaskAction({ id })),
   evaluate: async (widget, filters, opts) => {
     let res: Response;
     try {

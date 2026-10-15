@@ -51,7 +51,8 @@ export type TaskGateway = {
   /** Existují tyto úkoly (nesmazané)? */
   existing(ctx: Ctx, ids: string[]): Promise<Set<string>>;
   applyTimes(ctx: Ctx, taskId: string, patch: TaskTimesPatch): Promise<void>;
-  setSendInvites(ctx: Ctx, taskId: string, value: boolean): Promise<void>;
+  /** Změní pole úkolu podle klíčů atributů (`description`, `sendInvites`…). */
+  setFields(ctx: Ctx, taskId: string, patch: Record<string, unknown>): Promise<void>;
   remove(ctx: Ctx, taskId: string): Promise<void>;
 };
 
@@ -67,7 +68,11 @@ export type ContactLookup = {
 
 const NIL = "00000000-0000-0000-0000-000000000000";
 /** Seznam hodnot pro `in (...)` jako parametry (bez skládání SQL z řetězců). */
-const list = (values: readonly string[]) => sql.join(values.map((v) => sql`${v}`), sql`, `);
+const list = (values: readonly string[]) =>
+  sql.join(
+    values.map((v) => sql`${v}`),
+    sql`, `,
+  );
 
 const hhmm = (v: unknown): string | null => (typeof v === "string" && v ? v.slice(0, 5) : null);
 
@@ -77,7 +82,10 @@ const tableExists = async (ctx: Ctx, name: string) => {
 };
 
 /** Výchozí implementace: registr entit + čtecí dotazy. `null`, když modul úkolů není zapnutý. */
-export function registryTaskGateway(registry: EntityRegistry, contacts: ContactLookup): TaskGateway | null {
+export function registryTaskGateway(
+  registry: EntityRegistry,
+  contacts: ContactLookup,
+): TaskGateway | null {
   const def = registry.get("task");
   if (!def) return null;
   const typeDef = registry.get("task_type");
@@ -155,9 +163,9 @@ export function registryTaskGateway(registry: EntityRegistry, contacts: ContactL
         ...(p.title !== undefined ? { title: p.title } : {}),
       });
     },
-    async setSendInvites(ctx, taskId, value) {
+    async setFields(ctx, taskId, patch) {
       const e = await resolveEntity(ctx.db, def);
-      await updateRecord(ctx, registry, e, taskId, { sendInvites: value });
+      await updateRecord(ctx, registry, e, taskId, patch);
     },
     async remove(ctx, taskId) {
       const e = await resolveEntity(ctx.db, def);
@@ -167,7 +175,11 @@ export function registryTaskGateway(registry: EntityRegistry, contacts: ContactL
 }
 
 /** E-maily účastníků úkolu (uživatelé, kontakty, adresy). */
-async function attendeeEmailsOf(ctx: Ctx, taskId: string, contacts: ContactLookup): Promise<string[]> {
+async function attendeeEmailsOf(
+  ctx: Ctx,
+  taskId: string,
+  contacts: ContactLookup,
+): Promise<string[]> {
   if (!(await tableExists(ctx, "task_attendee"))) return [];
   const rows = (await ctx.db.execute(
     sql`select kind, ref from task_attendee where task_id = ${taskId} and deleted_at is null`,
@@ -218,7 +230,8 @@ export const sqlContactLookup: ContactLookup = {
     return rows[0]?.value ?? null;
   },
   async openDeals(ctx, q) {
-    if ((!q.personIds.length && !q.companyIds.length) || !(await tableExists(ctx, "deal"))) return [];
+    if ((!q.personIds.length && !q.companyIds.length) || !(await tableExists(ctx, "deal")))
+      return [];
     const priv = canSeePrivate(ctx) ? sql`` : sql`and not is_private`;
     const rows = (await ctx.db.execute(sql`
       select id, title, person_id as "personId", company_id as "companyId" from deal

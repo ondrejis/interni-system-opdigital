@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { schema } from "../db/client";
 import type { AuditCategory, AuditChange } from "../db/schema/audit";
 import type { Ctx } from "../rbac/types";
+import { notifyChange } from "../realtime/notify";
 
 /** Pole, která se do auditu nikdy neukládají v čitelné podobě. */
 const SECRET_FIELD = /password|passwd|secret|token|hash|backup_?codes|api_?key|authorization/i;
@@ -133,6 +134,20 @@ export async function recordAudit(ctx: Ctx, entry: AuditEntry): Promise<void> {
     requestId: ctx.requestId ?? null,
     ip: ctx.ip ?? null,
   });
+  // realtime (C3): signál o změně se doručí při commitu; bezpečnostní události (přihlášení) se nešíří
+  const category = entry.category ?? auditCategoryOf(entry.entityType);
+  if (category !== "security") {
+    const ctxType = entry.context?.entityType;
+    const ctxId = entry.context?.entityId;
+    await notifyChange(ctx.db, {
+      entityType: entry.entityType,
+      entityId: entry.entityId,
+      action: entry.action,
+      isPrivate,
+      parentType: typeof ctxType === "string" ? ctxType : undefined,
+      parentId: typeof ctxId === "string" ? ctxId : undefined,
+    });
+  }
 }
 
 /** Spočítá rozdíl `before` → `after` a zapíše ho; když se nic nezměnilo, nezapíše nic. */

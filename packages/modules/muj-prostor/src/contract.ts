@@ -59,4 +59,39 @@ export const clientOverviewInput = z.object({ companyId: id });
 export * from "./library/contract";
 export * from "./private/contract";
 
-/* ===== MPR-3: opakované faktury (doplní MPR-3) ===== */
+/* ===== MPR-3: opakované faktury ===== */
+
+/** `muj-prostor.invoices.overview`: návrhy a hotové faktury (volitelně jen jednoho klienta), souhrn a stav Fakturoidu. */
+export const invoicesOverviewInput = z.object({ companyId: id.optional() });
+
+/** `muj-prostor.invoices.prepare`: ručně připraví návrhy (totéž co denní úloha); idempotentní. */
+export const invoicesPrepareInput = z.object({});
+
+/** `muj-prostor.invoices.update`: upraví částku konceptu (haléře, kladná). */
+export const invoicesUpdateInput = z.object({
+  id,
+  amountMinor: z.number().int().positive().max(9_999_999_999),
+});
+
+/**
+ * `muj-prostor.invoices.approve`: **Schválit a vytvořit ve Fakturoidu**. `expectedAmountMinor` je částka, kterou
+ * uživatel viděl (při neshodě se nic nevytvoří). Opakované volání nevytvoří druhou fakturu.
+ */
+export const invoicesApproveInput = z.object({
+  id,
+  expectedAmountMinor: z.number().int().positive(),
+});
+
+/** `muj-prostor.invoices.cancel` / `.reopen` / `.retryPayment`: akce nad jedním návrhem. */
+export const invoicesIdInput = z.object({ id });
+
+/** `muj-prostor.fakturoid.status` a `.disconnect` a `.test`: bez vstupu. */
+export const fakturoidNoInput = z.object({});
+
+/** `muj-prostor.fakturoid.save`: uloží přístup k Fakturoidu (šifrovaně). Prázdný Client Secret ponechá uložený. */
+export const fakturoidSaveInput = z.object({
+  account: z.string().trim().min(1).max(100),
+  clientId: z.string().trim().min(1).max(200),
+  clientSecret: z.string().max(500).optional(),
+  contactEmail: z.email().max(200),
+});

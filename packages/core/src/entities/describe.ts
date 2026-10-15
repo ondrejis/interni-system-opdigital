@@ -4,6 +4,46 @@ import { can, canSeePrivate, scopeOf } from "../rbac/permissions";
 import type { Ctx } from "../rbac/types";
 import { visibleTo, type EntityRegistry, type ResolvedEntity } from "./engine";
 import type { AttributeDescriptor, EntityDescriptor } from "./shared";
+import type { Condition, FilterGroup } from "./operators";
+
+/** Atributy, na které se filtr odkazuje (včetně vnořených skupin). */
+function attrsOf(f: FilterGroup | Condition): string[] {
+  return "conditions" in f ? f.conditions.flatMap(attrsOf) : [f.attr];
+}
+
+/**
+ * Rychlé předvolby entity pro aktéra: filtry z `EntityDef.quickFilters` (funkce se vyhodnotí pro aktéra a dnešek) plus
+ * „Soukromé“ pro vlastníka u entit se zámkem. Předvolba, která odkazuje na atribut, který aktér nevidí nebo nejde
+ * filtrovat, se vynechá.
+ */
+function quickFiltersOf(
+  ctx: Ctx,
+  e: ResolvedEntity,
+  attributes: readonly AttributeDescriptor[],
+): NonNullable<EntityDescriptor["quickFilters"]> {
+  const ok = new Set(attributes.filter((a) => a.filterable).map((a) => a.key));
+  const out: NonNullable<EntityDescriptor["quickFilters"]> = [];
+  for (const q of e.def.quickFilters ?? []) {
+    try {
+      const filter = typeof q.filter === "function" ? q.filter(ctx) : q.filter;
+      if (attrsOf(filter).every((a) => ok.has(a))) out.push({ key: q.key, label: q.label, filter });
+    } catch {
+      /* chybná předvolba se nenabídne */
+    }
+  }
+  if (
+    e.def.visibility &&
+    canSeePrivate(ctx) &&
+    ok.has("isPrivate") &&
+    !out.some((q) => q.key === "private")
+  )
+    out.push({
+      key: "private",
+      label: "Soukromé",
+      filter: { op: "and", conditions: [{ attr: "isPrivate", op: "is_true" }] },
+    });
+  return out;
+}
 
 /** Popis entity pro prohlížeč: atributy (včetně vlastních polí), stavy pipeline a to, co aktér smí. */
 export async function describeEntity(
@@ -53,6 +93,7 @@ export async function describeEntity(
     });
   }
   const p = e.def.permissions;
+  const quickFilters = quickFiltersOf(ctx, e, attributes);
   return {
     key: e.def.key,
     label: e.def.label,
@@ -68,6 +109,7 @@ export async function describeEntity(
           },
         }
       : {}),
+    ...(quickFilters.length ? { quickFilters } : {}),
     can: {
       create: !e.def.noCreate && scopeOf(ctx, p.create ?? p.write) !== null,
       write: can(ctx, p.write),

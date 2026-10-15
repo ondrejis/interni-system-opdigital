@@ -55,7 +55,8 @@ const choices = <K extends string>(
  */
 export const paymentEntity = defineEntity({
   key: "payment",
-  listPath: "/finance",
+  // `/finance` je stránka modulu (FIN-C: seznam plateb s filtry, součty a stavovým tokem); generická tabulka je tady
+  listPath: "/finance/platby",
   module: "finance",
   label: { one: "Platba", many: "Platby" },
   table: payment,

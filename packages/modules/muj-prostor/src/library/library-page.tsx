@@ -261,7 +261,7 @@ function PreviewCard({
                 data-testid="copy-body"
                 onClick={() => void copyText(p.body, "Text")}
               >
-                <Icon name="copy" /> Kopírovat text
+                <Icon name="clipboard-check" /> Kopírovat text
               </Button>
               <Button
                 data-testid="copy-subject"

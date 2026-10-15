@@ -8,7 +8,9 @@
     "./schema": "./src/schema.ts",
     "./server": "./src/server.ts",
     "./ui": "./src/ui.tsx",
-    "./api": "./src/api.ts"
+    "./api": "./src/api.ts",
+    "./presets": "./src/presets.ts",
+    "./metrics": "./src/metrics.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

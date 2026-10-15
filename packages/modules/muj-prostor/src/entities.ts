@@ -325,7 +325,7 @@ export const webDomainEntity = defineEntity({
 /** Návrhy opakovaných faktur za období služby (v3, odeslání do Fakturoidu po schválení). */
 export const recurringInvoiceEntity = defineEntity({
   key: "recurring_invoice",
-  listPath: "/muj-prostor/faktury",
+  listPath: "/muj-prostor/faktury/vse",
   module: "muj-prostor",
   label: { one: "Opakovaná faktura", many: "Opakované faktury" },
   table: recurringInvoice,
@@ -334,6 +334,13 @@ export const recurringInvoiceEntity = defineEntity({
     read: "muj-prostor.recurring_invoices",
     write: "muj-prostor.recurring_invoices",
     create: "muj-prostor.recurring_invoices",
+  },
+  /** Upravit jde jen koncept (částka); schválená a odeslaná faktura se mění ve Fakturoidu (MPR-3). */
+  beforeUpdate: async (_ctx, before) => {
+    if (before.status !== "draft")
+      throw new UserError(
+        "Upravit jde jen koncept faktury. Schválená faktura se mění ve Fakturoidu.",
+      );
   },
   noCreate: "Návrhy faktur vznikají automaticky z opakovaných služeb.",
   noDelete: "Návrh faktury se neruší mazáním, ale stornem.",
@@ -405,7 +412,7 @@ export const recurringInvoiceEntity = defineEntity({
     },
     { key: "error", label: "Chyba", type: "longtext", field: "error", readonly: true, width: 240 },
   ],
-  url: (id) => `/muj-prostor/faktury/${id}`,
+  url: (id) => `/muj-prostor/faktury/vse/${id}`,
 });
 
 export const entities = [

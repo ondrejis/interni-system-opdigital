@@ -34,6 +34,7 @@ import { syncCalendar, taskGatewayOf } from "./sync";
 export const pushJobDef = { name: "kalendar.push", schema: z.object({}) };
 
 type EventRow = typeof calendarEvent.$inferSelect;
+/** Událost (řádek zrcadla) i s kalendářem a účtem, do kterého patří. */
 export type EventWithCalendar = { event: EventRow; calendar: CalendarRow; account: AccountRow };
 
 const MAX_ATTEMPTS = 10;
@@ -136,7 +137,9 @@ export async function deleteFromGoogle(
 ): Promise<void> {
   if (!e.event.remoteDeleted)
     await withToken(ctx, env, client, e.account, (t) =>
-      client.deleteEvent(t, e.calendar.googleId, e.event.googleId, { sendUpdates: opts.sendUpdates ?? "none" }),
+      client.deleteEvent(t, e.calendar.googleId, e.event.googleId, {
+        sendUpdates: opts.sendUpdates ?? "none",
+      }),
     );
   await ctx.db.delete(calendarEvent).where(eq(calendarEvent.id, e.event.id));
 }
@@ -147,7 +150,11 @@ async function writeTargetOf(ctx: Ctx, account: AccountRow): Promise<CalendarRow
     .select()
     .from(calendar)
     .where(
-      and(eq(calendar.accountId, account.id), eq(calendar.isWriteTarget, true), isNull(calendar.deletedAt)),
+      and(
+        eq(calendar.accountId, account.id),
+        eq(calendar.isWriteTarget, true),
+        isNull(calendar.deletedAt),
+      ),
     );
   return c && (c.accessRole === "owner" || c.accessRole === "writer") ? c : null;
 }
@@ -160,6 +167,8 @@ export function eligibility(
   if (!state || state.gone || !state.isCalendarType || !state.push || !state.assigneeId)
     return { ok: false };
   if (state.status === "canceled") return { ok: false };
+  // do kalendáře patří hovor a schůzka s časem (nebo výslovně celodenní); samotné datum zůstává ve vrstvě úkolů
+  if (!state.push.dueTime && !state.push.allDay) return { ok: false };
   if (state.isPrivate && !privateToGoogle) return { ok: false };
   return { ok: true, state: state as TaskState & { push: NonNullable<TaskState["push"]> } };
 }
@@ -207,7 +216,9 @@ export async function reconcileTask(
     const same =
       sameWritten(row.event, inputToFields(input)) &&
       (!input.attendees ||
-        input.attendees.every((a) => row!.event.attendees.some((x) => x.email.toLowerCase() === a.email)));
+        input.attendees.every((a) =>
+          row!.event.attendees.some((x) => x.email.toLowerCase() === a.email),
+        ));
     const meetMissing = opts.wantMeet && !row.event.meetUrl;
     if (same && !meetMissing) {
       await ctx.db
@@ -235,7 +246,8 @@ export async function reconcileTask(
   if (row?.event.remoteDeleted) {
     // událost byla v Googlu smazána; novější změna úkolu ji založí znovu, starší ne
     const deletedAt = row.event.remoteDeletedAt;
-    if (opts.queuedAt && deletedAt && opts.queuedAt <= deletedAt) return { action: "none", eventId: null };
+    if (opts.queuedAt && deletedAt && opts.queuedAt <= deletedAt)
+      return { action: "none", eventId: null };
   }
 
   const cal = row?.calendar ?? target;
@@ -243,16 +255,27 @@ export async function reconcileTask(
   let res: GoogleEvent;
   try {
     res = await withToken(ctx, env, client, account, (tok) =>
-      client.insertEvent(tok, cal.googleId, { ...input, id: googleId }, { sendUpdates, conference: opts.wantMeet === true }),
+      client.insertEvent(
+        tok,
+        cal.googleId,
+        { ...input, id: googleId },
+        { sendUpdates, conference: opts.wantMeet === true },
+      ),
     );
   } catch (e) {
     if (!(e instanceof GoogleConflictError)) throw e;
     // id už existuje (smazaná událost, nebo opakovaný zápis po výpadku): oživíme ji novými údaji
     res = await withToken(ctx, env, client, account, (tok) =>
-      client.patchEvent(tok, cal.googleId, googleId, { ...input, status: "confirmed" }, {
-        sendUpdates,
-        conference: opts.wantMeet === true,
-      }),
+      client.patchEvent(
+        tok,
+        cal.googleId,
+        googleId,
+        { ...input, status: "confirmed" },
+        {
+          sendUpdates,
+          conference: opts.wantMeet === true,
+        },
+      ),
     );
   }
   const saved = await saveFromResponse(ctx, cal.id, res, {
@@ -302,7 +325,10 @@ export async function processPushQueue(
       }
       client ??= await googleClient(db, env);
       await inTx(ctx, (c) =>
-        reconcileTask(c, env, client!, gateway, r.taskId!, { queuedAt: r.queuedAt, wantMeet: r.wantMeet }),
+        reconcileTask(c, env, client!, gateway, r.taskId!, {
+          queuedAt: r.queuedAt,
+          wantMeet: r.wantMeet,
+        }),
       );
       await finish(db, r, null);
       done++;

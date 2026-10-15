@@ -55,7 +55,14 @@ export function createFakeGoogle(opts: { now?: () => number } = {}) {
   const calls: FakeCall[] = [];
   const channels = new Map<
     string,
-    { calendarId: string; email: string; token: string; resourceId: string; address: string; expiration: number }
+    {
+      calendarId: string;
+      email: string;
+      token: string;
+      resourceId: string;
+      address: string;
+      expiration: number;
+    }
   >();
   const stopped: string[] = [];
   let seq = 0;
@@ -106,13 +113,20 @@ export function createFakeGoogle(opts: { now?: () => number } = {}) {
     e.updated = iso();
     c.events.set(e.id, e);
   }
-  function applyInput(e: StoredEvent, input: GoogleEventPatch | GoogleEventInput, conference?: boolean) {
+  function applyInput(
+    e: StoredEvent,
+    input: GoogleEventPatch | GoogleEventInput,
+    conference?: boolean,
+  ) {
     for (const [k, v] of Object.entries(input)) {
       if (v === null) delete (e as Record<string, unknown>)[k];
       else if (k === "extendedProperties")
         e.extendedProperties = {
           ...e.extendedProperties,
-          private: { ...e.extendedProperties?.private, ...(v as { private?: Record<string, string> }).private },
+          private: {
+            ...e.extendedProperties?.private,
+            ...(v as { private?: Record<string, string> }).private,
+          },
         };
       else if (k === "attendees")
         e.attendees = (v as { email: string; displayName?: string }[]).map((a) => ({
@@ -176,10 +190,21 @@ export function createFakeGoogle(opts: { now?: () => number } = {}) {
     async insertEvent(token, calendarId, event, o: WriteOptions) {
       const { c } = cal(token, calendarId);
       const id = event.id ?? `fake${++idCounter}`;
-      calls.push({ op: "insert", calendarId, eventId: id, sendUpdates: o.sendUpdates, ...(o.conference ? { conference: true } : {}) });
+      calls.push({
+        op: "insert",
+        calendarId,
+        eventId: id,
+        sendUpdates: o.sendUpdates,
+        ...(o.conference ? { conference: true } : {}),
+      });
       if (c.events.has(id)) throw new GoogleConflictError();
       const { id: _id, ...input } = event;
-      const e: StoredEvent = { id, status: "confirmed", _seq: 0, htmlLink: `https://calendar.google.test/e/${id}` };
+      const e: StoredEvent = {
+        id,
+        status: "confirmed",
+        _seq: 0,
+        htmlLink: `https://calendar.google.test/e/${id}`,
+      };
       applyInput(e, input, o.conference);
       if (!e.organizer) e.organizer = { email: accountByAccess(token).email, self: true };
       touch(c, e);
@@ -188,7 +213,13 @@ export function createFakeGoogle(opts: { now?: () => number } = {}) {
     },
     async patchEvent(token, calendarId, eventId, patch, o) {
       const { c } = cal(token, calendarId);
-      calls.push({ op: "patch", calendarId, eventId, sendUpdates: o.sendUpdates, ...(o.conference ? { conference: true } : {}) });
+      calls.push({
+        op: "patch",
+        calendarId,
+        eventId,
+        sendUpdates: o.sendUpdates,
+        ...(o.conference ? { conference: true } : {}),
+      });
       const e = c.events.get(eventId);
       if (!e) throw new GoogleNotFoundError();
       if (o.ifMatch && o.ifMatch !== e.etag) throw new GooglePreconditionError();
@@ -247,7 +278,14 @@ export function createFakeGoogle(opts: { now?: () => number } = {}) {
           [
             email,
             {
-              info: { id: email, summary: calendarName, accessRole: "owner", primary: true, timeZone: "Europe/Prague", backgroundColor: "#4285f4" },
+              info: {
+                id: email,
+                summary: calendarName,
+                accessRole: "owner",
+                primary: true,
+                timeZone: "Europe/Prague",
+                backgroundColor: "#4285f4",
+              },
               events: new Map(),
             },
           ],
@@ -255,7 +293,10 @@ export function createFakeGoogle(opts: { now?: () => number } = {}) {
       });
       return codeFor(email);
     },
-    addCalendar(email: string, info: Partial<GoogleCalendarInfo> & { id: string; summary: string }) {
+    addCalendar(
+      email: string,
+      info: Partial<GoogleCalendarInfo> & { id: string; summary: string },
+    ) {
       accounts.get(email)!.calendars.set(info.id, {
         info: { accessRole: "owner", ...info },
         events: new Map(),
@@ -265,7 +306,13 @@ export function createFakeGoogle(opts: { now?: () => number } = {}) {
     putEvent(email: string, calendarId: string, event: GoogleEvent) {
       const c = accounts.get(email)!.calendars.get(calendarId)!;
       const prev = c.events.get(event.id);
-      const e: StoredEvent = { status: "confirmed", organizer: { email, self: true }, ...prev, ...event, _seq: 0 };
+      const e: StoredEvent = {
+        status: "confirmed",
+        organizer: { email, self: true },
+        ...prev,
+        ...event,
+        _seq: 0,
+      };
       if (!e.htmlLink) e.htmlLink = `https://calendar.google.test/e/${e.id}`;
       touch(c, e);
       return structuredClone({ ...e, _seq: undefined });
@@ -296,7 +343,8 @@ export function createFakeGoogle(opts: { now?: () => number } = {}) {
     },
     /** Přístupové tokeny účtu vyprší (příští volání skončí 401 a klient obnoví token). */
     expireAccessTokens(email: string) {
-      for (const t of accounts.get(email)!.accessTokens.keys()) accounts.get(email)!.accessTokens.set(t, 0);
+      for (const t of accounts.get(email)!.accessTokens.keys())
+        accounts.get(email)!.accessTokens.set(t, 0);
     },
     /** Uživatel odvolal souhlas: obnova tokenu skončí `invalid_grant`. */
     revokeConsent(email: string) {

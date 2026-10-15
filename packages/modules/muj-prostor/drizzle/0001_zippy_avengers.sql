@@ -1,0 +1,1 @@
+ALTER TABLE "recurring_invoice" ADD COLUMN "payment_id" uuid;

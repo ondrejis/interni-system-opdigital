@@ -2,6 +2,7 @@
 
 import {
   DEFINITION_VERSION,
+  MAX_DASHBOARD_WIDGETS,
   type DashboardDefinition,
   type DashboardFilters,
   type DashboardSummary,
@@ -37,21 +38,12 @@ import { Skeleton } from "../components/badges";
 import { errorToast, successToast } from "../components/toast";
 import { useNav } from "../nav";
 import { dashKeys, useDashboardApi } from "./api";
-import { DashboardGrid } from "./dashboard-grid";
+import { DashboardGrid, useLayout } from "./dashboard-grid";
 import { FiltersBar } from "./filters-bar";
 import { elementToPng } from "./png";
 import { ShareDialog } from "./share-dialog";
-import { newWidget, WidgetEditor } from "./widget-editor";
-
-const WIDGET_KINDS = [
-  ["kpi", "Číslo (KPI)"],
-  ["chart", "Graf"],
-  ["table", "Tabulka"],
-  ["list", "Seznam"],
-  ["status", "Souhrn podle stavu"],
-  ["gauge", "Měřidlo (cíl)"],
-  ["builtin", "Vestavěný blok"],
-] as const;
+import { WidgetCatalogDialog } from "./widget-catalog-dialog";
+import { newWidget, newWidgetId, WidgetEditor } from "./widget-editor";
 
 type Props = {
   boardId: string;
@@ -98,7 +90,9 @@ export function DashboardView({
   const [refreshKey, setRefreshKey] = useState(0);
   const [shareOpen, setShareOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [adding, setAdding] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  // telefon: v režimu Upravit jde jen měnit pořadí widgetů (MOB-09), ostatní úpravy patří na tablet a počítač
+  const reorderOnly = useLayout() === "mobile";
   const gridWrap = useRef<HTMLDivElement>(null);
 
   const summary: DashboardSummary | undefined = board.data?.summary;
@@ -209,28 +203,16 @@ export function DashboardView({
         <div className="ml-auto flex flex-wrap items-center gap-1.5" data-png-skip>
           {editing ? (
             <>
-              <DropdownMenu open={adding} onOpenChange={setAdding}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" data-testid="add-widget">
-                    <Plus /> Přidat widget
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {WIDGET_KINDS.map(([t, label]) => (
-                    <DropdownMenuItem
-                      key={t}
-                      onSelect={() =>
-                        setTimeout(
-                          () => setEditor({ widget: newWidget(t, catalog.data), isNew: true }),
-                          60,
-                        )
-                      }
-                    >
-                      {label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {!reorderOnly && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setCatalogOpen(true)}
+                  disabled={draft.length >= MAX_DASHBOARD_WIDGETS}
+                  data-testid="add-widget"
+                >
+                  <Plus /> Přidat widget
+                </Button>
+              )}
               <Button
                 variant="primary"
                 loading={save.isPending}
@@ -350,6 +332,7 @@ export function DashboardView({
             filters={filters}
             refreshKey={refreshKey}
             editing={editing}
+            reorderOnly={reorderOnly}
             onChange={setDraft}
             onEdit={(id) => {
               const w = draft.find((x) => x.id === id);
@@ -359,6 +342,22 @@ export function DashboardView({
         )}
       </div>
 
+      {catalogOpen && (
+        <WidgetCatalogDialog
+          presets={catalog.data?.presets ?? []}
+          onClose={() => setCatalogOpen(false)}
+          onCustom={(type) => {
+            setCatalogOpen(false);
+            setEditor({ widget: newWidget(type, catalog.data), isNew: true });
+          }}
+          onPick={(p) => {
+            setCatalogOpen(false);
+            const widget = { ...p.widget, id: newWidgetId() };
+            if (p.configure) setEditor({ widget, isNew: true });
+            else setDraft((d) => [...d, widget]);
+          }}
+        />
+      )}
       {editor && (
         <WidgetEditor
           widget={editor.widget}

@@ -44,5 +44,10 @@ export async function markCredentialFailure(
 ): Promise<void> {
   if (override) return;
   if (err instanceof MetaApiError)
-    await createCredentialStore(deps.cipher).setStatus(db, "meta", null, err.auth ? "reauth" : "error");
+    await createCredentialStore(deps.cipher).setStatus(
+      db,
+      "meta",
+      null,
+      err.auth ? "reauth" : "error",
+    );
 }

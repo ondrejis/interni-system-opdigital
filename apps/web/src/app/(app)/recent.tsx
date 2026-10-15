@@ -1,30 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
-
-const KEY = "recent-records";
+/**
+ * Naposledy otevřené záznamy se od C3 drží na serveru (`recent_record`, zapisuje je akce `getEntityRecord`), takže
+ * fungují na všech zařízeních a respektují viditelnost. Komponenta zůstává kvůli stávajícím importům a nic nedělá.
+ */
 export type RecentRecord = { href: string; title: string; label: string };
 
-export function readRecent(): RecentRecord[] {
-  try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "[]") as RecentRecord[];
-  } catch {
-    return [];
-  }
-}
-
-/** Zapamatuje si otevřený záznam pro „Nedávné“ v paletě (jen v prohlížeči daného uživatele). */
-export function TrackRecent({ href, title, label }: RecentRecord) {
-  useEffect(() => {
-    try {
-      const next = [{ href, title, label }, ...readRecent().filter((r) => r.href !== href)].slice(
-        0,
-        8,
-      );
-      localStorage.setItem(KEY, JSON.stringify(next));
-    } catch {
-      /* bez uložení */
-    }
-  }, [href, title, label]);
+/** Nic nedělá (viz výše). */
+export function TrackRecent(_props: RecentRecord) {
   return null;
 }

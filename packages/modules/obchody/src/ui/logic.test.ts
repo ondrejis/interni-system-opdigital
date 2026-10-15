@@ -74,6 +74,11 @@ describe("logika UI obchodů", () => {
     expect([1, 3, 7].map(pluralDeals)).toEqual(["obchod", "obchody", "obchodů"]);
     expect(stripMode("won")).toBe("won");
     expect(stripMode("open")).toBe("open");
-    expect(stageDays([{ toStageId: "a", days: 2 }, { toStageId: "a", days: 3 }])).toEqual({ a: 5 });
+    expect(
+      stageDays([
+        { toStageId: "a", days: 2 },
+        { toStageId: "a", days: 3 },
+      ]),
+    ).toEqual({ a: 5 });
   });
 });

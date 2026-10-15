@@ -9,6 +9,7 @@ import {
   CHART_KINDS,
   COMPARE_MODES,
   DEFINITION_VERSION,
+  MAX_DASHBOARD_WIDGETS,
   MAX_WIDGET_HEIGHT,
   PERIOD_PRESETS,
   VALUE_FORMATS,
@@ -18,7 +19,7 @@ import {
 } from "./types";
 
 /** Nejvíc widgetů na nástěnce (každý je dotaz; nástěnka se musí načíst do pár sekund). */
-export const MAX_WIDGETS = 24;
+export const MAX_WIDGETS = MAX_DASHBOARD_WIDGETS;
 /** Nejvíc nástěnek, které si uživatel může založit. */
 export const MAX_BOARDS_PER_USER = 25;
 
@@ -64,13 +65,55 @@ const metricSource = z.strictObject({
   limit: z.number().int().min(1).max(100).optional(),
 });
 
-const builtinSource = z.strictObject({ kind: z.literal("builtin"), builtin: z.enum(BUILTINS) });
+const builtinSource = z.strictObject({
+  kind: z.literal("builtin"),
+  builtin: z.enum(BUILTINS),
+  params: z
+    .strictObject({
+      tileIds: z.array(z.string().min(1).max(80)).max(12).optional(),
+      includeDelegated: z.boolean().optional(),
+      limit: z.number().int().min(1).max(30).optional(),
+    })
+    .optional(),
+});
+
+const uuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+
+/** Číslo / seznam z uloženého pohledu. */
+const viewSource = z.strictObject({
+  kind: z.literal("view"),
+  viewId: uuid,
+  agg: z.strictObject({ fn: z.enum(AGG_FUNCTIONS), attr: attrKey.optional() }).optional(),
+  limit: z.number().int().min(1).max(50).optional(),
+});
+
+/** Odkaz uvnitř aplikace (`/obchody`) nebo `https://…`; nic jiného (ne `javascript:`, ne `//host`). */
+export const SAFE_HREF = /^(\/(?!\/)[^\s]*|https?:\/\/[^\s]+)$/i;
+
+const linksSource = z.strictObject({
+  kind: z.literal("links"),
+  links: z
+    .array(
+      z.strictObject({
+        title: z.string().trim().min(1, "Vyplňte název odkazu.").max(60),
+        href: z
+          .string()
+          .trim()
+          .max(300)
+          .regex(SAFE_HREF, "Odkaz musí začínat „/“ nebo „https://“."),
+      }),
+    )
+    .max(12),
+  viewIds: z.array(uuid).max(12),
+});
 
 const sourceSchema = z.discriminatedUnion("kind", [
   entitySource,
   recordsSource,
   metricSource,
   builtinSource,
+  viewSource,
+  linksSource,
 ]);
 
 const optionsSchema = z.strictObject({
@@ -96,7 +139,8 @@ export const widgetSchema = z
     switch (w.type) {
       case "kpi":
         if (s.kind === "entity" && s.groupBy) bad("KPI nesmí být seskupené.");
-        if (s.kind !== "entity" && s.kind !== "metric") bad("KPI čerpá z entity nebo metriky.");
+        if (s.kind !== "entity" && s.kind !== "metric" && s.kind !== "view")
+          bad("KPI čerpá z entity, metriky nebo pohledu.");
         break;
       case "gauge":
         if (s.kind === "entity" && s.groupBy) bad("Měřidlo nesmí být seskupené.");
@@ -110,16 +154,22 @@ export const widgetSchema = z
           bad("Rozpad podle druhého atributu patří jen do skládaného grafu.");
         break;
       case "status":
-        if (s.kind !== "entity" || !s.groupBy)
-          bad("Souhrn podle stavu potřebuje seskupení podle stavu.");
+        if (s.kind === "entity" ? !s.groupBy : s.kind !== "metric")
+          bad("Souhrn podle stavu potřebuje seskupení podle stavu nebo metriku po stavech.");
         break;
       case "table":
         if (s.kind === "entity" && !s.groupBy) bad("Tabulka z agregace potřebuje seskupení.");
-        if (s.kind === "builtin") bad("Tabulka čerpá ze záznamů, agregace nebo metriky.");
+        if (s.kind === "builtin" || s.kind === "links")
+          bad("Tabulka čerpá ze záznamů, agregace, pohledu nebo metriky.");
         break;
       case "list":
-        if (s.kind !== "records" && !(s.kind === "builtin" && s.builtin === "my_tasks"))
-          bad("Seznam čerpá ze záznamů nebo z mých úkolů.");
+        if (
+          s.kind !== "records" &&
+          s.kind !== "metric" &&
+          s.kind !== "links" &&
+          !(s.kind === "builtin" && s.builtin === "my_tasks")
+        )
+          bad("Seznam čerpá ze záznamů, metriky, odkazů nebo z mých úkolů.");
         break;
       case "builtin":
         if (s.kind !== "builtin") bad("Vestavěný widget musí mít vestavěný zdroj.");

@@ -1,8 +1,7 @@
 "use client";
 
-import type { ComponentType } from "react";
 import { useEffect, useState } from "react";
-import * as zakazkyUi from "@rebar/zakazky/ui";
+import { JobsFromDealDialog } from "@rebar/zakazky/ui";
 import {
   Button,
   Combobox,
@@ -72,10 +71,7 @@ function LoseBody({ deal, onClose, onDone }: { deal: DealRef } & DoneProps) {
   useEffect(() => setReason(null), [deal.id]);
   return (
     <div className="space-y-3 px-5 py-4" data-testid="lose-dialog">
-      <Field
-        label="Důvod prohry"
-        error={shown && !reason ? "Vyberte důvod prohry." : undefined}
-      >
+      <Field label="Důvod prohry" error={shown && !reason ? "Vyberte důvod prohry." : undefined}>
         <Combobox
           aria-label="Důvod prohry"
           options={(reasons.data ?? []).map((r) => ({ value: r.value, label: r.label }))}
@@ -122,25 +118,10 @@ function LoseBody({ deal, onClose, onDone }: { deal: DealRef } & DoneProps) {
 
 /* ---------- Výhra (OBCH-13) ---------- */
 
-type JobsFromDealProps = {
-  dealId: string;
-  companyId: string;
-  services: readonly string[];
-  value?: number | null;
-  ownerId?: string | null;
-  open?: boolean;
-  onSubmit?: (rows: WinDealInput["jobs"]) => Promise<{ jobs?: WinResult["jobs"] } | void>;
-  onDone: (r: { skipped: boolean; created: WinResult["jobs"] }) => void;
-};
-
-/** Dialog „Založit zakázky“ ze ZAK-B (`@rebar/zakazky/ui`); dokud ho modul nevyexportuje, platí záloha bez řádků. */
-const JobsFromDealDialog = (zakazkyUi as unknown as { JobsFromDealDialog?: ComponentType<JobsFromDealProps> })
-  .JobsFromDealDialog;
-
 /**
  * Výhra: nejdřív potvrzení s datem výhry, potom dialog „Založit zakázky“ (`JobsFromDealDialog` z modulu zakázky;
- * „Přeskočit“ zakázky nezaloží). Výhru provede `obchody.win` s řádky dialogu. Bez dialogu zakázek (modul ho zatím
- * nenabízí) se obchod jen označí jako vyhraný a zakázky jdou založit ručně.
+ * „Přeskočit“ zakázky nezaloží). Výhru provede `obchody.win` s řádky dialogu. Obchod bez organizace se jen označí jako
+ * vyhraný (zakázky jdou založit ručně).
  */
 export function WinDealFlow({ deal, onClose, onDone }: { deal: DealRef | null } & DoneProps) {
   return (
@@ -156,17 +137,19 @@ function WinBody({ deal, onClose, onDone }: { deal: DealRef } & DoneProps) {
   const [step, setStep] = useState<"confirm" | "jobs">("confirm");
   const win = useCommandMutation<WinDealInput, WinResult>("obchody.win");
   const p = preview.data;
-  const canJobs = !!JobsFromDealDialog && !!p?.companyId;
+  const canJobs = !!p?.companyId;
 
   const finish = (created: number) => {
     successToast(
-      created ? `Obchod je vyhraný, založeno zakázek: ${created}.` : "Obchod je označený jako vyhraný.",
+      created
+        ? `Obchod je vyhraný, založeno zakázek: ${created}.`
+        : "Obchod je označený jako vyhraný.",
     );
     onClose();
     onDone?.();
   };
 
-  if (step === "jobs" && p?.companyId && JobsFromDealDialog)
+  if (step === "jobs" && p?.companyId)
     return (
       <JobsFromDealDialog
         dealId={deal.id}
@@ -199,7 +182,11 @@ function WinBody({ deal, onClose, onDone }: { deal: DealRef } & DoneProps) {
         ) : (
           <>
             <Field label="Datum výhry">
-              <DatePicker value={wonOn} onChange={(v) => setWonOn(v ?? todayIso())} clearable={false} />
+              <DatePicker
+                value={wonOn}
+                onChange={(v) => setWonOn(v ?? todayIso())}
+                clearable={false}
+              />
             </Field>
             <p className="text-sm text-muted">
               {p?.companyName ? `Organizace „${p.companyName}“ se stane aktivním klientem. ` : ""}

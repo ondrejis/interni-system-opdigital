@@ -1,0 +1,822 @@
+{
+  "name": "OPSYS: složky na Google Disku",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## OPSYS → Google Disk: složky klientů a zakázek\n\nPřijme odchozí webhook `drive.*` z OPSYS (Nastavení → Integrace), **ověří podpis HMAC-SHA256**, hned odpoví 200 (OPSYS čeká jen 10 s) a na pozadí založí / přejmenuje / přesune složky ve sdíleném Disku. Výsledek (ID složek) pošle podepsaným callbackem `POST /api/ingest/drive`.\n\n**Před zapnutím:** vyplň uzel „Konfigurace“ (ID složek Klienti a Archiv), přiřaď Google Drive OAuth2 přihlášení u všech uzlů „Google Disk: …“ a nastav tajemství (proměnné prostředí n8n `OPSYS_WEBHOOK_SECRET`, `OPSYS_INGEST_SECRET`). Postup: `deploy/n8n/README.md`.",
+        "width": 520,
+        "height": 260
+      },
+      "id": "drv-01",
+      "name": "Poznámka 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -300,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "opsys-drive",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "drv-02",
+      "name": "Webhook z OPSYS",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "opsys-drive-folders",
+      "notes": "Adresa (Production URL) se vkládá do OPSYS: Nastavení → Integrace → Webhooky, události `drive.*`.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Nastavení workflow. ŽÁDNÉ klíče ani ID účtů se sem nepíšou natvrdo do repozitáře: tajemství jdou z proměnných prostředí n8n.\nlet env = {};\ntry { env = $env; } catch (e) { env = {}; }\nconst cfg = {\n  // tajemství odchozích webhooků (Nastavení → Integrace → webhook → tajemství podpisu, začíná whsec_)\n  webhookSecret: env.OPSYS_WEBHOOK_SECRET || '<<DOPLNIT: tajemství webhooku>>',\n  // tajemství příchozích požadavků (Nastavení → Integrace → Příchozí požadavky); podepisuje se callback do OPSYS\n  ingestSecret: env.OPSYS_INGEST_SECRET || '<<DOPLNIT: tajemství příchozích požadavků>>',\n  // ID složek „Klienti“ a „Archiv“ na sdíleném Disku (z adresy složky v prohlížeči: …/folders/<ID>)\n  clientsRootFolderId: env.OPSYS_DRIVE_CLIENTS_FOLDER_ID || '<<DOPLNIT: ID složky Klienti>>',\n  archiveRootFolderId: env.OPSYS_DRIVE_ARCHIVE_FOLDER_ID || '<<DOPLNIT: ID složky Archiv>>',\n};\nreturn $input.all().map((i) => ({ json: { ...i.json, cfg }, binary: i.binary }));"
+      },
+      "id": "drv-03",
+      "name": "Konfigurace",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "notes": "Jediné místo s nastavením. Tajemství z proměnných prostředí n8n, ID složek vyplň (nebo také proměnné prostředí).",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Ověření podpisu odchozího webhooku OPSYS: hlavička X-Opsys-Signature = t=<unix>,v1=<hex HMAC-SHA256(tajemství, t + \".\" + tělo)>.\n// Tělo se podepisuje přesně tak, jak odešlo, proto se čte ze syrových dat (Webhook → Možnosti → Raw Body), ne z parsovaného JSON.\n// Vyžaduje NODE_FUNCTION_ALLOW_BUILTIN=crypto v prostředí n8n.\nconst crypto = require('crypto');\nconst item = $input.first();\nconst cfg = item.json.cfg;\nconst raw = (await this.helpers.getBinaryDataBuffer(0, 'data')).toString('utf8');\nconst header = String((item.json.headers || {})['x-opsys-signature'] || '');\nlet t = null;\nconst sigs = [];\nfor (const part of header.split(',')) {\n  const i = part.indexOf('=');\n  if (i < 1) continue;\n  const k = part.slice(0, i).trim();\n  const v = part.slice(i + 1).trim();\n  if (k === 't' && /^\\d{1,12}$/.test(v)) t = Number(v);\n  else if (k === 'v1' && /^[0-9a-f]{64}$/i.test(v)) sigs.push(v.toLowerCase());\n}\nif (String(cfg.webhookSecret).includes('DOPLNIT')) throw new Error('Workflow není nastavené: chybí tajemství webhooku (uzel Konfigurace).');\nlet ok = false;\nlet reason = header ? 'malformed' : 'missing';\nif (t !== null && sigs.length) {\n  if (Math.abs(Math.floor(Date.now() / 1000) - t) > 300) reason = 'expired';\n  else {\n    const expected = crypto.createHmac('sha256', cfg.webhookSecret).update(t + '.' + raw).digest();\n    ok = sigs.some((s) => { const g = Buffer.from(s, 'hex'); return g.length === expected.length && crypto.timingSafeEqual(g, expected); });\n    reason = ok ? '' : 'mismatch';\n  }\n}\nlet event = null;\nif (ok) {\n  try { event = JSON.parse(raw); } catch (e) { ok = false; reason = 'invalid_json'; }\n}\nreturn [{ json: { ok, reason, event, cfg } }];"
+      },
+      "id": "drv-04",
+      "name": "Ověřit podpis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "notes": "Bez platného podpisu se nic nedělá (odpověď 401).",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c-4",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "drv-05",
+      "name": "Podpis platný?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"received\": true } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "drv-06",
+      "name": "Odpovědět 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        220
+      ],
+      "notes": "Hned po ověření: OPSYS čeká na odpověď nejvýš 10 s, zbytek běží na pozadí.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"invalid_signature\", \"reason\": $json.reason } }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "drv-07",
+      "name": "Odpovědět 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Z události drive.* (viz docs/moduly/disk.md) sestaví plán práce: seznam složek k založení (strom) nebo jedna operace.\nconst { event, cfg } = $input.first().json;\nconst d = (event && event.data) || {};\nconst s = d.structure || {};\nconst client = d.client || {};\nconst kind = (event && event.event) || '';\n// zkušební událost „Odeslat test“ a cokoli, co není drive.*, se tiše přijme (odpověď 200 už odešla) a workflow skončí\nif (!kind.startsWith('drive.')) return [];\nconst state = {\n  requestId: d.requestId || (event && event.id) || '',\n  callbackUrl: d.callbackUrl || '',\n  kind,\n  cfg,\n  tasks: [],\n  error: null,\n  update: null,\n  move: null,\n  lookup: null,\n};\nlet n = 0;\nconst key = () => 't' + (++n);\n// rekurzivně převede strom { name, service?, children } na seznam úkolů (rodič je dřív než potomek)\nfunction flatten(node, parentKey, parentId, role) {\n  const k = key();\n  state.tasks.push({ key: k, name: String(node.name), parentKey, parentId, role: node.service ? 'service' : role, service: node.service || null, id: null });\n  for (const c of node.children || []) flatten(c, k, null, 'sub');\n  return k;\n}\nlet op = 'tree';\nif (!state.requestId || !/^https?:\\/\\//.test(state.callbackUrl)) {\n  state.error = 'Událost neobsahuje requestId nebo callbackUrl.';\n} else if (String(cfg.clientsRootFolderId).includes('DOPLNIT') || String(cfg.archiveRootFolderId).includes('DOPLNIT')) {\n  state.error = 'Workflow není nastavené: chybí ID složek Klienti a Archiv (uzel Konfigurace).';\n} else if (kind === 'drive.client.create') {\n  flatten(s.clientFolder, null, cfg.clientsRootFolderId, 'client');\n} else if (kind === 'drive.client.add_service') {\n  if (!client.folderId) state.error = 'Klient nemá složku na Disku (folderId).';\n  else for (const svc of s.services || []) flatten({ name: svc.name, service: svc.service, children: svc.children }, null, client.folderId, 'service');\n} else if (kind === 'drive.project.create') {\n  const sf = s.serviceFolder || {};\n  if (!client.folderId) state.error = 'Klient nemá složku na Disku (folderId).';\n  else if (sf.folderId) flatten(s.jobFolder, null, sf.folderId, 'project');\n  else {\n    // složka služby není známá: najít ji v klientské složce, jinak založit (vždy „najít, nebo založit“)\n    flatten({ name: sf.name, service: sf.service, children: [] }, null, client.folderId, 'service');\n    state.tasks[state.tasks.length - 1].key = 'svc';\n    flatten(s.jobFolder, 'svc', null, 'project');\n    const esc = (v) => String(v).replace(/\\\\/g, '\\\\\\\\').replace(/'/g, \"\\\\'\");\n    state.lookup = { q: \"name = '\" + esc(sf.name) + \"' and '\" + client.folderId + \"' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false\" };\n    op = 'lookup';\n  }\n} else if (kind === 'drive.client.rename') {\n  if (!client.folderId) state.error = 'Klient nemá složku na Disku (folderId).';\n  else { state.update = { fileId: client.folderId, name: String((s.clientFolder || {}).name || '') }; op = 'update'; }\n} else if (kind === 'drive.client.archive') {\n  if (!client.folderId) state.error = 'Klient nemá složku na Disku (folderId).';\n  else { state.move = { fileId: client.folderId, add: cfg.archiveRootFolderId, remove: cfg.clientsRootFolderId }; op = 'move'; }\n} else if (kind === 'drive.client.restore') {\n  if (!client.folderId) state.error = 'Klient nemá složku na Disku (folderId).';\n  else { state.move = { fileId: client.folderId, add: cfg.clientsRootFolderId, remove: cfg.archiveRootFolderId }; op = 'move'; }\n} else {\n  state.error = 'Neznámá událost: ' + kind;\n}\n// kořenová složka zakázky/klienta má vždy roli podle druhu události\nif (kind === 'drive.client.create' && state.tasks[0]) state.tasks[0].role = 'client';\nif (state.error) op = 'tree';\nreturn [{ json: { op, state } }];"
+      },
+      "id": "drv-08",
+      "name": "Plán",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        220
+      ],
+      "notes": "Převede událost na plán. Neznámá událost nebo chybná konfigurace = chyba v callbacku.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "op-tree",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "tree",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "tree"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "op-lookup",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "lookup",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "lookup"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "op-update",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "update",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "update"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "op-move",
+                    "leftValue": "={{ $json.op }}",
+                    "rightValue": "move",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "move"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "drv-09",
+      "name": "Jaká operace?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1320,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Vybere složky, jejichž rodič už má ID (nejdřív kořen, pak další úroveň…). Když nic nezbývá nebo nastala chyba, je hotovo.\nconst state = $input.first().json.state;\nif (state.error) return [{ json: { done: true, state } }];\nconst idOf = Object.fromEntries(state.tasks.filter((t) => t.id).map((t) => [t.key, t.id]));\nconst ready = state.tasks.filter((t) => !t.id && (t.parentKey ? idOf[t.parentKey] : t.parentId));\nif (!ready.length) return [{ json: { done: true, state } }];\nreturn ready.map((t) => ({ json: { done: false, key: t.key, name: t.name, parentId: t.parentKey ? idOf[t.parentKey] : t.parentId, state } }));"
+      },
+      "id": "drv-10",
+      "name": "Další úroveň",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        40
+      ],
+      "notes": "Smyčka: Další úroveň → Založit → Zapsat ID → Další úroveň. Souběžně se zakládají složky jedné úrovně.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c-10",
+              "leftValue": "={{ $json.done }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "drv-11",
+      "name": "Hotovo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/drive/v3/files?supportsAllDrives=true&fields=id,name",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $json.name, mimeType: 'application/vnd.google-apps.folder', parents: [$json.parentId] }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "drv-12",
+      "name": "Google Disk: založit složku",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        120
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "",
+          "name": "<<DOPLNIT: Google Drive OAuth2 (účet s přístupem ke sdílenému Disku)>>"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "notes": "Google Drive API v3, files.create. Při chybě pokračuje (chyba se zapíše do callbacku).",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Přiřadí ID založených složek ke svým úkolům (podle pořadí položek) a vrátí aktualizovaný stav do smyčky.\nconst planned = $('Další úroveň').all();\nconst res = $input.all();\nconst state = JSON.parse(JSON.stringify(planned[0].json.state));\nplanned.forEach((p, i) => {\n  const r = (res[i] && res[i].json) || {};\n  const t = state.tasks.find((x) => x.key === p.json.key);\n  if (r.id && !r.error) t.id = r.id;\n  else if (!state.error) {\n    const e = r.error || {};\n    state.error = 'Složku „' + p.json.name + '“ se nepodařilo založit: ' + (e.message || e.description || 'neznámá chyba Google Disku') + '.';\n  }\n});\nreturn [{ json: { state } }];"
+      },
+      "id": "drv-13",
+      "name": "Zapsat ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2220,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Z hotových úkolů sestaví tělo callbacku (status ok/error, ID složek podle role).\nconst state = $input.first().json.state;\nconst cb = { eventId: state.requestId, status: state.error ? 'error' : 'ok' };\nif (state.error) cb.error = String(state.error).slice(0, 1900);\nelse {\n  const folders = {};\n  const client = state.tasks.find((t) => t.role === 'client');\n  if (client && client.id) folders.root = client.id;\n  const services = {};\n  for (const t of state.tasks) if (t.role === 'service' && t.service && t.id) services[t.service] = t.id;\n  if (Object.keys(services).length) folders.services = services;\n  const project = state.tasks.find((t) => t.role === 'project');\n  if (project && project.id) folders.project = project.id;\n  if (Object.keys(folders).length) cb.folders = folders;\n}\nreturn [{ json: { callbackUrl: state.callbackUrl, ingestSecret: state.cfg.ingestSecret, callback: cb } }];"
+      },
+      "id": "drv-14",
+      "name": "Výsledek: strom",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.state.lookup.q }}"
+            },
+            {
+              "name": "supportsAllDrives",
+              "value": "true"
+            },
+            {
+              "name": "includeItemsFromAllDrives",
+              "value": "true"
+            },
+            {
+              "name": "fields",
+              "value": "files(id,name)"
+            },
+            {
+              "name": "pageSize",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "drv-15",
+      "name": "Google Disk: najít složku služby",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        260
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "",
+          "name": "<<DOPLNIT: Google Drive OAuth2 (účet s přístupem ke sdílenému Disku)>>"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "notes": "Najde složku služby v klientské složce (zakázka vznikla dřív, než se složka služby zapsala do OPSYS).",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Našla-li se složka služby, použije se její ID; jinak ji smyčka založí (úkol 'svc').\nconst state = JSON.parse(JSON.stringify($('Plán').first().json.state));\nconst r = $input.first().json || {};\nif (r.error) {\n  state.error = 'Hledání složky služby selhalo: ' + ((r.error && (r.error.message || r.error.description)) || 'neznámá chyba Google Disku') + '.';\n} else {\n  const found = Array.isArray(r.files) ? r.files[0] : null;\n  if (found && found.id) state.tasks.find((t) => t.key === 'svc').id = found.id;\n}\nreturn [{ json: { state } }];"
+      },
+      "id": "drv-16",
+      "name": "Doplnit složku služby",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent($json.state.update.fileId) + '?supportsAllDrives=true&fields=id,name' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $json.state.update.name }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "drv-17",
+      "name": "Google Disk: přejmenovat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        440
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "",
+          "name": "<<DOPLNIT: Google Drive OAuth2 (účet s přístupem ke sdílenému Disku)>>"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent($json.state.move.fileId) + '?supportsAllDrives=true&fields=id,parents&addParents=' + encodeURIComponent($json.state.move.add) + '&removeParents=' + encodeURIComponent($json.state.move.remove) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({}) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "drv-18",
+      "name": "Google Disk: přesunout",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        620
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "",
+          "name": "<<DOPLNIT: Google Drive OAuth2 (účet s přístupem ke sdílenému Disku)>>"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "notes": "Archivace = přesun do složky Archiv, obnova = zpět do složky Klienti. Nic se nemaže.",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Výsledek přejmenování / přesunu pro callback.\nconst state = $('Plán').first().json.state;\nconst r = $input.first().json || {};\nconst fileId = (state.update || state.move || {}).fileId;\nconst cb = { eventId: state.requestId };\nif (r.error || !r.id) {\n  cb.status = 'error';\n  const e = r.error || {};\n  cb.error = ('Operace na Disku selhala: ' + (e.message || e.description || 'neznámá chyba Google Disku') + '.').slice(0, 1900);\n} else {\n  cb.status = 'ok';\n  if (state.kind === 'drive.client.archive') cb.folders = { archive: r.id };\n  else cb.folders = { root: r.id };\n}\nreturn [{ json: { callbackUrl: state.callbackUrl, ingestSecret: state.cfg.ingestSecret, callback: cb, fileId } }];"
+      },
+      "id": "drv-19",
+      "name": "Výsledek: jednoduchý",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Podepíše tělo callbacku tajemstvím příchozích požadavků: X-Opsys-Signature = t=<unix>,v1=<hex HMAC-SHA256(tajemství, t + \".\" + tělo)>.\n// Tělo se serializuje JEDNOU a odešle se přesně tak (HTTP uzel níže posílá surový řetězec).\nconst crypto = require('crypto');\nconst j = $input.first().json;\nif (String(j.ingestSecret).includes('DOPLNIT')) throw new Error('Workflow není nastavené: chybí tajemství příchozích požadavků (uzel Konfigurace).');\nconst body = JSON.stringify(j.callback);\nconst t = Math.floor(Date.now() / 1000);\nconst sig = crypto.createHmac('sha256', j.ingestSecret).update(t + '.' + body).digest('hex');\nreturn [{ json: { url: j.callbackUrl, body, signature: 't=' + t + ',v1=' + sig } }];"
+      },
+      "id": "drv-20",
+      "name": "Podepsat callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2440,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Opsys-Signature",
+              "value": "={{ $json.signature }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "drv-21",
+      "name": "Callback do OPSYS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2660,
+        260
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "notes": "Callback je idempotentní (OPSYS duplicitní odpověď ignoruje), proto smí opakovat.",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "Webhook z OPSYS": {
+      "main": [
+        [
+          {
+            "node": "Konfigurace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfigurace": {
+      "main": [
+        [
+          {
+            "node": "Ověřit podpis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ověřit podpis": {
+      "main": [
+        [
+          {
+            "node": "Podpis platný?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Podpis platný?": {
+      "main": [
+        [
+          {
+            "node": "Odpovědět 200",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Odpovědět 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Odpovědět 200": {
+      "main": [
+        [
+          {
+            "node": "Plán",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plán": {
+      "main": [
+        [
+          {
+            "node": "Jaká operace?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jaká operace?": {
+      "main": [
+        [
+          {
+            "node": "Další úroveň",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Disk: najít složku služby",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Disk: přejmenovat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Disk: přesunout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Disk: najít složku služby": {
+      "main": [
+        [
+          {
+            "node": "Doplnit složku služby",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Doplnit složku služby": {
+      "main": [
+        [
+          {
+            "node": "Další úroveň",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Další úroveň": {
+      "main": [
+        [
+          {
+            "node": "Hotovo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hotovo?": {
+      "main": [
+        [
+          {
+            "node": "Výsledek: strom",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Disk: založit složku",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Disk: založit složku": {
+      "main": [
+        [
+          {
+            "node": "Zapsat ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zapsat ID": {
+      "main": [
+        [
+          {
+            "node": "Další úroveň",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Disk: přejmenovat": {
+      "main": [
+        [
+          {
+            "node": "Výsledek: jednoduchý",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Disk: přesunout": {
+      "main": [
+        [
+          {
+            "node": "Výsledek: jednoduchý",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Výsledek: strom": {
+      "main": [
+        [
+          {
+            "node": "Podepsat callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Výsledek: jednoduchý": {
+      "main": [
+        [
+          {
+            "node": "Podepsat callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Podepsat callback": {
+      "main": [
+        [
+          {
+            "node": "Callback do OPSYS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

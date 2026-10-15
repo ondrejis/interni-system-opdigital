@@ -1,12 +1,14 @@
 "use server";
 
 import {
+  availablePresets,
   cloneBoard,
   createBoard,
   deleteBoard,
   getBoard,
   listAllBoards,
   listBoards,
+  listViewChoices,
   reorderBoards,
   setRoleDefault,
   shareBoard,
@@ -17,7 +19,7 @@ import { schema } from "@rebar/core/db";
 import { UserError } from "@rebar/core/rbac";
 import { inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { dashboardsEnabled, getDashboardEnv } from "./dashboards";
+import { dashboardsEnabled, getDashboardEnv, runModuleCommand } from "./dashboards";
 import { defineAction } from "./request";
 
 /*
@@ -122,7 +124,25 @@ export const dashboardCatalogAction = defineAction({
       .select({ key: schema.role.key, name: schema.role.name })
       .from(schema.role)
       .where(isNull(schema.role.deletedAt));
-    return { ...sourceCatalog(ctx, getDashboardEnv()), roles };
+    const env = getDashboardEnv();
+    return {
+      ...sourceCatalog(ctx, env),
+      roles,
+      presets: availablePresets(ctx, env),
+      views: await listViewChoices(ctx, env),
+    };
+  },
+});
+
+/**
+ * Odškrtnutí úkolu přímo ve widgetu „Úkoly na dnes“: příkaz `ukoly.complete` (oprávnění `ukoly.write`, viditelnost
+ * a pravidla úkolu hlídá modul). Bez zapnutého modulu úkolů akce skončí větou.
+ */
+export const completeDashboardTaskAction = defineAction({
+  input: z.object({ id }),
+  handler: async (ctx, i) => {
+    await runModuleCommand(ctx, "ukoly.complete", { id: i.id });
+    return { ok: true as const };
   },
 });
 

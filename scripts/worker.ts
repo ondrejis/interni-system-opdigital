@@ -28,6 +28,7 @@ import {
   resolveBranding,
   smtpSetting,
 } from "@rebar/core/settings";
+import { WEBHOOK_NOTIFY_CHANNEL, webhookDeliverJob } from "@rebar/core/webhooks";
 import { loadEnv } from "../apps/web/src/server/env";
 import { buildRegistry, collectServers } from "../apps/web/src/server/modules-server";
 import { ALL_MODULES } from "../apps/web/src/modules";
@@ -130,6 +131,20 @@ const wake = () => {
 };
 const listener = await pg.listen(NOTIFY_CHANNEL, wake, wake);
 
+/**
+ * Odchozí webhooky (n8n) se doručují hned po potvrzení transakce, která událost vytvořila: databáze pošle NOTIFY na
+ * `WEBHOOK_NOTIFY_CHANNEL`, worker po krátkém sloučení zařadí doručení do fronty. Minutový plán úlohy
+ * `core.webhooks.deliver` je záloha pro výpadek spojení nebo restart.
+ */
+let webhookKick: NodeJS.Timeout | undefined;
+const wakeWebhooks = () => {
+  webhookKick ??= setTimeout(() => {
+    webhookKick = undefined;
+    queue.send(webhookDeliverJob, {}).catch((err) => captureError(err, { where: "webhook.kick" }));
+  }, 1500);
+};
+const webhookListener = await pg.listen(WEBHOOK_NOTIFY_CHANNEL, wakeWebhooks, wakeWebhooks);
+
 // úlohy zapnutých modulů (připomínky, uzávěrky…) běží s právy systému a mají k dispozici registr entit
 const collected = collectServers(modules);
 const registry = buildRegistry(collected.entities);
@@ -181,7 +196,9 @@ console.log(
 async function shutdown() {
   console.log("[worker] ukončuji…");
   if (kick) clearTimeout(kick);
+  if (webhookKick) clearTimeout(webhookKick);
   await listener.unlisten().catch(() => {});
+  await webhookListener.unlisten().catch(() => {});
   await queue.stop().catch(() => {});
   await close().catch(() => {});
   process.exit(0);

@@ -33,13 +33,14 @@ vi.mock("@rebar/zakazky/api", () => ({
 const app = connectAppDb();
 afterAll(() => app.close());
 
-const nb = (s: string) => s.replace(/ /g, " ");
+const nb = (s: string) => s.replaceAll(String.fromCharCode(160), " ");
 const K = (n: number) => n * 100;
 
 let O: Awaited<ReturnType<typeof makeUser>>; // Ondřej (vlastník)
 let P: Awaited<ReturnType<typeof makeUser>>; // Patrik (partner)
 let deps: ModuleDeps;
 const cmd = (name: string) => dataCommands.find((c) => c.name === name)!;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const run = async <T = any>(name: string, ctx: Ctx, input: object = {}): Promise<T> => {
   const c = cmd(name);
   return (await c.handler(ctx, c.input.parse(input) as never, deps)) as T;

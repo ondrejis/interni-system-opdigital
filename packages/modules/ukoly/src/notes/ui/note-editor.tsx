@@ -377,8 +377,10 @@ export function NoteEditor({
   });
 
   // obnoví neuložený text z prohlížeče (stránka se zavřela dřív, než se zápis podařil)
+  const restored = useRef(false);
   useEffect(() => {
-    if (!editor || !note) return;
+    if (!editor || !note || restored.current) return;
+    restored.current = true; // jen při otevření, ne po každém uložení
     const d = readDraft(note.id);
     if (!d || d.version !== note.version) return writeDraft(note.id, null);
     if (JSON.stringify(d.doc) === JSON.stringify(note.bodyJson ?? emptyNoteDoc()))

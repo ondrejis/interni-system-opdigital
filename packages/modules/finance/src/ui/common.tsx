@@ -9,114 +9,15 @@ import {
 } from "@rebar/ui";
 import { useEffect, useState, type ReactNode } from "react";
 import type { AllocationChange, People } from "../contract";
-import { formatMoney } from "../logic";
 
 /*
   Sdílené kousky UI financí: popisky, formáty, seznam uživatelů a mutace s potvrzením přepočtu rozdělení zaplacené
   platby (FIN-13, SPOL-15). UI importuje z `../logic` jen čisté funkce a z `../contract` jen typy.
 */
 
-export const KIND_LABELS: Record<string, string> = {
-  one_off: "Jednorázová",
-  intro: "Úvodní fáze",
-  retainer: "Retainer",
-  extra: "Navíc",
-  recurring: "Opakovaná (Fakturoid)",
-};
-export const STATUS_LABELS: Record<string, string> = {
-  planned: "Plánovaná",
-  issued: "Vystavená",
-  paid: "Zaplacená",
-  canceled: "Zrušená",
-};
-export const STATUS_COLORS: Record<string, string> = {
-  planned: "gray",
-  issued: "blue",
-  paid: "green",
-  canceled: "red",
-};
-export const METHOD_LABELS: Record<string, string> = {
-  invoice: "Faktura mezi IČO",
-  transfer: "Převod",
-  offset: "Zápočet",
-};
-export const TYPE_LABELS: Record<string, string> = {
-  web: "Web",
-  marketing: "Marketing",
-  systemy: "Systémy",
-  recurring: "Opakované (Fakturoid)",
-};
-
-/** Částka v haléřích česky (`12 400 Kč`). */
-export const money = (minor: number): string => formatMoney(minor);
-
-/** Dnešní datum `RRRR-MM-DD` v místním čase. */
-export function today(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-/** Aktuální měsíc `RRRR-MM`. */
-export const thisMonth = (): string => today().slice(0, 7);
-
-/** `2026-10-14` → `14. 10. 2026`; prázdné → pomlčka. */
-export function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return "–";
-  const [y, m, d] = iso.split("-");
-  return `${Number(d)}. ${Number(m)}. ${y}`;
-}
-
-/** `2026-12` → `12/2026`. */
-export function monthLabel(month: string | null | undefined): string {
-  return month ? `${month.slice(5)}/${month.slice(0, 4)}` : "Bez data";
-}
-
-const MONTH_NAMES = [
-  "leden",
-  "únor",
-  "březen",
-  "duben",
-  "květen",
-  "červen",
-  "červenec",
-  "srpen",
-  "září",
-  "říjen",
-  "listopad",
-  "prosinec",
-];
-/** `2026-12` → `prosinec 2026`. */
-export function monthName(month: string | null | undefined): string {
-  return month
-    ? `${MONTH_NAMES[Number(month.slice(5)) - 1] ?? month} ${month.slice(0, 4)}`
-    : "Bez data";
-}
-
-/** Zkratka měsíce do osy grafu. */
-export const SHORT_MONTHS = [
-  "led",
-  "úno",
-  "bře",
-  "dub",
-  "kvě",
-  "čvn",
-  "čvc",
-  "srp",
-  "zář",
-  "říj",
-  "lis",
-  "pro",
-];
-
-/** Křestní jméno z celého jména („Ondřej Dvořák“ → „Ondřej“). */
-export const firstNameOf = (label: string): string => label.trim().split(/\s+/)[0] ?? label;
-
-/** Jméno osoby z odpovědi příkazů (`people`), jinak znak „?“. */
-export function personName(people: People, id: string | null | undefined): string {
-  if (!id) return "–";
-  return people[id]?.firstName || people[id]?.name || "?";
-}
-
+export * from "./format";
+import { firstNameOf, money, personName, STATUS_LABELS } from "./format";
+/** Uživatel v nabídkách výběru: id, celé jméno a křestní jméno. */
 export type UserOption = { value: string; label: string; firstName: string };
 
 let usersCache: Promise<UserOption[]> | null = null;
@@ -129,9 +30,15 @@ export function useUsers(): UserOption[] {
     let live = true;
     usersCache ??= api.lookups
       .users("")
-      .then((r) =>
-        r.map((o) => ({ value: o.value, label: o.label, firstName: firstNameOf(o.label) })),
-      )
+      .then((r) => {
+        // stejné křestní jméno u dvou lidí: ve větách se rozliší celým jménem
+        const first = r.map((o) => firstNameOf(o.label));
+        return r.map((o, i) => ({
+          value: o.value,
+          label: o.label,
+          firstName: first.filter((f) => f === first[i]).length > 1 ? o.label : first[i]!,
+        }));
+      })
       .catch(() => {
         usersCache = null;
         return [];

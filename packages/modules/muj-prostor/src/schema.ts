@@ -134,6 +134,8 @@ export const recurringInvoice = pgTable(
     fakturoidId: text("fakturoid_id"),
     fakturoidNumber: text("fakturoid_number"),
     fakturoidUrl: text("fakturoid_url"),
+    /** Platba v modulu finance (soft odkaz bez FK), která vznikla po vytvoření faktury; `null`, dokud nevznikla (MPR-3). */
+    paymentId: uuid("payment_id"),
     approvedBy: uuid("approved_by").references(() => user.id),
     approvedAt: ts("approved_at"),
     error: text("error"),

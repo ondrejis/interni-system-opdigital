@@ -3,5 +3,7 @@
 import { mergeModuleUi, type ModuleUi } from "@rebar/ui";
 import { areaUi } from "./ui/index";
 
+export { GoogleCalendarSettings } from "./ui/index";
+
 /** UI modulu „kalendar“ složené z oblastí. */
 export const ui: ModuleUi = mergeModuleUi(areaUi);

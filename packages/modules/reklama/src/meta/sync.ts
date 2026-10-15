@@ -8,18 +8,19 @@ import type { SyncSummary } from "../contract";
 import { ad, adAccount, adCampaign, adInsightDaily, adSet } from "../schema";
 import type { MetaAdsClient, MetaInsightLevel, MetaInsightRow } from "./client";
 import { getMetaClient, markCredentialFailure } from "./connection";
-import { rewriteWindow } from "./logic";
+import { backfillWindow, rewriteWindow } from "./logic";
 
 /*
   Synchronizace s Meta Ads (REK-06, REK-07): načte účty, kampaně, sady, reklamy a denní statistiky a uloží je do
   OPSYS. Statistiky se každý běh **přepisují za dnešek a posledních 7 dní** (Meta zpětně koriguje útratu a leady): řádky
   v okně se smažou a nahradí čerstvými, starší zůstanou. Chyba jednoho účtu nezastaví ostatní; zapíše se k účtu
-  (`last_sync_error`) a do výsledku. Volá ji denní úloha (6:00) i ruční příkaz `reklama.sync`.
+  (`last_sync_error`) a do výsledku. Účet bez statistik (první běh) se doplní o 90 dní historie. Volá ji denní úloha (6:00) i ruční příkaz `reklama.sync`.
 */
 
 /** Co synchronizace potřebuje od okolí (stačí `ModuleDeps` i `ModuleJobDeps`). */
 export type SyncDeps = Pick<ModuleDeps, "registry" | "cipher">;
 
+/** Volby synchronizace (jen účet, klient Meta a dnešní datum pro testy). */
 export type SyncOptions = {
   /** Jen tento účet (ID v OPSYS); jinak všechny aktivní. */
   accountId?: string | undefined;
@@ -35,7 +36,11 @@ const errText = (err: unknown) => {
 };
 
 /** Spustí synchronizaci a vrátí souhrn. Nevyhazuje kvůli chybě jednoho účtu; chybějící přístup k Meta vyhodí. */
-export async function syncMeta(db: Db, deps: SyncDeps, opts: SyncOptions = {}): Promise<SyncSummary> {
+export async function syncMeta(
+  db: Db,
+  deps: SyncDeps,
+  opts: SyncOptions = {},
+): Promise<SyncSummary> {
   const today = opts.today ?? todayIso();
   const window = rewriteWindow(today);
   const summary: SyncSummary = {
@@ -86,7 +91,15 @@ export async function syncMeta(db: Db, deps: SyncDeps, opts: SyncOptions = {}): 
     );
   for (const account of accounts) {
     try {
-      const part = await syncAccount(db, deps, client, account, window);
+      // první synchronizace účtu stáhne celou historii (90 dní), další jen okno přepisu
+      const first = !(await hasInsights(db, account.id));
+      const part = await syncAccount(
+        db,
+        deps,
+        client,
+        account,
+        first ? backfillWindow(today) : window,
+      );
       summary.accounts += 1;
       summary.campaigns += part.campaigns;
       summary.adSets += part.adSets;
@@ -252,6 +265,18 @@ async function syncAccount(
       insightRows,
     };
   });
+}
+
+/** Má účet už nějaké denní statistiky? */
+async function hasInsights(db: Db, accountId: string): Promise<boolean> {
+  const ids = await ownObjectIds(db, accountId, "campaign");
+  if (!ids.length) return false;
+  const [r] = await db
+    .select({ id: adInsightDaily.id })
+    .from(adInsightDaily)
+    .where(and(eq(adInsightDaily.level, "campaign"), inArray(adInsightDaily.objectId, ids)))
+    .limit(1);
+  return !!r;
 }
 
 /** ID objektů účtu v databázi na dané úrovni (kampaně, sady, reklamy), i dřívější, které už Meta nevrací. */

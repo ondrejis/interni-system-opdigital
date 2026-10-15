@@ -92,7 +92,11 @@ async function dealTotals(
   const out = new Map<string, { leads: number; won: number }>();
   if (!metaIds.length) return out;
   const col =
-    level === "campaign" ? deal.metaCampaignId : level === "adset" ? deal.metaAdsetId : deal.metaAdId;
+    level === "campaign"
+      ? deal.metaCampaignId
+      : level === "adset"
+        ? deal.metaAdsetId
+        : deal.metaAdId;
   const rows = await ctx.db
     .select({
       id: col,
@@ -124,8 +128,18 @@ async function inputsFor(
   period: Period,
 ): Promise<Map<string, MetricsInput>> {
   const [ins, deals] = await Promise.all([
-    insightTotals(ctx.db, level, bases.map((b) => b.id), period),
-    dealTotals(ctx, level, bases.map((b) => b.metaId), period),
+    insightTotals(
+      ctx.db,
+      level,
+      bases.map((b) => b.id),
+      period,
+    ),
+    dealTotals(
+      ctx,
+      level,
+      bases.map((b) => b.metaId),
+      period,
+    ),
   ]);
   return new Map(
     bases.map((b) => {
@@ -147,7 +161,11 @@ async function inputsFor(
 }
 
 /** Graf po dnech pro zadané kampaně: útrata, zobrazení, kliky, leady Meta (statistiky) a leady OPSYS (obchody). */
-async function dailyFor(ctx: Ctx, campaigns: readonly Base[], period: Period): Promise<DailyPoint[]> {
+async function dailyFor(
+  ctx: Ctx,
+  campaigns: readonly Base[],
+  period: Period,
+): Promise<DailyPoint[]> {
   if (!campaigns.length) return fillDaily([], period.from, period.to);
   const ins = await ctx.db
     .select({
@@ -161,7 +179,10 @@ async function dailyFor(ctx: Ctx, campaigns: readonly Base[], period: Period): P
     .where(
       and(
         eq(adInsightDaily.level, "campaign"),
-        inArray(adInsightDaily.objectId, campaigns.map((c) => c.id)),
+        inArray(
+          adInsightDaily.objectId,
+          campaigns.map((c) => c.id),
+        ),
         sql`${adInsightDaily.date} >= ${period.from}`,
         sql`${adInsightDaily.date} <= ${period.to}`,
       ),
@@ -177,7 +198,10 @@ async function dailyFor(ctx: Ctx, campaigns: readonly Base[], period: Period): P
       and(
         isNull(deal.deletedAt),
         eq(deal.source, "meta"),
-        inArray(deal.metaCampaignId, campaigns.map((c) => c.metaId)),
+        inArray(
+          deal.metaCampaignId,
+          campaigns.map((c) => c.metaId),
+        ),
         privateScope(ctx, deal),
         sql`${dealDay} between ${period.from}::date and ${period.to}::date`,
       ),
@@ -276,10 +300,7 @@ const totalsOf = (inputs: Iterable<MetricsInput>): PerformanceMetrics =>
   buildMetrics(sumMetricsInputs([...inputs]));
 
 /** Sloupce účtu pro přehled. */
-async function accountRows(
-  ctx: Ctx,
-  where: SQL | undefined,
-): Promise<AccountRow[]> {
+async function accountRows(ctx: Ctx, where: SQL | undefined): Promise<AccountRow[]> {
   const accounts = await ctx.db
     .select()
     .from(adAccount)
@@ -313,7 +334,10 @@ async function accountRows(
   const names = new Map<string, string>();
   if (companyIds.length) {
     try {
-      const list = sql.join(companyIds.map((i) => sql`${i}::uuid`), sql`, `);
+      const list = sql.join(
+        companyIds.map((i) => sql`${i}::uuid`),
+        sql`, `,
+      );
       const priv = canSeePrivate(ctx) ? sql`` : sql` and is_private = false`;
       const rows = (await ctx.db.execute(
         sql`select id, name from company where deleted_at is null and id in (${list})${priv}`,
@@ -348,10 +372,15 @@ export async function listAccounts(
   deps: Pick<ModuleDeps, "cipher">,
   input: { includeInactive?: boolean | undefined },
 ): Promise<AccountsListOutput> {
-  const accounts = await accountRows(ctx, input.includeInactive ? undefined : eq(adAccount.active, true));
-  const info = (await createCredentialStore(deps.cipher).list(ctx).catch(() => [])).find(
-    (c) => c.provider === "meta" && c.userId === null,
+  const accounts = await accountRows(
+    ctx,
+    input.includeInactive ? undefined : eq(adAccount.active, true),
   );
+  const info = (
+    await createCredentialStore(deps.cipher)
+      .list(ctx)
+      .catch(() => [])
+  ).find((c) => c.provider === "meta" && c.userId === null);
   return { accounts, connected: !!info };
 }
 
@@ -386,7 +415,10 @@ export async function campaignDetail(
     .from(adCampaign)
     .where(and(eq(adCampaign.id, input.campaignId), isNull(adCampaign.deletedAt)));
   if (!campaign) throw new NotFoundError();
-  const [account] = await ctx.db.select().from(adAccount).where(eq(adAccount.id, campaign.accountId));
+  const [account] = await ctx.db
+    .select()
+    .from(adAccount)
+    .where(eq(adAccount.id, campaign.accountId));
   const { rows, inputs } = await toCampaignRows(ctx, [campaign], input.period);
 
   const sets = await ctx.db
@@ -398,7 +430,15 @@ export async function campaignDetail(
     ? await ctx.db
         .select()
         .from(ad)
-        .where(and(inArray(ad.adSetId, sets.map((s) => s.id)), isNull(ad.deletedAt)))
+        .where(
+          and(
+            inArray(
+              ad.adSetId,
+              sets.map((s) => s.id),
+            ),
+            isNull(ad.deletedAt),
+          ),
+        )
         .orderBy(asc(ad.name))
     : [];
   const setInputs = await inputsFor(ctx, "adset", sets, input.period);
@@ -462,17 +502,18 @@ export async function campaignDetail(
 /** Kampaně podle rozsahu: účet, klient (kampaně jeho zakázek i účty klienta), zakázka, nebo všechny aktivní účty. */
 export async function campaignsInScope(
   ctx: Ctx,
-  scope: { accountId?: string | undefined; companyId?: string | undefined; jobId?: string | undefined },
+  scope: {
+    accountId?: string | undefined;
+    companyId?: string | undefined;
+    jobId?: string | undefined;
+  },
 ): Promise<CampaignBase[]> {
   const conds: (SQL | undefined)[] = [isNull(adCampaign.deletedAt)];
   if (scope.jobId) conds.push(eq(adCampaign.jobId, scope.jobId));
   else if (scope.accountId) conds.push(eq(adCampaign.accountId, scope.accountId));
   else if (scope.companyId) {
     const jobIds = await jobIdsOfCompany(ctx, scope.companyId);
-    const own = and(
-      eq(adAccount.ownerKind, "client"),
-      eq(adAccount.companyId, scope.companyId),
-    );
+    const own = and(eq(adAccount.ownerKind, "client"), eq(adAccount.companyId, scope.companyId));
     conds.push(jobIds.length ? or(inArray(adCampaign.jobId, jobIds), own) : own);
   } else conds.push(eq(adAccount.active, true));
   const rows = await ctx.db
@@ -487,7 +528,10 @@ export async function campaignsInScope(
 /** Souhrn výkonu pro rozsah (metriky, widgety, záložky karet). */
 export async function metricsFor(
   ctx: Ctx,
-  input: { scope?: { accountId?: string; companyId?: string; jobId?: string } | undefined; period: Period },
+  input: {
+    scope?: { accountId?: string; companyId?: string; jobId?: string } | undefined;
+    period: Period;
+  },
 ): Promise<AdsOverviewOutput> {
   const campaigns = await campaignsInScope(ctx, input.scope ?? {});
   const { rows, inputs } = await toCampaignRows(ctx, campaigns, input.period);

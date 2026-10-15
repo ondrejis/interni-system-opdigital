@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { recordAudit } from "../audit/audit";
 import { schema } from "../db/client";
 import type { Executor } from "../db/client";
@@ -84,6 +84,7 @@ function summarize(
     ownerName,
     defaultForRole: r.defaultForRole,
     isHome: r.isHome,
+    template: r.ownerId === null && r.seedKey !== null,
     shared,
     widgetCount,
     position,
@@ -212,6 +213,64 @@ export async function homeBoardId(ctx: Ctx): Promise<string | null> {
       ),
     );
   return r?.id ?? null;
+}
+
+/**
+ * První otevření Přehledu (PRE-03): uživatel, který ještě nikdy žádný přehled nezaložil, dostane osobní kopie výchozích
+ * sad své role (např. „Den“ a „Finance“) a může si je libovolně upravit. Platí jen jednou: i když všechny smaže, nové se
+ * neobjeví (rozhoduje, zda mu kdy nějaký přehled patřil, i smazaný). Sada role sama zůstává vzorem v Nastavení → Nástěnky.
+ * Souběžné první načtení dvěma okny hlídá advisory zámek.
+ */
+export async function ensurePersonalBoards(ctx: Ctx): Promise<{ created: number }> {
+  const user = me(ctx);
+  const role = ctx.actor.roleKey;
+  if (!role || !can(ctx, DASHBOARD_WRITE)) return { created: 0 };
+  return inTx(ctx, async (c) => {
+    await c.db.execute(sql`select pg_advisory_xact_lock(hashtext(${`dashboards-init:${user}`}))`);
+    const [had] = await c.db
+      .select({ id: schema.dashboard.id })
+      .from(schema.dashboard)
+      .where(eq(schema.dashboard.ownerId, user))
+      .limit(1);
+    if (had) return { created: 0 };
+    const templates = await c.db
+      .select()
+      .from(schema.dashboard)
+      .where(
+        and(
+          eq(schema.dashboard.defaultForRole, role),
+          isNull(schema.dashboard.ownerId),
+          isNotNull(schema.dashboard.seedKey),
+          isNull(schema.dashboard.deletedAt),
+        ),
+      )
+      .orderBy(asc(schema.dashboard.createdAt), asc(schema.dashboard.seedKey));
+    let position = 0;
+    for (const t of templates) {
+      const [row] = await c.db
+        .insert(schema.dashboard)
+        .values({
+          name: t.name,
+          ownerId: user,
+          definition: migrateDefinition(t.definition),
+          schemaVersion: DEFINITION_VERSION,
+          createdBy: user,
+          updatedBy: user,
+        })
+        .returning({ id: schema.dashboard.id });
+      await c.db
+        .insert(schema.dashboardPref)
+        .values({ userId: user, dashboardId: row!.id, position: position++ });
+    }
+    if (templates.length)
+      await recordAudit(c, {
+        action: "create",
+        entityType: "dashboard",
+        entityId: user,
+        summary: `První přehledy z výchozí sady role (${templates.length})`,
+      });
+    return { created: templates.length };
+  });
 }
 
 export async function createBoard(

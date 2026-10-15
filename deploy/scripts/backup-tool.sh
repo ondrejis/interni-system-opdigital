@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Zálohování uvnitř kontejneru `backup`: pg_dump + soubory do restic repozitáře (šifrovaně, S3 kompatibilní úložiště).
+# Zálohování uvnitř kontejneru `backup`: noční pg_dump + soubory do restic repozitáře (šifrovaně, S3 kompatibilní úložiště mimo server).
 #
 #   backup-tool.sh backup            denní záloha + retence (30 denních, 12 měsíčních)
 #   backup-tool.sh restore [snap]    obnova databáze a souborů ze snapshotu (výchozí: poslední); přepíše aktuální data
 #   backup-tool.sh restore-test      obnova poslední zálohy do dočasné databáze a kontrola počtů záznamů
 #   backup-tool.sh loop              plánovač (denní záloha, měsíční zkouška obnovy)
 #
-# Výsledek se zapisuje do $BACKUP_STATUS_FILE (čte ho /api/health a heartbeat).
+# Výsledek se zapisuje do $BACKUP_STATUS_FILE (čte ho /api/health, heartbeat a Nastavení → Systém).
 set -euo pipefail
 
 STATUS="${BACKUP_STATUS_FILE:-/data/status/backup.json}"
@@ -80,13 +80,14 @@ cmd_backup() {
     restic check --read-data-subset=2%
   fi
 
-  local snap bytes
+  local snap bytes count
   snap="$(restic snapshots --host "$HOST_TAG" --latest 1 --json | jq -r '.[0].short_id // ""')"
+  count="$(restic snapshots --host "$HOST_TAG" --tag daily --json | jq 'length')"
   bytes="$(wc -c <"$WORK/db.dump" | tr -d ' ')"
   rm -f "$WORK/db.dump" "$WORK/db.counts.tsv"
   # shellcheck disable=SC2016  # jq filtr v apostrofech
-  status_set '.lastSuccessAt=$t | .lastSnapshot=$s | .dumpBytes=($b|tonumber) | del(.lastError, .lastFailureAt)' \
-    --arg t "$(date -u +%FT%TZ)" --arg s "$snap" --arg b "$bytes"
+  status_set '.lastSuccessAt=$t | .lastSnapshot=$s | .dumpBytes=($b|tonumber) | .snapshots=($n|tonumber) | del(.lastError, .lastFailureAt)' \
+    --arg t "$(date -u +%FT%TZ)" --arg s "$snap" --arg b "$bytes" --arg n "$count"
   trap - ERR
   log "Záloha hotová (snapshot $snap, začala $started)."
 }

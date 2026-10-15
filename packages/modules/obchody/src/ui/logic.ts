@@ -93,7 +93,9 @@ export const stripMode = (result: unknown): StripMode =>
   result === "won" ? "won" : result === "lost" ? "lost" : "open";
 
 /** Dny strávené v každé fázi (součet pobytů; obchod se mohl do fáze vrátit). */
-export function stageDays(history: readonly { toStageId: string; days: number }[]): Record<string, number> {
+export function stageDays(
+  history: readonly { toStageId: string; days: number }[],
+): Record<string, number> {
   const out: Record<string, number> = {};
   for (const h of history) out[h.toStageId] = (out[h.toStageId] ?? 0) + Math.max(0, h.days);
   return out;

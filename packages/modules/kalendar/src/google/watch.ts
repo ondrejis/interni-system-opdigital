@@ -40,9 +40,15 @@ export async function ensureWatch(
     .from(calendar)
     .where(and(eq(calendar.id, calendarId), isNull(calendar.deletedAt)));
   if (!cal || (!cal.visible && !cal.isWriteTarget)) return "skipped";
-  const alive = cal.watchChannelId && cal.watchExpiresAt && cal.watchExpiresAt.getTime() - Date.now() > RENEW_BEFORE_MS;
+  const alive =
+    cal.watchChannelId &&
+    cal.watchExpiresAt &&
+    cal.watchExpiresAt.getTime() - Date.now() > RENEW_BEFORE_MS;
   if (alive && !opts.force) return "skipped";
-  const [account] = await db.select().from(calendarAccount).where(eq(calendarAccount.id, cal.accountId));
+  const [account] = await db
+    .select()
+    .from(calendarAccount)
+    .where(eq(calendarAccount.id, cal.accountId));
   if (!account || account.deletedAt || account.status === "reauth") return "skipped";
   const client = opts.client ?? (await googleClient(db, env));
   try {
@@ -70,7 +76,13 @@ export async function ensureWatch(
   } catch (e) {
     await db
       .update(calendar)
-      .set({ lastError: `Push kanál se nepodařilo založit, kalendář se čte pravidelně: ${e instanceof Error ? e.message : String(e)}`.slice(0, 500) })
+      .set({
+        lastError:
+          `Push kanál se nepodařilo založit, kalendář se čte pravidelně: ${e instanceof Error ? e.message : String(e)}`.slice(
+            0,
+            500,
+          ),
+      })
       .where(eq(calendar.id, cal.id));
     return "unavailable";
   }
@@ -87,7 +99,10 @@ export async function stopWatch(
   const [cal] = await db.select().from(calendar).where(eq(calendar.id, calendarId));
   if (!cal?.watchChannelId) return;
   try {
-    const [account] = await db.select().from(calendarAccount).where(eq(calendarAccount.id, cal.accountId));
+    const [account] = await db
+      .select()
+      .from(calendarAccount)
+      .where(eq(calendarAccount.id, cal.accountId));
     const client = opts.client ?? (await googleClient(db, env));
     if (account && cal.watchResourceId)
       await client.stopChannel(await accessTokenFor(ctx, env, client, account), {
@@ -99,7 +114,12 @@ export async function stopWatch(
   }
   await db
     .update(calendar)
-    .set({ watchChannelId: null, watchResourceId: null, watchExpiresAt: null, watchTokenHash: null })
+    .set({
+      watchChannelId: null,
+      watchResourceId: null,
+      watchExpiresAt: null,
+      watchTokenHash: null,
+    })
     .where(eq(calendar.id, calendarId));
 }
 

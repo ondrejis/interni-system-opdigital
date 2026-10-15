@@ -218,7 +218,12 @@ function QuickAddForm({
         </fieldset>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Hodnota (Kč)">
-            <MoneyInput aria-label="Hodnota obchodu" value={value} onChange={setValue} placeholder="50 000" />
+            <MoneyInput
+              aria-label="Hodnota obchodu"
+              value={value}
+              onChange={setValue}
+              placeholder="50 000"
+            />
           </Field>
           <Field label="Očekávané uzavření">
             <DatePicker value={close} onChange={setClose} />
@@ -231,7 +236,9 @@ function QuickAddForm({
                 aria-label={s.label}
                 checked={services.includes(s.value)}
                 onCheckedChange={(c) =>
-                  setServices((cur) => (c === true ? [...cur, s.value] : cur.filter((x) => x !== s.value)))
+                  setServices((cur) =>
+                    c === true ? [...cur, s.value] : cur.filter((x) => x !== s.value),
+                  )
                 }
               />
               {s.label}
@@ -248,7 +255,12 @@ function QuickAddForm({
         <Button type="button" variant="ghost" onClick={onClose}>
           Zrušit
         </Button>
-        <Button type="submit" variant="primary" loading={create.isPending} data-testid="quick-add-submit">
+        <Button
+          type="submit"
+          variant="primary"
+          loading={create.isPending}
+          data-testid="quick-add-submit"
+        >
           <Icon name="plus" /> Založit obchod
         </Button>
       </div>

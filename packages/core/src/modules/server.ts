@@ -17,7 +17,13 @@ import type { Cipher } from "../security/crypto";
 import type { SettingsService } from "../settings";
 import type { Db, Executor } from "../db/client";
 import type { EventMap, EventName } from "../extensions/types";
-import type { Bucket, ChartCategory, ChartSeriesData, ValueFormat } from "../dashboards/types";
+import type {
+  Bucket,
+  ChartCategory,
+  ChartSeriesData,
+  ListItem,
+  ValueFormat,
+} from "../dashboards/types";
 
 export { createEventEmitter, emitEvent, setEventEmitter } from "../extensions/events";
 export type { EventEmitter } from "../extensions/events";
@@ -158,7 +164,9 @@ export type DashboardMetricResult =
       kind: "series";
       categories: ChartCategory[];
       series: ChartSeriesData[];
-    };
+    }
+  /** Seznam položek (Poslední změny, nadcházející schůzky): jen pro widget typu „Seznam“. */
+  | { kind: "list"; items: ListItem[]; emptyText?: string };
 
 /**
  * Pojmenovaná metrika nástěnky: výpočet, který nejde složit z jedné entity (marže zakázek, nevyfakturováno, využití
@@ -171,8 +179,9 @@ export type DashboardMetricDef = {
   label: string;
   description?: string;
   format: ValueFormat;
-  /** `scalar` = jedno číslo (KPI, měřidlo, srovnání období); `series` = kategorie × řady (grafy, tabulka). */
-  shape: "scalar" | "series";
+  /** `scalar` = jedno číslo (KPI, měřidlo, srovnání období); `series` = kategorie × řady (grafy, tabulka);
+   * `list` = seznam položek s odkazy (widget „Seznam“). */
+  shape: "scalar" | "series" | "list";
   /** Aktér musí mít VŠECHNA uvedená oprávnění; jinak metrika pro něj neexistuje (ani v nabídce, ani při vyhodnocení). */
   permissions: readonly string[];
   supports?: { period?: boolean; job?: boolean; person?: boolean; bucket?: boolean };

@@ -6,7 +6,12 @@ import { addDaysIso, todayIso, zonedToUtc } from "@rebar/core/time";
 import { BUSY_TITLE, CALENDAR_TIME_ZONE } from "../contract";
 import { calendar, calendarAccount, calendarEvent, calendarPush } from "../schema";
 import { markAccount, withToken, type AccountRow, type CalendarRow } from "./accounts";
-import { GoogleAuthError, GoogleGoneError, type GoogleCalendarClient, type GoogleEvent } from "./client";
+import {
+  GoogleAuthError,
+  GoogleGoneError,
+  type GoogleCalendarClient,
+  type GoogleEvent,
+} from "./client";
 import { resolveConflict } from "./conflict";
 import { googleClient, googleCtx, type KalEnv } from "./env";
 import { sqlContactLookup, registryTaskGateway, type TaskGateway } from "./foreign";
@@ -32,6 +37,7 @@ type EventRow = typeof calendarEvent.$inferSelect;
 /** Výsledek synchronizace jednoho kalendáře. */
 export type SyncOutcome = { changed: number; full: boolean };
 
+/** Přístup k úkolům přes registr entit; `null`, když modul úkolů není zapnutý. */
 export const taskGatewayOf = (env: KalEnv): TaskGateway | null =>
   registryTaskGateway(env.registry, sqlContactLookup);
 
@@ -60,7 +66,10 @@ function mirrorValues(f: MirrorFields) {
 async function auditEvent(
   ctx: Ctx,
   action: "create" | "update" | "delete",
-  row: Pick<EventRow, "id" | "title" | "isGooglePrivate" | "dealId" | "companyId" | "personId" | "taskId">,
+  row: Pick<
+    EventRow,
+    "id" | "title" | "isGooglePrivate" | "dealId" | "companyId" | "personId" | "taskId"
+  >,
 ) {
   const priv = row.isGooglePrivate;
   await recordAudit(ctx, {
@@ -97,7 +106,9 @@ export async function applyRemoteEvent(
     const [row] = await c.db
       .select()
       .from(calendarEvent)
-      .where(and(eq(calendarEvent.calendarId, cal.id), eq(calendarEvent.googleId, remote.googleId)));
+      .where(
+        and(eq(calendarEvent.calendarId, cal.id), eq(calendarEvent.googleId, remote.googleId)),
+      );
 
     if (remote.deleted) {
       if (!row) return false;
@@ -246,11 +257,15 @@ export async function syncCalendar(
       .where(eq(calendar.id, cal.id));
     await db
       .update(calendarAccount)
-      .set({ lastSyncAt: new Date(), ...(account.status === "error" ? { status: "ok" as const, lastError: null } : {}) })
+      .set({
+        lastSyncAt: new Date(),
+        ...(account.status === "error" ? { status: "ok" as const, lastError: null } : {}),
+      })
       .where(eq(calendarAccount.id, account.id));
     return result;
   } catch (e) {
-    if (e instanceof GoogleGoneError && !full) return syncCalendar(db, env, calendarId, { ...opts, full: true });
+    if (e instanceof GoogleGoneError && !full)
+      return syncCalendar(db, env, calendarId, { ...opts, full: true });
     const message = e instanceof Error ? e.message : String(e);
     await db.update(calendar).set({ lastError: message }).where(eq(calendar.id, cal.id));
     if (e instanceof GoogleAuthError) await markAccount(ctx, account.id, "reauth", message);
@@ -306,7 +321,13 @@ async function fullSync(
       ),
     );
   for (const r of stale.filter((s) => !seen.has(s.googleId))) {
-    await applyRemoteEvent(ctx, env, cal, { id: r.googleId, status: "cancelled" }, { audit: !!cal.syncToken, gateway });
+    await applyRemoteEvent(
+      ctx,
+      env,
+      cal,
+      { id: r.googleId, status: "cancelled" },
+      { audit: !!cal.syncToken, gateway },
+    );
     changed++;
   }
   await ctx.db

@@ -26,7 +26,11 @@ import { NextActivity, RottingChip } from "./deal-card";
 import { pluralDeals } from "./logic";
 import type { DealRef } from "./win-lose";
 
-const SERVICE_LABEL: Record<string, string> = { web: "Web", marketing: "Marketing", systemy: "Systémy" };
+const SERVICE_LABEL: Record<string, string> = {
+  web: "Web",
+  marketing: "Marketing",
+  systemy: "Systémy",
+};
 
 /**
  * Board na telefonu (MOB-08): sloupce fází vedle sebe, posouvají se do strany a zarovnávají; obchod se mezi fázemi
@@ -46,7 +50,9 @@ export function MobileBoard({
   const nav = useNav();
   const input: BoardInput = owner === "all" ? {} : { owner: owner === "me" ? "me" : owner };
   const board = useCommandQuery<BoardResult, BoardInput>("obchody.board", input);
-  const move = useCommandMutation<{ dealId: string; stageId: string }, DealChangeResult>("obchody.moveStage");
+  const move = useCommandMutation<{ dealId: string; stageId: string }, DealChangeResult>(
+    "obchody.moveStage",
+  );
 
   if (board.isLoading)
     return (
@@ -106,7 +112,10 @@ export function MobileBoard({
                   moving={move.isPending}
                   onOpen={() => nav.push(`/obchody/${c.id}`)}
                   onMove={(stageId) =>
-                    move.mutate({ dealId: c.id, stageId }, { onError: (e) => errorToast(e.message) })
+                    move.mutate(
+                      { dealId: c.id, stageId },
+                      { onError: (e) => errorToast(e.message) },
+                    )
                   }
                   onWin={() => onWin({ id: c.id, title: c.title })}
                   onLose={() => onLose({ id: c.id, title: c.title })}
@@ -159,7 +168,9 @@ function MobileCard({
           <div className={cn("line-clamp-2 font-medium leading-snug", h.rotting && "text-danger")}>
             {card.title}
           </div>
-          {card.companyName && <div className="truncate text-sm text-muted">{card.companyName}</div>}
+          {card.companyName && (
+            <div className="truncate text-sm text-muted">{card.companyName}</div>
+          )}
           {card.services.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {card.services.map((s) => (
@@ -200,7 +211,11 @@ function MobileCard({
       </div>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
         <span className="tabular text-sm font-semibold">
-          {card.valueMinor ? formatMinor(card.valueMinor) : <span className="font-normal text-faint">Bez ceny</span>}
+          {card.valueMinor ? (
+            formatMinor(card.valueMinor)
+          ) : (
+            <span className="font-normal text-faint">Bez ceny</span>
+          )}
         </span>
         <span className="flex items-center gap-2">
           {card.ownerName && <Avatar name={card.ownerName} size={20} />}

@@ -60,7 +60,10 @@ export function createRealMetaClient(opts: RealMetaClientOptions): MetaAdsClient
         const code = body.error?.code;
         const auth = code === 190 || res.status === 401;
         const retryable =
-          !auth && (res.status === 429 || res.status >= 500 || (code !== undefined && RETRY_CODES.has(code)));
+          !auth &&
+          (res.status === 429 ||
+            res.status >= 500 ||
+            (code !== undefined && RETRY_CODES.has(code)));
         last = new MetaApiError(
           auth
             ? "Přístup k Meta vypršel nebo byl odvolán, přihlaste se znovu."

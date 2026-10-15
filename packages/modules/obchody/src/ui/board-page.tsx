@@ -98,7 +98,9 @@ function OwnerSwitch({ value, onChange }: { value: string; onChange: (v: string)
       trigger={
         <Button variant="secondary" data-testid="owner-filter" aria-label={`Vlastník: ${label}`}>
           <Icon name="user" />
-          <span className={cn("max-w-32 truncate", value === "all" && "hidden sm:inline")}>{label}</span>
+          <span className={cn("max-w-32 truncate", value === "all" && "hidden sm:inline")}>
+            {label}
+          </span>
           <Icon name="chevron-down" className="size-3.5 text-faint" />
         </Button>
       }
@@ -118,7 +120,9 @@ function DealCounter({ owner }: { owner: string }) {
     <span className="tabular text-sm text-muted" data-testid="deal-counter">
       {total} {pluralDeals(total)}
       {typeof value === "number" && <> · {formatMinor(value)}</>}
-      {typeof weighted === "number" && <span className="max-md:hidden"> · vážená {formatMinor(weighted)}</span>}
+      {typeof weighted === "number" && (
+        <span className="max-md:hidden"> · vážená {formatMinor(weighted)}</span>
+      )}
     </span>
   );
 }
@@ -169,7 +173,10 @@ export function ObchodyPage({ query }: { query: Record<string, string> }) {
   const defaultFilters = useMemo(() => listDefaultFilters(owner), [owner]);
   const defaultConfig = useMemo(() => ({ viewType: "kanban" as const, cardAttributes: [] }), []);
   const entity = useMemo(
-    () => (descriptor.data ? { ...descriptor.data, can: { ...descriptor.data.can, create: false } } : null),
+    () =>
+      descriptor.data
+        ? { ...descriptor.data, can: { ...descriptor.data.can, create: false } }
+        : null,
     [descriptor.data],
   );
 
@@ -225,7 +232,11 @@ export function ObchodyPage({ query }: { query: Record<string, string> }) {
           ]}
         />
         {canCreate && (
-          <Button variant="primary" data-testid="add-deal" onClick={() => setQuickAdd({ open: true })}>
+          <Button
+            variant="primary"
+            data-testid="add-deal"
+            onClick={() => setQuickAdd({ open: true })}
+          >
             <Icon name="plus" /> <span>Nový obchod</span>
             <Kbd className="max-sm:hidden">C</Kbd>
           </Button>
@@ -254,7 +265,12 @@ export function ObchodyPage({ query }: { query: Record<string, string> }) {
             openMode="page"
           />
         ) : narrow ? (
-          <MobileBoard owner={owner} canWrite={canWrite} onWin={(d) => setDialog({ kind: "won", deal: d })} onLose={(d) => setDialog({ kind: "lost", deal: d })} />
+          <MobileBoard
+            owner={owner}
+            canWrite={canWrite}
+            onWin={(d) => setDialog({ kind: "won", deal: d })}
+            onLose={(d) => setDialog({ kind: "lost", deal: d })}
+          />
         ) : (
           <EntityList
             entity={entity}
@@ -276,7 +292,9 @@ export function ObchodyPage({ query }: { query: Record<string, string> }) {
         open={quickAdd.open}
         onOpenChange={(open) => setQuickAdd((s) => ({ ...s, open }))}
         {...(quickAdd.stageId ? { defaultStageId: quickAdd.stageId } : {})}
-        onCreated={(id) => (view === "board" && !narrow ? openDealPopup(id) : nav.push(`/obchody/${id}`))}
+        onCreated={(id) =>
+          view === "board" && !narrow ? openDealPopup(id) : nav.push(`/obchody/${id}`)
+        }
       />
       <WinDealFlow deal={dialog?.kind === "won" ? dialog.deal : null} onClose={close} />
       <LoseDealDialog deal={dialog?.kind === "lost" ? dialog.deal : null} onClose={close} />

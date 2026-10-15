@@ -10,16 +10,26 @@
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		Permissions-Policy "camera=(self), microphone=(), geolocation=(self), payment=()"
+		Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=()"
 		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		# interní systém: nic z něj nepatří do vyhledávačů
+		X-Robots-Tag "noindex, nofollow"
 		-Server
 	}
 
 	@static path /_next/static/*
 	header @static Cache-Control "public, max-age=31536000, immutable"
 
-	# veřejné a přihlašovací cesty nepotřebují velká těla (poptávky z webu, přihlášení, pozvánky, push)
-	@small path /api/intake/* /api/auth/* /api/invitations/* /api/push/*
+	# příchozí požadavky z n8n (Google Disk, Meta leady): tělo je JSON, v aplikaci je limit 512 kB (413 s českou chybou);
+	# proxy pouští o něco víc, aby odpověď vždy vyřídila aplikace. Počet požadavků hlídá aplikace (120 za minutu z jedné
+	# adresy, odpověď 429): adresu klienta jí předává proxy níže, nikdy ji nepřebírá od klienta.
+	@ingest path /api/ingest/*
+	request_body @ingest {
+		max_size 1MB
+	}
+
+	# veřejné a přihlašovací cesty nepotřebují velká těla (přihlášení, pozvánky, push, Google webhook kalendáře)
+	@small path /api/auth/* /api/invitations/* /api/push/* /api/kalendar/google/webhook
 	request_body @small {
 		max_size 256KB
 	}

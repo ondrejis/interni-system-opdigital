@@ -1,6 +1,11 @@
 "use client";
 
 import {
+  filtersFromSearch,
+  filtersToSearch,
+  type DashboardSummary,
+} from "@rebar/core/dashboards-shared";
+import {
   DashboardApiProvider,
   DashboardSwitcher,
   DashboardView,
@@ -10,33 +15,26 @@ import {
   emptyBoard,
   useCan,
 } from "@rebar/ui";
-import {
-  filtersFromSearch,
-  filtersToSearch,
-  type DashboardSummary,
-} from "@rebar/core/dashboards-shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import { dashboardApi } from "@/lib/dashboard-api";
 
 /**
- * Přepínač nástěnek na úvodní stránce. Klasický Přehled (server) se vykreslí jako `children`, když není vybraná žádná
- * nástěnka; jinak se ukáže zvolená nástěnka. Výběr nástěnky i filtry jsou v adrese, takže jdou sdílet záložkou.
+ * Přepínač přehledů a zvolený přehled. Výběr přehledu i filtry jsou v adrese (`?board=…&obdobi=…`), takže jdou sdílet
+ * záložkou. Úpravy (přidat, přetáhnout, zvětšit, nastavit, odebrat) jsou jen v režimu „Upravit“; na telefonu se v něm
+ * jen přeskládává pořadí.
  */
-export function HomeBoards({
+export function PrehledHost({
+  enabled,
   boards,
   activeId,
-  hasHome,
   jobsAvailable,
-  children,
 }: {
+  enabled: boolean;
   boards: DashboardSummary[];
   activeId: string | null;
-  /** Pro roli je nástěnka nastavená jako domovská, klasický Přehled je pak na `?board=prehled`. */
-  hasHome: boolean;
   jobsAvailable: boolean;
-  children?: ReactNode;
 }) {
   const router = useRouter();
   const path = usePathname();
@@ -55,15 +53,17 @@ export function HomeBoards({
     router.replace(`${path}?${next.toString()}`, { scroll: false });
   };
 
+  if (!enabled) return <p className="text-muted">Přehledy jsou v tomto systému vypnuté.</p>;
+
   return (
     <DashboardApiProvider api={dashboardApi}>
       <div className="mb-4">
         <DashboardSwitcher
           boards={boards}
           activeId={activeId}
-          overviewHref={hasHome ? "/?board=prehled" : "/"}
-          boardHref={(id) => `/?board=${id}`}
+          boardHref={(id) => `/prehled?board=${id}`}
           onCreate={canWrite ? () => setNewOpen(true) : undefined}
+          createLabel="Nový přehled"
           onOrder={() => setOrderOpen(true)}
         />
       </div>
@@ -77,16 +77,26 @@ export function HomeBoards({
           jobsAvailable={jobsAvailable}
           tvHref={`/tv/${activeId}${sp.toString() ? `?${sp.toString().replace(/board=[^&]*&?/, "")}` : ""}`}
           onDeleted={() => {
-            router.replace("/");
+            router.replace("/prehled");
             router.refresh();
           }}
           onCloned={(id) => {
-            router.push(`/?board=${id}`);
+            router.push(`/prehled?board=${id}`);
             router.refresh();
           }}
         />
       ) : (
-        children
+        <div
+          className="rounded-lg border border-dashed border-line p-8 text-center text-muted"
+          data-testid="prehled-empty"
+        >
+          <p className="font-medium text-fg">Zatím nemáte žádný přehled.</p>
+          <p className="mt-1">
+            {canWrite
+              ? "Založte si ho tlačítkem „Nový přehled“ a poskládejte z widgetů."
+              : "Přehled vám zatím nikdo nepřipravil ani nesdílel."}
+          </p>
+        </div>
       )}
       <NewBoardDialog
         open={newOpen}
@@ -94,7 +104,7 @@ export function HomeBoards({
         onCreate={async (name) => {
           const r = await dashboardApi.create({ name, definition: emptyBoard() });
           await qc.invalidateQueries({ queryKey: dashKeys.list });
-          router.push(`/?board=${r.id}`);
+          router.push(`/prehled?board=${r.id}`);
           router.refresh();
         }}
       />
