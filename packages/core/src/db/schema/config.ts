@@ -142,6 +142,7 @@ export const vatRate = pgTable(
 
 export const CUSTOM_FIELD_TYPES = [
   "text",
+  "longtext",
   "number",
   "currency",
   "date",

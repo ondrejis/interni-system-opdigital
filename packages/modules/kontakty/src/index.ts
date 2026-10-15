@@ -43,4 +43,8 @@ export const manifest = defineModule({
     { key: "kontakty.ares", label: "Doplňuje údaje z ARES" },
   ],
   entities: ["company", "person"],
+  pages: [
+    { path: "/kontakty/firmy/nova", title: "Nová organizace", permission: "kontakty.create" },
+    { path: "/kontakty/osoby/novy", title: "Nový kontakt", permission: "kontakty.create" },
+  ],
 });

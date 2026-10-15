@@ -35,7 +35,11 @@ export function icoForStorage(raw: unknown): string | null {
  * Stejné IČO nedovolí (ORG-05): vyhodí větu s odkazem na existující organizaci. `excludeId` je upravovaná
  * organizace. Volá háček entity i služby, které organizaci zakládají mimo engine.
  */
-export async function assertIcoFree(ctx: Ctx, ico: string | null, excludeId?: string): Promise<void> {
+export async function assertIcoFree(
+  ctx: Ctx,
+  ico: string | null,
+  excludeId?: string,
+): Promise<void> {
   if (!ico) return;
   const { icoMatch } = await checkCompanyDuplicates(ctx, { ico, excludeId: excludeId ?? null });
   if (icoMatch) throw new UserError(icoDuplicateMessage(ico, icoMatch));
@@ -101,7 +105,10 @@ export type CompanyInput = {
  * výchozí aktér. Zapíše historii a zaindexuje. Oprávnění ke kontaktům nekontroluje (volající už ho ověřil svým
  * příkazem); `client_status` nenastavuje (R-15). Vrací id nové organizace.
  */
-export async function createCompany(ctx: Ctx, input: CompanyInput): Promise<{ id: string; name: string }> {
+export async function createCompany(
+  ctx: Ctx,
+  input: CompanyInput,
+): Promise<{ id: string; name: string }> {
   const name = input.name.trim();
   if (!name) throw new UserError("Název organizace je povinný.");
   const ico = icoForStorage(input.ico);

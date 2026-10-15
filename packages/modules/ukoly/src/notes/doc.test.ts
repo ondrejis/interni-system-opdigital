@@ -83,7 +83,10 @@ describe("sanitizeNoteDoc", () => {
       p("Tučně", [{ type: "bold" }, { type: "italic" }]),
       {
         type: "bulletList",
-        content: [{ type: "listItem", content: [p("jedna")] }, { type: "listItem", content: [p("dvě")] }],
+        content: [
+          { type: "listItem", content: [p("jedna")] },
+          { type: "listItem", content: [p("dvě")] },
+        ],
       },
       {
         type: "taskList",
@@ -92,7 +95,11 @@ describe("sanitizeNoteDoc", () => {
           { type: "taskItem", attrs: { checked: false }, content: [p("otevřeno")] },
         ],
       },
-      { type: "orderedList", attrs: { start: 3 }, content: [{ type: "listItem", content: [p("c")] }] },
+      {
+        type: "orderedList",
+        attrs: { start: 3 },
+        content: [{ type: "listItem", content: [p("c")] }],
+      },
       { type: "blockquote", content: [p("citace")] },
       { type: "codeBlock", attrs: { language: "ts" }, content: [{ type: "text", text: "a\nb" }] },
       { type: "horizontalRule" },
@@ -138,7 +145,11 @@ describe("sanitizeNoteDoc", () => {
           { type: "html", content: [{ type: "text", text: "<script>alert(1)</script>" }] },
           {
             type: "paragraph",
-            attrs: { style: "background:url(javascript:alert(1))", class: "x", onclick: "alert(1)" },
+            attrs: {
+              style: "background:url(javascript:alert(1))",
+              class: "x",
+              onclick: "alert(1)",
+            },
             content: [
               {
                 type: "text",
@@ -172,7 +183,9 @@ describe("sanitizeNoteDoc", () => {
         doc(
           p("klik", [{ type: "link", attrs: { href: "javascript:alert(document.cookie)" } }]),
           p("data", [{ type: "link", attrs: { href: "data:text/html,<script>1</script>" } }]),
-          p("ok", [{ type: "link", attrs: { href: "https://a.cz", target: "_self", onclick: "x" } }]),
+          p("ok", [
+            { type: "link", attrs: { href: "https://a.cz", target: "_self", onclick: "x" } },
+          ]),
         ),
       );
       expect(out.content[0]!.content![0]).toEqual({ type: "text", text: "klik" });
@@ -185,9 +198,21 @@ describe("sanitizeNoteDoc", () => {
     it("atributy mimo schéma a neplatné hodnoty atributů se opraví", () => {
       const out = clean(
         doc(
-          { type: "heading", attrs: { level: 99, id: "x" }, content: [{ type: "text", text: "N" }] },
-          { type: "codeBlock", attrs: { language: '"><img src=x onerror=alert(1)>' }, content: [{ type: "text", text: "c" }] },
-          { type: "orderedList", attrs: { start: -5 }, content: [{ type: "listItem", content: [p("a")] }] },
+          {
+            type: "heading",
+            attrs: { level: 99, id: "x" },
+            content: [{ type: "text", text: "N" }],
+          },
+          {
+            type: "codeBlock",
+            attrs: { language: '"><img src=x onerror=alert(1)>' },
+            content: [{ type: "text", text: "c" }],
+          },
+          {
+            type: "orderedList",
+            attrs: { start: -5 },
+            content: [{ type: "listItem", content: [p("a")] }],
+          },
         ),
       );
       expect(out.content[0]!.attrs).toEqual({ level: 2 });
@@ -218,12 +243,18 @@ describe("sanitizeNoteDoc", () => {
       const out = clean(
         doc(
           { type: "text", text: "holý text" },
-          { type: "bulletList", content: [{ type: "listItem", content: [{ type: "bulletList", content: [] }] }] },
+          {
+            type: "bulletList",
+            content: [{ type: "listItem", content: [{ type: "bulletList", content: [] }] }],
+          },
           { type: "bulletList", content: [p("rovnou odstavec bez položky")] },
           { type: "bulletList", content: [] },
         ),
       );
-      expect(out.content[0]).toEqual({ type: "paragraph", content: [{ type: "text", text: "holý text" }] });
+      expect(out.content[0]).toEqual({
+        type: "paragraph",
+        content: [{ type: "text", text: "holý text" }],
+      });
       // položka s vnořeným seznamem dostane úvodní prázdný odstavec; prázdný vnořený seznam se zahodí
       expect(out.content[1]!.content![0]!.content![0]!.type).toBe("paragraph");
       expect(out.content[2]!.content![0]!.type).toBe("listItem");
@@ -256,12 +287,19 @@ describe("sanitizeNoteDoc", () => {
 
   describe("meze", () => {
     it("příliš mnoho textu, uzlů nebo hluboké vnoření je chyba", () => {
-      expect(() => sanitizeNoteDoc(doc(p("x".repeat(NOTE_LIMITS.maxChars + 1))))).toThrow(NoteDocError);
+      expect(() => sanitizeNoteDoc(doc(p("x".repeat(NOTE_LIMITS.maxChars + 1))))).toThrow(
+        NoteDocError,
+      );
       expect(() =>
-        sanitizeNoteDoc(doc(...Array.from({ length: NOTE_LIMITS.maxNodes + 1 }, () => ({ type: "horizontalRule" })))),
+        sanitizeNoteDoc(
+          doc(
+            ...Array.from({ length: NOTE_LIMITS.maxNodes + 1 }, () => ({ type: "horizontalRule" })),
+          ),
+        ),
       ).toThrow(NoteDocError);
       let deep: unknown = p("hluboko");
-      for (let i = 0; i < NOTE_LIMITS.maxDepth + 2; i++) deep = { type: "blockquote", content: [deep] };
+      for (let i = 0; i < NOTE_LIMITS.maxDepth + 2; i++)
+        deep = { type: "blockquote", content: [deep] };
       expect(() => sanitizeNoteDoc(doc(deep))).toThrow(/hluboce/);
     });
 
@@ -276,11 +314,18 @@ describe("sanitizeNoteDoc", () => {
 describe("text, název a náhled", () => {
   const d: NoteDoc = clean(
     doc(
-      { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "Schůzka s Novákem" }] },
+      {
+        type: "heading",
+        attrs: { level: 1 },
+        content: [{ type: "text", text: "Schůzka s Novákem" }],
+      },
       p("Probrali jsme cenu."),
       {
         type: "bulletList",
-        content: [{ type: "listItem", content: [p("web")] }, { type: "listItem", content: [p("reklama")] }],
+        content: [
+          { type: "listItem", content: [p("web")] },
+          { type: "listItem", content: [p("reklama")] },
+        ],
       },
     ),
   );
@@ -318,14 +363,24 @@ describe("text, název a náhled", () => {
 
 describe("nextTitle (automatický a ručně zadaný název)", () => {
   it("automatický název sleduje text, ručně zadaný zůstane", () => {
-    expect(nextTitle({ title: null, previousText: "", nextText: "Nová věc\ndetail" })).toBe("Nová věc");
-    expect(nextTitle({ title: "Stará", previousText: "Stará\nx", nextText: "Nová\nx" })).toBe("Nová");
-    expect(nextTitle({ title: "Můj název", previousText: "Stará", nextText: "Nová" })).toBe("Můj název");
+    expect(nextTitle({ title: null, previousText: "", nextText: "Nová věc\ndetail" })).toBe(
+      "Nová věc",
+    );
+    expect(nextTitle({ title: "Stará", previousText: "Stará\nx", nextText: "Nová\nx" })).toBe(
+      "Nová",
+    );
+    expect(nextTitle({ title: "Můj název", previousText: "Stará", nextText: "Nová" })).toBe(
+      "Můj název",
+    );
   });
 
   it("zadaný název přebije; prázdný se vrátí k automatickému", () => {
-    expect(nextTitle({ title: "A", previousText: "A", nextText: "B", explicit: "Ručně" })).toBe("Ručně");
-    expect(nextTitle({ title: "Ručně", previousText: "A", nextText: "B", explicit: "  " })).toBe("B");
+    expect(nextTitle({ title: "A", previousText: "A", nextText: "B", explicit: "Ručně" })).toBe(
+      "Ručně",
+    );
+    expect(nextTitle({ title: "Ručně", previousText: "A", nextText: "B", explicit: "  " })).toBe(
+      "B",
+    );
     expect(nextTitle({ title: "Ručně", previousText: "A", nextText: "", explicit: "" })).toBeNull();
   });
 });

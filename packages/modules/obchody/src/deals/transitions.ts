@@ -244,7 +244,11 @@ export async function winDeal(
         source: "deal_won",
       });
       if (row.services.length)
-        await clients.addServices(c, row.companyId, row.services as ("web" | "marketing" | "systemy")[]);
+        await clients.addServices(
+          c,
+          row.companyId,
+          row.services as ("web" | "marketing" | "systemy")[],
+        );
       clientUpdated = true;
     }
 

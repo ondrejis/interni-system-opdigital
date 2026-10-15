@@ -26,7 +26,8 @@ export function createFetchAresClient(
   return {
     async lookup(ico: string): Promise<AresFetchResult> {
       // do adresy smí jen osm číslic; cokoli jiného je chyba volajícího, ne důvod sahat do sítě
-      if (!/^\d{8}$/.test(ico)) return { ok: false, reason: "not_found", message: "IČO není platné." };
+      if (!/^\d{8}$/.test(ico))
+        return { ok: false, reason: "not_found", message: "IČO není platné." };
       try {
         const res = await fetchImpl(`${ARES_BASE}${ico}`, {
           method: "GET",

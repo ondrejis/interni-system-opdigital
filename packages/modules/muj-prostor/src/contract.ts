@@ -55,6 +55,8 @@ export const domainsAssignClientInput = z.object({
 /** `muj-prostor.client.overview`: hosting, údržba a domény jednoho klienta. */
 export const clientOverviewInput = z.object({ companyId: id });
 
-/* ===== MPR-2: knihovna a soukromé (doplní MPR-2) ===== */
+/* ===== MPR-2: knihovna a soukromé ===== */
+export * from "./library/contract";
+export * from "./private/contract";
 
 /* ===== MPR-3: opakované faktury (doplní MPR-3) ===== */

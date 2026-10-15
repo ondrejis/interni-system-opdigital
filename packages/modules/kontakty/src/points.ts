@@ -5,7 +5,7 @@ import { indexRecord } from "@rebar/core/entities";
 import { personIndex } from "./indexing";
 import { inTx, NotFoundError, UserError } from "@rebar/core/rbac";
 import type { Ctx } from "@rebar/core/rbac";
-import { CONTACT_POINT_LABELS, person, personContactPoint } from "./schema";
+import { person, personContactPoint, type CONTACT_POINT_LABELS } from "./schema";
 import { isValidPhone, normalizeEmail, normalizePhoneE164 } from "./normalize";
 
 /*
@@ -109,7 +109,10 @@ export async function listPointsFor(db: Executor, personIds: readonly string[]) 
     .select()
     .from(personContactPoint)
     .where(
-      and(inArray(personContactPoint.personId, [...personIds]), isNull(personContactPoint.deletedAt)),
+      and(
+        inArray(personContactPoint.personId, [...personIds]),
+        isNull(personContactPoint.deletedAt),
+      ),
     )
     .orderBy(
       asc(personContactPoint.kind),
@@ -141,14 +144,19 @@ export async function listPoints(db: Executor, personId: string): Promise<PointR
 }
 
 /** Hlavní e-mail a telefon z údajů osoby (zapsané hodnoty). */
-export function primaryOf(points: readonly { kind: PointKind; value: string; isPrimary: boolean }[]) {
+export function primaryOf(
+  points: readonly { kind: PointKind; value: string; isPrimary: boolean }[],
+) {
   return {
     email: points.find((p) => p.kind === "email" && p.isPrimary)?.value ?? null,
     phone: points.find((p) => p.kind === "phone" && p.isPrimary)?.value ?? null,
   };
 }
 
-const describe = (rows: readonly { kind: PointKind; value: string; label: string | null }[], kind: PointKind) =>
+const describe = (
+  rows: readonly { kind: PointKind; value: string; label: string | null }[],
+  kind: PointKind,
+) =>
   rows
     .filter((r) => r.kind === kind)
     .map((r) => `${r.value}${r.label ? ` (${r.label})` : ""}`)
@@ -294,7 +302,9 @@ export async function setPrimaryPoint(
   const norm = normalizePoint(kind, text);
   if (!norm)
     throw new UserError(
-      kind === "email" ? `E-mail „${text}“ nemá správný tvar.` : `Telefon „${text}“ nemá správný tvar.`,
+      kind === "email"
+        ? `E-mail „${text}“ nemá správný tvar.`
+        : `Telefon „${text}“ nemá správný tvar.`,
     );
   const same = rows.find((r) => r.valueNorm === norm);
   if (same?.isPrimary) {

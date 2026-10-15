@@ -42,34 +42,43 @@ export function isValidIco(ico: string): boolean {
 }
 
 /** Zkratka: 2 až 4 znaky (písmena a číslice), ukládá se velkými písmeny; prázdná = odvodí se z jména. */
-export const shortNameField = z
-  .string()
-  .trim()
-  .transform((v) => v.toLocaleUpperCase("cs-CZ"))
-  .refine(
-    (v) => v === "" || (v.length >= SHORT_NAME_LENGTH.min && v.length <= SHORT_NAME_LENGTH.max),
-    `Zkratka má mít ${SHORT_NAME_LENGTH.min} až ${SHORT_NAME_LENGTH.max} znaky.`,
-  )
-  .refine((v) => /^[\p{L}\p{N}]*$/u.test(v), "Zkratka smí obsahovat jen písmena a číslice.")
-  .transform((v) => (v === "" ? null : v));
+export const shortNameField = z.preprocess(
+  (v) => v ?? "",
+  z
+    .string()
+    .trim()
+    .transform((v) => v.toLocaleUpperCase("cs-CZ"))
+    .refine(
+      (v) => v === "" || (v.length >= SHORT_NAME_LENGTH.min && v.length <= SHORT_NAME_LENGTH.max),
+      `Zkratka má mít ${SHORT_NAME_LENGTH.min} až ${SHORT_NAME_LENGTH.max} znaky.`,
+    )
+    .refine((v) => /^[\p{L}\p{N}]*$/u.test(v), "Zkratka smí obsahovat jen písmena a číslice.")
+    .transform((v) => (v === "" ? null : v)),
+);
 
 /** IČO: osm číslic se správným kontrolním součtem (mezery se ignorují); prázdné = bez IČO. */
-export const icoField = z
-  .string()
-  .trim()
-  .transform((v) => v.replace(/\s+/g, ""))
-  .refine(
-    (v) => v === "" || isValidIco(v),
-    "IČO není platné (osm číslic, ověřuje se kontrolní součet).",
-  )
-  .transform((v) => (v === "" ? null : v));
+export const icoField = z.preprocess(
+  (v) => v ?? "",
+  z
+    .string()
+    .trim()
+    .transform((v) => v.replace(/\s+/g, ""))
+    .refine(
+      (v) => v === "" || isValidIco(v),
+      "IČO není platné (osm číslic, ověřuje se kontrolní součet).",
+    )
+    .transform((v) => (v === "" ? null : v)),
+);
 
 /** Fakturační nástroj: volný text (Fakturoid, iDoklad, Excel…). */
-export const billingToolField = z
-  .string()
-  .trim()
-  .max(80, "Název nástroje je příliš dlouhý.")
-  .transform((v) => (v === "" ? null : v));
+export const billingToolField = z.preprocess(
+  (v) => v ?? "",
+  z
+    .string()
+    .trim()
+    .max(80, "Název nástroje je příliš dlouhý.")
+    .transform((v) => (v === "" ? null : v)),
+);
 
 /** Barva avataru, nebo prázdná (podle jména). */
 export const avatarColorField = z.enum(AVATAR_COLORS).nullable();

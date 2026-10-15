@@ -1,6 +1,7 @@
-import { NotImplementedError, type ServiceType } from "@rebar/core/contracts";
+import type { ServiceType } from "@rebar/core/contracts";
 import type { ModuleDeps } from "@rebar/core/module-server";
 import type { Ctx } from "@rebar/core/rbac";
+import { createDealFromLead as impl } from "./deals/lead";
 
 export {
   activityState,
@@ -45,12 +46,13 @@ export type CreateDealFromLeadInput = {
 
 /**
  * Založí obchod z příchozího leadu (idempotentně podle `meta.leadgenId`): `created=false`, když obchod
- * pro stejný lead už existuje. Volá `reklama` z ingestu `leads`.
+ * pro stejný lead už existuje. Volá `reklama` z ingestu `leads` (v transakci ingestu). Fáze z `formMapping` musí patřit
+ * do pipeline obchodů; obchod je zdroje Meta, „neotevřený“ a bez hodnoty.
  */
 export async function createDealFromLead(
-  _ctx: Ctx,
-  _deps: ModuleDeps,
-  _input: CreateDealFromLeadInput,
+  ctx: Ctx,
+  deps: ModuleDeps,
+  input: CreateDealFromLeadInput,
 ): Promise<{ dealId: string; created: boolean }> {
-  throw new NotImplementedError("obchody.api.createDealFromLead");
+  return impl(ctx, deps, input);
 }

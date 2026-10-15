@@ -19,7 +19,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ source:
   const ip = clientKey(req);
 
   if (!(await consumeRateLimit(s.db, `ingest:${ip}`, 120, 60)))
-    return Response.json({ error: "rate_limited" }, { status: 429, headers: { "retry-after": "60" } });
+    return Response.json(
+      { error: "rate_limited" },
+      { status: 429, headers: { "retry-after": "60" } },
+    );
 
   const declared = Number(req.headers.get("content-length") ?? 0);
   if (declared > INGEST_MAX_BODY_BYTES)

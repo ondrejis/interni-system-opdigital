@@ -24,6 +24,7 @@ CREATE TABLE "ad_account" (
 	"company_id" uuid,
 	"active" boolean DEFAULT true NOT NULL,
 	"last_sync_at" timestamp with time zone,
+	"last_sync_error" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_by" uuid,

@@ -155,6 +155,7 @@ function RoleEditor({
   );
   const [busy, setBusy] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [confirmingSave, setConfirmingSave] = useState(false);
   const locked = role.isSystem;
   const groups = useMemo(
     () =>
@@ -169,6 +170,10 @@ function RoleEditor({
     description !== (role.description ?? "") ||
     require2fa !== role.require2fa ||
     catalog.some((p) => (levels[p.key] ?? "none") !== (role.permissions[p.key] ?? "none"));
+
+  const changed = catalog.filter(
+    (p) => (levels[p.key] ?? "none") !== (role.permissions[p.key] ?? "none"),
+  );
 
   async function save() {
     setBusy(true);
@@ -188,6 +193,7 @@ function RoleEditor({
       ));
     setBusy(false);
     if (perms) onChanged();
+    return !!perms;
   }
 
   async function remove() {
@@ -289,7 +295,12 @@ function RoleEditor({
 
       {!locked && (
         <div className="sticky bottom-0 -mx-4 -mb-4 flex flex-wrap items-center gap-2 border-t border-line bg-bg/90 px-4 py-3 backdrop-blur md:-mx-6 md:-mb-6 md:px-6 lg:-mx-8 lg:-mb-8 lg:px-8">
-          <Button variant="primary" loading={busy} disabled={!dirty} onClick={save}>
+          <Button
+            variant="primary"
+            loading={busy}
+            disabled={!dirty}
+            onClick={() => (changed.length ? setConfirmingSave(true) : void save())}
+          >
             Uložit změny
           </Button>
           {dirty && <span className="text-sm text-muted">Neuložené změny</span>}
@@ -299,6 +310,28 @@ function RoleEditor({
           </Button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmingSave}
+        onOpenChange={setConfirmingSave}
+        title="Změnit oprávnění role?"
+        confirmLabel="Změnit oprávnění"
+        onConfirm={save}
+      >
+        <p>
+          Změna oprávnění role „<strong className="text-fg">{role.name}</strong>“ platí hned i pro
+          přihlášené uživatele ({role.userCount}) a zapíše se do historie.
+        </p>
+        <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm">
+          {changed.slice(0, 12).map((p) => (
+            <li key={p.key}>
+              {p.group}: {p.label} →{" "}
+              {{ none: "bez přístupu", own: "jen moje", all: "vše" }[levels[p.key] ?? "none"]}
+            </li>
+          ))}
+          {changed.length > 12 && <li>… a dalších {changed.length - 12}</li>}
+        </ul>
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={removing}

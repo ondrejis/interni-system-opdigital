@@ -40,6 +40,7 @@ type FieldView = {
   type: string;
   required: boolean;
   showInTable: boolean;
+  showInForm: boolean;
   hidden: boolean;
   defaultValue: string | number | boolean | null;
   choices: Choice[];
@@ -49,15 +50,15 @@ export type EntityView = { key: string; label: string; fields: FieldView[] };
 
 const TYPES = [
   { value: "text", label: "Text" },
+  { value: "longtext", label: "Dlouhý text" },
   { value: "number", label: "Číslo" },
   { value: "currency", label: "Částka (Kč)" },
   { value: "date", label: "Datum" },
   { value: "select", label: "Výběr z možností" },
   { value: "multiselect", label: "Výběr více možností" },
-  { value: "user", label: "Uživatel" },
-  { value: "record", label: "Odkaz na záznam" },
+  { value: "user", label: "Osoba" },
   { value: "checkbox", label: "Ano / ne" },
-  { value: "url", label: "Webová adresa" },
+  { value: "url", label: "Odkaz (web)" },
   { value: "phone", label: "Telefon" },
   { value: "email", label: "E-mail" },
 ] as const;
@@ -170,6 +171,7 @@ function FieldDialog({
   const [recordEntity, setRecordEntity] = useState<string | null>(field?.recordEntity ?? null);
   const [required, setRequired] = useState(field?.required ?? false);
   const [showInTable, setShowInTable] = useState(field?.showInTable ?? true);
+  const [showInForm, setShowInForm] = useState(field?.showInForm ?? false);
   const [hidden, setHidden] = useState(field?.hidden ?? false);
   const [def, setDef] = useState<string | number | boolean | null>(field?.defaultValue ?? null);
   const [busy, setBusy] = useState(false);
@@ -206,6 +208,7 @@ function FieldDialog({
             options: opts,
             required,
             showInTable,
+            showInForm,
           })
         : createFieldAction({
             entityType: entity.key,
@@ -215,6 +218,7 @@ function FieldDialog({
             options: opts,
             required,
             showInTable,
+            showInForm,
           }),
       editing ? "Pole uloženo." : "Pole přidáno.",
     );
@@ -317,10 +321,16 @@ function FieldDialog({
               hint="Sloupec jde v tabulce kdykoli zapnout a vypnout i ručně."
             />
             <Toggle
+              checked={showInForm}
+              onChange={setShowInForm}
+              title="Zobrazit při vytvoření"
+              hint="Pole bude i v krátkém formuláři „Nový…“; jinak se vyplňuje až v detailu."
+            />
+            <Toggle
               checked={hidden}
               onChange={setHidden}
-              title="Skrýt pole"
-              hint="Pole zmizí z tabulek, filtrů, detailu i formulářů. Zadané hodnoty zůstanou uložené."
+              title="Archivovat pole"
+              hint="Pole zmizí z tabulek, filtrů, detailu i formulářů. Zadané hodnoty zůstanou uložené a po obnovení se ukážou."
             />
           </div>
           <div className="flex justify-end gap-2">
@@ -490,7 +500,7 @@ export function FieldsAdmin({
     const ok = await runAction(deleteFieldAction({ id: f.id, entityType: entity!.key }));
     if (!ok) return false;
     refresh();
-    undoToast(`Pole „${f.label}“ smazáno.`, async () => {
+    undoToast(`Pole „${f.label}“ archivováno.`, async () => {
       if (
         await runAction(restoreFieldAction({ id: f.id, entityType: entity!.key }), "Pole obnoveno.")
       )
@@ -577,7 +587,7 @@ export function FieldsAdmin({
                       <Pencil />
                     </IconButton>
                     <IconButton
-                      label={`Smazat pole ${f.label}`}
+                      label={`Archivovat pole ${f.label}`}
                       variant="ghost"
                       onClick={() => setRemoving(f)}
                     >
@@ -591,7 +601,7 @@ export function FieldsAdmin({
         </FormSection>
         <Notice tone="info" title="Kde se pole objeví">
           Nové pole je k dispozici jako sloupec v tabulce (zapnete ho v nabídce sloupců), ve
-          filtrech, při řazení, v detailu záznamu, v exportu do CSV a při hledání. Smazání pole
+          filtrech, při řazení, v detailu záznamu, v exportu do CSV a při hledání. Archivace pole
           hodnoty z databáze nevymaže; po obnovení se ukážou znovu.
         </Notice>
       </div>
@@ -609,14 +619,14 @@ export function FieldsAdmin({
       <ConfirmDialog
         open={!!removing}
         onOpenChange={(o) => !o && setRemoving(null)}
-        title="Smazat vlastní pole?"
+        title="Archivovat vlastní pole?"
         description={removing?.label ?? ""}
-        confirmLabel="Smazat pole"
+        confirmLabel="Archivovat pole"
         danger
         onConfirm={() => (removing ? remove(removing) : undefined)}
       >
         <p>
-          Pole zmizí z tabulek, filtrů a detailu. Hodnoty zůstanou uložené a smazání jde vrátit
+          Pole zmizí z tabulek, filtrů a detailu. Hodnoty zůstanou uložené a archivaci jde vrátit
           tlačítkem „Zpět“.
         </p>
       </ConfirmDialog>

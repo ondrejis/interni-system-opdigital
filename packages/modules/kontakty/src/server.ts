@@ -1,6 +1,11 @@
 import { defineModuleServer } from "@rebar/core/module-server";
 import { contactCommands } from "./commands";
-import { clientCardProvider, companyEmailVars, personEmailVars, privatePaths } from "./contributions";
+import {
+  clientCardProvider,
+  companyEmailVars,
+  personEmailVars,
+  privatePaths,
+} from "./contributions";
 import { deleteBlockers, entities } from "./entities";
 
 export { companyEntity, personEntity, entities, TAG_LOOKUP } from "./entities";

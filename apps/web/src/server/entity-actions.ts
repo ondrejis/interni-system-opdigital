@@ -22,6 +22,7 @@ import {
   resolveEntity,
   restoreRecord,
   searchAll,
+  setVisibility,
   updateRecord,
 } from "@rebar/core/entities";
 import { NotFoundError } from "@rebar/core/rbac";
@@ -114,6 +115,19 @@ export const restoreEntityRecords = defineAction({
     const e = await entityOf(ctx, i.entity);
     for (const rid of i.ids) await restoreRecord(ctx, e, rid);
     return { restored: i.ids.length };
+  },
+});
+
+/** Zamkne (soukromé) nebo zveřejní záznamy; jen vlastník. Zamčení zamkne i děti (zakázka → úkoly, platby…). */
+export const setEntityVisibility = defineAction({
+  input: z.object({ entity: key, ids: z.array(id).min(1).max(200), isPrivate: z.boolean() }),
+  handler: async (ctx, i) => {
+    let changed = 0;
+    for (const rid of i.ids) {
+      const r = await setVisibility(ctx, getServices().registry, i.entity, rid, i.isPrivate);
+      if (r.changed) changed += 1 + r.cascaded;
+    }
+    return { changed };
   },
 });
 

@@ -17,6 +17,7 @@ export const TRUSTED_DEVICE_DAYS = 30;
 
 const PREFIX = "trust-device-";
 
+/** Důvěryhodné zařízení uživatele (bez druhého faktoru po dobu platnosti důvěry). */
 export type TrustedDevice = {
   id: string;
   /** Kdy bylo zařízení označeno, nebo naposledy použito (řádek se při použití obnovuje). */

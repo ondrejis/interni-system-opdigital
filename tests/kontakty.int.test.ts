@@ -43,7 +43,11 @@ import {
   setPersonPointsCommand,
 } from "../packages/modules/kontakty/src/commands";
 import { companyEntity, personEntity } from "../packages/modules/kontakty/src/entities";
-import { clientCardProvider, companyEmailVars, personEmailVars } from "../packages/modules/kontakty/src/contributions";
+import {
+  clientCardProvider,
+  companyEmailVars,
+  personEmailVars,
+} from "../packages/modules/kontakty/src/contributions";
 import { mergeContacts, previewMerge } from "../packages/modules/kontakty/src/merge";
 import { listPoints } from "../packages/modules/kontakty/src/points";
 
@@ -81,6 +85,20 @@ const ico = () => {
   const d = Array.from({ length: 7 }, () => Math.floor(Math.random() * 10));
   const sum = d.reduce((a, x, i) => a + x * (8 - i), 0);
   return [...d, (11 - (sum % 11)) % 10].join("");
+};
+/** Firma, kterou fake ARES zná pod novým (platným) IČO, aby se testy nepletly přes sdílenou databázi souboru. */
+const aresFirm = (name = "Fake firma s.r.o.") => {
+  const number = ico();
+  ares.add({
+    ico: number,
+    name,
+    dic: `CZ${number}`,
+    legalForm: "Společnost s ručením omezeným",
+    street: "Hlavní 1",
+    city: "Plzeň",
+    zip: "301 00",
+  });
+  return number;
 };
 const boss = () =>
   makeUser(app.db, [
@@ -120,9 +138,20 @@ describe("organizace: IČO a doména webu (ORG-01, 02, 05)", () => {
     const u = await boss();
     const t = tag();
     const bare = await mkCompany(u, { name: `Bez IČO ${t}` });
-    expect(await rawCompany(bare.id)).toMatchObject({ ico: null, clientStatus: null, webDomain: null });
-    const full = await mkCompany(u, { name: `S IČO ${t}`, ico: "6947", web: "https://www.Example-Firma.cz/kontakt" });
-    expect(await rawCompany(full.id)).toMatchObject({ ico: "00006947", webDomain: "example-firma.cz" });
+    expect(await rawCompany(bare.id)).toMatchObject({
+      ico: null,
+      clientStatus: null,
+      webDomain: null,
+    });
+    const full = await mkCompany(u, {
+      name: `S IČO ${t}`,
+      ico: "6947",
+      web: "https://www.Example-Firma.cz/kontakt",
+    });
+    expect(await rawCompany(full.id)).toMatchObject({
+      ico: "00006947",
+      webDomain: "example-firma.cz",
+    });
   });
 
   it("stejné IČO nedovolí (i v jiném zápisu) a odkáže na existující organizaci", async () => {
@@ -130,13 +159,13 @@ describe("organizace: IČO a doména webu (ORG-01, 02, 05)", () => {
     const t = tag();
     const number = ico();
     const first = await mkCompany(u, { name: `Původní ${t}`, ico: number });
-    await expect(mkCompany(u, { name: `Další ${t}`, ico: ` ${number.slice(0, 4)} ${number.slice(4)} ` })).rejects.toThrow(
-      new RegExp(`${number}.*Původní ${t}.*${first.id}`),
-    );
+    await expect(
+      mkCompany(u, { name: `Další ${t}`, ico: ` ${number.slice(0, 4)} ${number.slice(4)} ` }),
+    ).rejects.toThrow(new RegExp(`${number}.*Původní ${t}.*${first.id}`));
     const other = await mkCompany(u, { name: `Jiná ${t}` });
-    await expect(updateRecord(u.ctx, registry, companyE, other.id, { ico: number })).rejects.toThrow(
-      /už existuje/,
-    );
+    await expect(
+      updateRecord(u.ctx, registry, companyE, other.id, { ico: number }),
+    ).rejects.toThrow(/už existuje/);
     // vlastní IČO se při úpravě neblokuje sama
     await updateRecord(u.ctx, registry, companyE, first.id, { ico: number, city: "Plzeň" });
     // nesmysl není IČO
@@ -164,7 +193,9 @@ describe("organizace: IČO a doména webu (ORG-01, 02, 05)", () => {
     expect(err).toBeInstanceOf(UserError);
     expect((err as Error).message).not.toContain("CANARY");
     expect((err as Error).message).toMatch(/nemáte k ní přístup/);
-    const ownerErr = await mkCompany(owner, { name: `Y ${tag()}`, ico: number }).catch((e: Error) => e);
+    const ownerErr = await mkCompany(owner, { name: `Y ${tag()}`, ico: number }).catch(
+      (e: Error) => e,
+    );
     expect((ownerErr as Error).message).toContain("CANARY");
     expect(await findCompanyByIco(other.ctx, number)).toBeNull();
     expect((await findCompanyByIco(owner.ctx, number))?.id).toBe(row!.id);
@@ -175,8 +206,15 @@ describe("duplicity organizací (ORG-06)", () => {
   it("podobný název (i s právní příponou a bez diakritiky) a stejná doména jsou „možná duplicita“", async () => {
     const u = await boss();
     const t = tag();
-    const base = await mkCompany(u, { name: `Novák Stavby ${t}, spol. s r.o.`, web: `https://novak-${t}.cz` });
-    const byName = (await companyCheckCommand.handler(u.ctx, { name: `NOVAK STAVBY ${t}` }, deps())) as {
+    const base = await mkCompany(u, {
+      name: `Novák Stavby ${t}, spol. s r.o.`,
+      web: `https://novak-${t}.cz`,
+    });
+    const byName = (await companyCheckCommand.handler(
+      u.ctx,
+      { name: `NOVAK STAVBY ${t}` },
+      deps(),
+    )) as {
       icoMatch: unknown;
       similar: { id: string; reason: string; similarity?: number }[];
     };
@@ -198,7 +236,11 @@ describe("duplicity organizací (ORG-06)", () => {
       deps(),
     )) as { similar: unknown[] };
     expect(self.similar).toEqual([]);
-    const none = (await companyCheckCommand.handler(u.ctx, { name: `Zelenina ${tag()}` }, deps())) as {
+    const none = (await companyCheckCommand.handler(
+      u.ctx,
+      { name: `Zelenina ${tag()}` },
+      deps(),
+    )) as {
       similar: unknown[];
     };
     expect(none.similar).toEqual([]);
@@ -253,7 +295,11 @@ describe("ARES (ORG-03, ORG-04, NFR-04)", () => {
 
     const applied = (await aresCommand.handler(
       u.ctx,
-      { companyId: c.id, apply: true, fields: ["officialName", "dic", "legalForm", "street", "city", "zip"] },
+      {
+        companyId: c.id,
+        apply: true,
+        fields: ["officialName", "dic", "legalForm", "street", "city", "zip"],
+      },
       deps(),
     )) as { ok: true; applied: string[]; syncedAt: string };
     expect(applied.applied).toHaveLength(6);
@@ -278,7 +324,7 @@ describe("ARES (ORG-03, ORG-04, NFR-04)", () => {
 
   it("nová organizace podle IČO: náhled doplní vše, bez zápisu; neplatné IČO se do sítě nepošle", async () => {
     const u = await boss();
-    const r = (await aresCommand.handler(u.ctx, { ico: "27082440" }, deps())) as {
+    const r = (await aresCommand.handler(u.ctx, { ico: aresFirm() }, deps())) as {
       ok: true;
       changes: { kind: string; selected: boolean }[];
       duplicate: unknown;
@@ -294,12 +340,16 @@ describe("ARES (ORG-03, ORG-04, NFR-04)", () => {
   it("výpadek ARES: náhled vrátí větu, ale organizaci jde založit i uložit (ORG-04)", async () => {
     const u = await boss();
     ares.setDown(true);
-    const r = await aresCommand.handler(u.ctx, { ico: "00006947" }, deps());
+    const r = await aresCommand.handler(u.ctx, { ico: aresFirm() }, deps());
     expect(r).toMatchObject({ ok: false, reason: "unavailable" });
     const t = tag();
-    const made = await mkCompany(u, { name: `Ručně ${t}`, ico: "00006947" });
-    expect(await rawCompany(made.id)).toMatchObject({ ico: "00006947" });
-    await updateRecord(u.ctx, registry, companyE, made.id, { city: "Praha", street: "Letenská 15" });
+    const own = ico();
+    const made = await mkCompany(u, { name: `Ručně ${t}`, ico: own });
+    expect(await rawCompany(made.id)).toMatchObject({ ico: own });
+    await updateRecord(u.ctx, registry, companyE, made.id, {
+      city: "Praha",
+      street: "Letenská 15",
+    });
     // zápis z ARES se při výpadku neprovede a nic nezmění
     const applied = await aresCommand.handler(u.ctx, { companyId: made.id, apply: true }, deps());
     expect(applied).toMatchObject({ ok: false, reason: "unavailable" });
@@ -308,38 +358,58 @@ describe("ARES (ORG-03, ORG-04, NFR-04)", () => {
 
   it("cache 24 h v databázi: druhý dotaz na nové IČO neleze do sítě; výpadek po cache vrátí starší údaje", async () => {
     const u = await boss();
-    await aresCommand.handler(u.ctx, { ico: "27082440" }, deps());
+    const number = aresFirm();
+    await aresCommand.handler(u.ctx, { ico: number }, deps());
     const before = ares.calls.length;
-    const again = (await aresCommand.handler(u.ctx, { ico: "27082440" }, deps())) as { ok: true; cached: boolean };
+    const again = (await aresCommand.handler(u.ctx, { ico: number }, deps())) as {
+      ok: true;
+      cached: boolean;
+    };
     expect(again.cached).toBe(true);
     expect(ares.calls).toHaveLength(before);
     // „Aktualizovat z ARES“ (companyId) cache obejde, výpadek pak vrátí uloženou odpověď s příznakem
-    const c = await mkCompany(u, { name: `Cache ${tag()}`, ico: "27082440" });
+    const c = await mkCompany(u, { name: `Cache ${tag()}`, ico: number });
     ares.setDown(true);
-    const stale = (await aresCommand.handler(u.ctx, { companyId: c.id }, deps())) as { ok: true; stale: boolean };
+    const stale = (await aresCommand.handler(u.ctx, { companyId: c.id }, deps())) as {
+      ok: true;
+      stale: boolean;
+    };
     expect(stale.ok).toBe(true);
   });
 
   it("zápis z ARES na organizaci, jejíž IČO patří jiné, odmítne (ORG-05)", async () => {
     const u = await boss();
-    const a = await mkCompany(u, { name: `A ${tag()}`, ico: "27082440" });
+    const number = aresFirm();
+    const a = await mkCompany(u, { name: `A ${tag()}`, ico: number });
     const b = await mkCompany(u, { name: `B ${tag()}` });
-    const preview = (await aresCommand.handler(u.ctx, { ico: "27082440", companyId: b.id }, deps())) as {
+    const preview = (await aresCommand.handler(
+      u.ctx,
+      { ico: number, companyId: b.id },
+      deps(),
+    )) as {
       duplicate: { id: string } | null;
     };
     expect(preview.duplicate?.id).toBe(a.id);
     await expect(
-      aresCommand.handler(u.ctx, { ico: "27082440", companyId: b.id, apply: true }, deps()),
+      aresCommand.handler(u.ctx, { ico: number, companyId: b.id, apply: true }, deps()),
     ).rejects.toThrow(/už existuje/);
   });
 
   it("test v Nastavení → Integrace měří dobu odpovědi; vyžaduje oprávnění k integracím", async () => {
     const u = await boss();
-    const r = (await aresTestCommand.handler(u.ctx, {}, deps())) as { ok: boolean; withinBudget: boolean; sample: string };
+    const r = (await aresTestCommand.handler(u.ctx, {}, deps())) as {
+      ok: boolean;
+      withinBudget: boolean;
+      sample: string;
+    };
     expect(r).toMatchObject({ ok: true, withinBudget: true, sample: "Ministerstvo financí" });
     ares.setDown(true);
-    expect(await aresTestCommand.handler(u.ctx, {}, deps())).toMatchObject({ ok: false });
-    expect(aresTestCommand.permission).toBe("settings.integrations");
+    // po výpadku zůstává uložená odpověď: test ji označí jako starou a mimo rozpočet
+    expect(await aresTestCommand.handler(u.ctx, {}, deps())).toMatchObject({
+      ok: true,
+      withinBudget: false,
+    });
+    expect(aresTestCommand.permission).toBe("kontakty.ares");
   });
 
   it("příkaz nechce oprávnění bez ARES ani zápisu; zápis vyžaduje právo na úpravu organizace", async () => {
@@ -365,7 +435,7 @@ describe("kontaktní údaje a duplicity osob (KON-01, KON-03)", () => {
       email: `Jan.Novak.${t}@Example.CZ`,
     });
     const raw = await rawPerson(p.id);
-    expect(raw).toMatchObject({ primaryPhone: "777 123 456", fullName: `Jan Novák ${t}` });
+    expect(raw).toMatchObject({ primaryPhone: "777123456", fullName: `Jan Novák ${t}` });
     const pts = await livePoints(p.id);
     expect(pts.map((x) => [x.kind, x.valueNorm, x.isPrimary]).sort()).toEqual(
       [
@@ -399,7 +469,12 @@ describe("kontaktní údaje a duplicity osob (KON-01, KON-03)", () => {
       },
       deps(),
     );
-    const rows = set as { kind: string; valueNorm: string; isPrimary: boolean; label: string | null }[];
+    const rows = set as {
+      kind: string;
+      valueNorm: string;
+      isPrimary: boolean;
+      label: string | null;
+    }[];
     expect(rows.filter((r) => r.kind === "phone")).toHaveLength(2);
     expect(rows.filter((r) => r.kind === "phone" && r.isPrimary).map((r) => r.valueNorm)).toEqual([
       "+421905000111",
@@ -416,14 +491,25 @@ describe("kontaktní údaje a duplicity osob (KON-01, KON-03)", () => {
     const audit = await app.db
       .select()
       .from(schema.auditLog)
-      .where(and(eq(schema.auditLog.entityId, p.id), eq(schema.auditLog.summary, "Změněny kontaktní údaje")));
+      .where(
+        and(
+          eq(schema.auditLog.entityId, p.id),
+          eq(schema.auditLog.summary, "Změněny kontaktní údaje"),
+        ),
+      );
     expect(audit).toHaveLength(1);
     // odebrání: údaje, které chybí v seznamu, se smažou, a hlavní nastoupí další
     const second = (await setPersonPointsCommand.handler(
       u.ctx,
       {
         personId: p.id,
-        points: [{ id: rows.find((r) => r.valueNorm === "+420602111222")!.valueNorm && undefined, kind: "phone", value: "602111222" }],
+        points: [
+          {
+            id: rows.find((r) => r.valueNorm === "+420602111222")!.valueNorm && undefined,
+            kind: "phone",
+            value: "602111222",
+          },
+        ],
       },
       deps(),
     )) as { kind: string; isPrimary: boolean }[];
@@ -435,10 +521,16 @@ describe("kontaktní údaje a duplicity osob (KON-01, KON-03)", () => {
   it("úprava hlavního telefonu a e-mailu v seznamu (inline) přepíše hlavní údaj, ne přidá druhý", async () => {
     const u = await boss();
     const t = tag();
-    const p = await mkPerson(u, { lastName: `Inline ${t}`, phone: "777 000 111", email: `x-${t}@example.cz` });
+    const p = await mkPerson(u, {
+      lastName: `Inline ${t}`,
+      phone: "777 000 111",
+      email: `x-${t}@example.cz`,
+    });
     await updateRecord(u.ctx, registry, personE, p.id, { phone: "777 000 222" });
     let pts = await livePoints(p.id);
-    expect(pts.filter((x) => x.kind === "phone").map((x) => x.valueNorm)).toEqual(["+420777000222"]);
+    expect(pts.filter((x) => x.kind === "phone").map((x) => x.valueNorm)).toEqual([
+      "+420777000222",
+    ]);
     // vymazání hlavního e-mailu ho smaže
     await updateRecord(u.ctx, registry, personE, p.id, { email: null });
     pts = await livePoints(p.id);
@@ -449,19 +541,34 @@ describe("kontaktní údaje a duplicity osob (KON-01, KON-03)", () => {
   it("duplicity podle telefonu nezávisle na mezerách a předvolbě i podle e-mailu velkými písmeny", async () => {
     const u = await boss();
     const t = tag();
-    const base = await mkPerson(u, { lastName: `Dup ${t}`, phone: "+420 603 700 700", email: `dup-${t}@example.cz` });
-    for (const variant of ["603700700", "603 700 700", "00420603700700", "+420-603-700-700", "(+420) 603 700 700"]) {
+    const base = await mkPerson(u, {
+      lastName: `Dup ${t}`,
+      phone: "+420 603 700 700",
+      email: `dup-${t}@example.cz`,
+    });
+    for (const variant of [
+      "603700700",
+      "603 700 700",
+      "00420603700700",
+      "+420-603-700-700",
+      "(+420) 603 700 700",
+    ]) {
       const found = (await personCheckCommand.handler(u.ctx, { phones: [variant] }, deps())) as {
         personId: string;
         match: string;
       }[];
-      expect(found.map((f) => f.personId), variant).toContain(base.id);
+      expect(
+        found.map((f) => f.personId),
+        variant,
+      ).toContain(base.id);
       expect(found[0]!.match).toBe("phone");
     }
     const byMail = await findContactDuplicates(u.ctx, { emails: [`DUP-${t}@Example.cz`] });
     expect(byMail).toEqual([{ personId: base.id, name: `Dup ${t}`, match: "email" }]);
     // excludeId: osoba sama sebe nehlásí
-    expect(await findContactDuplicates(u.ctx, { emails: [`dup-${t}@example.cz`], excludeId: base.id })).toEqual([]);
+    expect(
+      await findContactDuplicates(u.ctx, { emails: [`dup-${t}@example.cz`], excludeId: base.id }),
+    ).toEqual([]);
     // shoda i podle jiného než hlavního údaje
     await setPersonPointsCommand.handler(
       u.ctx,
@@ -474,8 +581,12 @@ describe("kontaktní údaje a duplicity osob (KON-01, KON-03)", () => {
       },
       deps(),
     );
-    expect((await findContactDuplicates(u.ctx, { phones: ["731222333"] })).map((x) => x.personId)).toEqual([base.id]);
-    expect((await findContactDuplicates(u.ctx, { phones: ["603700700"] })).map((x) => x.personId)).toEqual([base.id]);
+    expect(
+      (await findContactDuplicates(u.ctx, { phones: ["731222333"] })).map((x) => x.personId),
+    ).toEqual([base.id]);
+    expect(
+      (await findContactDuplicates(u.ctx, { phones: ["603700700"] })).map((x) => x.personId),
+    ).toEqual([base.id]);
     // jiné číslo nic nehlásí
     expect(await findContactDuplicates(u.ctx, { phones: ["605 111 999"] })).toEqual([]);
   });
@@ -484,14 +595,21 @@ describe("kontaktní údaje a duplicity osob (KON-01, KON-03)", () => {
     const u = await boss();
     const t = tag();
     const number = ico();
-    const c = await mkCompany(u, { name: `Shoda ${t}`, ico: number, email: `info-${t}@example.cz`, phone: "+420 222 333 444" });
+    const c = await mkCompany(u, {
+      name: `Shoda ${t}`,
+      ico: number,
+      email: `info-${t}@example.cz`,
+      phone: "+420 222 333 444",
+    });
     const p = await mkPerson(u, { lastName: `Shoda ${t}`, phone: "+420 604 555 666" });
     const r = await matchContactDuplicates(u.ctx, {
       ico: ` ${number} `,
       email: `INFO-${t}@example.cz`,
       phone: "604555666",
     });
-    expect(r.companies).toEqual([expect.objectContaining({ id: c.id, matchedBy: ["ico", "email"] })]);
+    expect(r.companies).toEqual([
+      expect.objectContaining({ id: c.id, matchedBy: ["ico", "email"] }),
+    ]);
     expect(r.persons).toEqual([expect.objectContaining({ id: p.id, matchedBy: ["phone"] })]);
     const phoneOfCompany = await matchContactDuplicates(u.ctx, { phone: "222333444" });
     expect(phoneOfCompany.companies.map((x) => x.id)).toEqual([c.id]);
@@ -506,11 +624,17 @@ describe("kontaktní údaje a duplicity osob (KON-01, KON-03)", () => {
       .insert(person)
       .values({ lastName: `PRIVATE-CANARY-${t}`, isPrivate: true })
       .returning();
-    await app.db
-      .insert(personContactPoint)
-      .values({ personId: secret!.id, kind: "phone", value: "608 123 123", valueNorm: "+420608123123", isPrimary: true });
+    await app.db.insert(personContactPoint).values({
+      personId: secret!.id,
+      kind: "phone",
+      value: "608 123 123",
+      valueNorm: "+420608123123",
+      isPrimary: true,
+    });
     expect(await findContactDuplicates(other.ctx, { phones: ["608123123"] })).toEqual([]);
-    expect((await findContactDuplicates(owner.ctx, { phones: ["608123123"] })).map((x) => x.personId)).toEqual([secret!.id]);
+    expect(
+      (await findContactDuplicates(owner.ctx, { phones: ["608123123"] })).map((x) => x.personId),
+    ).toEqual([secret!.id]);
   });
 });
 
@@ -577,7 +701,12 @@ describe("organizace osoby a kontakty organizace (KON-01, KON-04)", () => {
     const main = await mkCompany(u, { name: `Hlavní ${t}` });
     const side = await mkCompany(u, { name: `Vedlejší ${t}` });
     const a = await mkPerson(u, { lastName: `Adam ${t}`, company: main.id, position: "Účetní" });
-    const b = await mkPerson(u, { lastName: `Beneš ${t}`, company: main.id, isDecisionMaker: true, phone: "777 888 999" });
+    const b = await mkPerson(u, {
+      lastName: `Beneš ${t}`,
+      company: main.id,
+      isDecisionMaker: true,
+      phone: "777 888 999",
+    });
     const c = await mkPerson(u, { lastName: `Cyril ${t}`, position: "Ředitel" });
     await setPersonCompaniesCommand.handler(
       u.ctx,
@@ -605,9 +734,14 @@ describe("organizace osoby a kontakty organizace (KON-01, KON-04)", () => {
       isPrimaryCompany: false,
       position: "Externí poradce",
     });
-    expect(await app.db.select().from(personCompany).where(and(eq(personCompany.personId, c.id), isNull(personCompany.deletedAt)))).toHaveLength(1);
+    expect(
+      await app.db
+        .select()
+        .from(personCompany)
+        .where(and(eq(personCompany.personId, c.id), isNull(personCompany.deletedAt))),
+    ).toHaveLength(1);
     const primary = await getPrimaryContact(u.ctx, main.id);
-    expect(primary).toMatchObject({ personId: b.id, phone: "777 888 999" });
+    expect(primary).toMatchObject({ personId: b.id, phone: "777888999" });
     expect(await getPrimaryContact(u.ctx, side.id)).toMatchObject({ personId: c.id });
     // karta klienta: počet kontaktů a souhrn
     expect(await clientCardProvider.tabCounts!(u.ctx, main.id)).toEqual({ kontakty: 3 });
@@ -621,7 +755,12 @@ describe("organizace osoby a kontakty organizace (KON-01, KON-04)", () => {
     const other = await partner();
     const firm = await mkCompany(owner, { name: `Soukromí ${tag()}` });
     await mkPerson(owner, { lastName: `Veřejná ${tag()}`, company: firm.id });
-    await app.db.insert(person).values({ lastName: `PRIVATE-CANARY-${tag()}`, primaryCompanyId: firm.id, isPrivate: true, isDecisionMaker: true });
+    await app.db.insert(person).values({
+      lastName: `PRIVATE-CANARY-${tag()}`,
+      primaryCompanyId: firm.id,
+      isPrivate: true,
+      isDecisionMaker: true,
+    });
     expect(await clientCardProvider.tabCounts!(other.ctx, firm.id)).toEqual({ kontakty: 1 });
     expect(await clientCardProvider.tabCounts!(owner.ctx, firm.id)).toEqual({ kontakty: 2 });
     const contacts = JSON.stringify(await getPrimaryContact(other.ctx, firm.id));
@@ -632,7 +771,14 @@ describe("organizace osoby a kontakty organizace (KON-01, KON-04)", () => {
     const u = await boss();
     const t = tag();
     const firm = await mkCompany(u, { name: `Mailová ${t}` });
-    const p = await mkPerson(u, { firstName: "Eva", lastName: `Nová ${t}`, company: firm.id, isDecisionMaker: true, phone: "777123456", email: `eva-${t}@example.cz` });
+    const p = await mkPerson(u, {
+      firstName: "Eva",
+      lastName: `Nová ${t}`,
+      company: firm.id,
+      isDecisionMaker: true,
+      phone: "777123456",
+      email: `eva-${t}@example.cz`,
+    });
     expect(await personEmailVars.resolve(u.ctx, p.id)).toEqual({
       jmeno: "Eva",
       prijmeni: `Nová ${t}`,
@@ -640,8 +786,13 @@ describe("organizace osoby a kontakty organizace (KON-01, KON-04)", () => {
       email: `eva-${t}@example.cz`,
       telefon: "+420 777 123 456",
     });
-    expect(await companyEmailVars.resolve(u.ctx, firm.id)).toMatchObject({ jmeno: "Eva", firma: `Mailová ${t}` });
-    expect(await personEmailVars.resolve(u.ctx, "11111111-1111-4111-8111-111111111111")).toEqual({});
+    expect(await companyEmailVars.resolve(u.ctx, firm.id)).toMatchObject({
+      jmeno: "Eva",
+      firma: `Mailová ${t}`,
+    });
+    expect(await personEmailVars.resolve(u.ctx, "11111111-1111-4111-8111-111111111111")).toEqual(
+      {},
+    );
   });
 });
 
@@ -652,7 +803,9 @@ describe("API pro jiné moduly (D §2.4)", () => {
     const { id } = await createCompanyQuick(u.ctx, { name: `Rychlá ${tag()}`, ico: number });
     expect(await rawCompany(id)).toMatchObject({ ico: number, clientStatus: null, ownerId: u.id });
     expect(await findCompanyByIco(u.ctx, ` ${number} `)).toMatchObject({ id });
-    await expect(createCompanyQuick(u.ctx, { name: `Druhá ${tag()}`, ico: number })).rejects.toThrow(/už existuje/);
+    await expect(
+      createCompanyQuick(u.ctx, { name: `Druhá ${tag()}`, ico: number }),
+    ).rejects.toThrow(/už existuje/);
   });
 
   it("createPersonQuick založí osobu s údaji a getPrimaryContact ji vrátí", async () => {
@@ -685,7 +838,10 @@ describe("API pro jiné moduly (D §2.4)", () => {
     });
     expect(first.created).toEqual({ person: true, company: true });
     expect(await rawCompany(first.companyId!)).toMatchObject({ clientStatus: null });
-    expect(await rawPerson(first.personId)).toMatchObject({ firstName: "Jan", lastName: `Lead${t}` });
+    expect(await rawPerson(first.personId)).toMatchObject({
+      firstName: "Jan",
+      lastName: `Lead${t}`,
+    });
     // stejný člověk, jiný zápis telefonu, nový e-mail, stejná firma jinými písmeny
     const second = await upsertContactFromLead(u.ctx, {
       name: `Jan Lead${t}`,
@@ -693,14 +849,25 @@ describe("API pro jiné moduly (D §2.4)", () => {
       email: `jiny-${t}@example.cz`,
       companyName: `LEAD FIRMA ${t}`,
     });
-    expect(second).toMatchObject({ personId: first.personId, companyId: first.companyId, created: { person: false, company: false } });
+    expect(second).toMatchObject({
+      personId: first.personId,
+      companyId: first.companyId,
+      created: { person: false, company: false },
+    });
     const pts = await listPoints(app.db, first.personId);
     expect(pts.filter((p) => p.kind === "email")).toHaveLength(2);
     expect(pts.filter((p) => p.kind === "phone")).toHaveLength(1);
     // firma podle IČO
     const number = ico();
-    const withIco = await upsertContactFromLead(u.ctx, { name: `Anna Test${t}`, companyName: `Podle IČO ${t}`, ico: number });
-    const again = await upsertContactFromLead(u.ctx, { name: `Boris Test${t}`, ico: ` ${number} ` });
+    const withIco = await upsertContactFromLead(u.ctx, {
+      name: `Anna Test${t}`,
+      companyName: `Podle IČO ${t}`,
+      ico: number,
+    });
+    const again = await upsertContactFromLead(u.ctx, {
+      name: `Boris Test${t}`,
+      ico: ` ${number} `,
+    });
     expect(again.companyId).toBe(withIco.companyId);
     // lead bez firmy
     const solo = await upsertContactFromLead(u.ctx, { name: `Solo${t}`, phone: "606 000 999" });
@@ -713,7 +880,11 @@ describe("hledání (SPOL-hledání, KON-06)", () => {
     const u = await boss();
     const t = tag();
     const c = await mkCompany(u, { name: `Řemeslná firma ${t}`, ico: ico() });
-    const p = await mkPerson(u, { lastName: `Štěpánek ${t}`, company: c.id, phone: "+420 777 123 456" });
+    const p = await mkPerson(u, {
+      lastName: `Štěpánek ${t}`,
+      company: c.id,
+      phone: "+420 777 123 456",
+    });
     await setPersonPointsCommand.handler(
       u.ctx,
       {
@@ -729,12 +900,18 @@ describe("hledání (SPOL-hledání, KON-06)", () => {
       companies: { id: string }[];
     };
     expect(byName.companies.map((x) => x.id)).toContain(c.id);
-    const byPartial = (await searchCommand.handler(u.ctx, { q: "777 123" }, deps())) as { persons: { id: string; companyName: string | null }[] };
+    const byPartial = (await searchCommand.handler(u.ctx, { q: "777 123" }, deps())) as {
+      persons: { id: string; companyName: string | null }[];
+    };
     expect(byPartial.persons.find((x) => x.id === p.id)?.companyName).toBe(`Řemeslná firma ${t}`);
-    const bySecond = (await searchCommand.handler(u.ctx, { q: "605909808" }, deps())) as { persons: { id: string }[] };
+    const bySecond = (await searchCommand.handler(u.ctx, { q: "605909808" }, deps())) as {
+      persons: { id: string }[];
+    };
     expect(bySecond.persons.map((x) => x.id)).toContain(p.id);
     const nobody = await makeUser(app.db, [["zakazky.read", "all"]]);
-    await expect(searchCommand.handler(nobody.ctx, { q: t }, deps())).rejects.toThrow(PermissionError);
+    await expect(searchCommand.handler(nobody.ctx, { q: t }, deps())).rejects.toThrow(
+      PermissionError,
+    );
   });
 
   it("globální hledání najde osobu podle telefonu zapsaného v hlavním údaji", async () => {
@@ -750,14 +927,31 @@ describe("hledání (SPOL-hledání, KON-06)", () => {
   it("seznam osob nabízí primární telefon a e-mail (KON-06) a seznam organizací vlastníka a stav klienta (ORG-09)", async () => {
     const u = await boss();
     const t = tag();
-    await mkPerson(u, { lastName: `Seznam ${t}`, phone: "777 111 000", email: `s-${t}@example.cz` });
-    const page = await queryRecords(u.ctx, personE, { q: `Seznam ${t}` });
-    expect(page.rows[0]).toMatchObject({ phone: "777 111 000", email: `s-${t}@example.cz` });
+    await mkPerson(u, { lastName: `Seznam ${t}`, phone: "777111000", email: `s-${t}@example.cz` });
+    const page = await queryRecords(u.ctx, registry, personE, { q: `Seznam ${t}` });
+    expect(page.rows[0]).toMatchObject({ phone: "777111000", email: `s-${t}@example.cz` });
     const keys = personE.attributes.map((a) => a.key);
-    for (const k of ["fullName", "company", "position", "phone", "email", "owner", "lastActivityAt"])
+    for (const k of [
+      "fullName",
+      "company",
+      "position",
+      "phone",
+      "email",
+      "owner",
+      "lastActivityAt",
+    ])
       expect(keys).toContain(k);
     const ckeys = companyE.attributes.map((a) => a.key);
-    for (const k of ["name", "ico", "city", "clientStatus", "services", "owner", "lastActivityAt", "tags"])
+    for (const k of [
+      "name",
+      "ico",
+      "city",
+      "clientStatus",
+      "services",
+      "owner",
+      "lastActivityAt",
+      "tags",
+    ])
       expect(ckeys).toContain(k);
     expect(await getRecord(u.ctx, registry, personE, page.rows[0]!.id as string)).toBeTruthy();
   });
@@ -775,7 +969,12 @@ describe("sloučení duplicit (ORG-07, KON-03)", () => {
   it("organizace: přepojí osoby, zakázky, úkoly, poznámky, domény a komentáře, doplní pole, spojí štítky a služby, zapíše historii", async () => {
     const u = await boss();
     const t = tag();
-    const target = await mkCompany(u, { name: `Hlavní ${t}`, city: "Plzeň", tags: [], services: ["web"] });
+    const target = await mkCompany(u, {
+      name: `Hlavní ${t}`,
+      city: "Plzeň",
+      tags: [],
+      services: ["web"],
+    });
     const source = await mkCompany(u, {
       name: `Duplicita ${t}`,
       ico: ico(),
@@ -790,7 +989,11 @@ describe("sloučení duplicit (ORG-07, KON-03)", () => {
       .where(eq(company.id, source.id));
     await app.db
       .update(company)
-      .set({ clientStatus: "lead", clientSince: "2026-01-01", clientContext: { decisionMaker: "Jana" } })
+      .set({
+        clientStatus: "lead",
+        clientSince: "2026-01-01",
+        clientContext: { decisionMaker: "Jana" },
+      })
       .where(eq(company.id, target.id));
     const kid = await mkPerson(u, { lastName: `Kontakt ${t}`, company: source.id });
     const [job] = await app.db.execute(
@@ -799,7 +1002,9 @@ describe("sloučení duplicit (ORG-07, KON-03)", () => {
     await app.db.execute(
       sql`insert into task (id, title, company_id) values (gen_random_uuid(), ${`Úkol ${t}`}, ${source.id}::uuid)`,
     );
-    await app.db.execute(sql`insert into note (id, company_id) values (gen_random_uuid(), ${source.id}::uuid)`);
+    await app.db.execute(
+      sql`insert into note (id, company_id) values (gen_random_uuid(), ${source.id}::uuid)`,
+    );
     await app.db.execute(
       sql`insert into web_domain (id, domain, company_id) values (gen_random_uuid(), ${`dup-${t}.cz`}, ${source.id}::uuid)`,
     );
@@ -812,7 +1017,9 @@ describe("sloučení duplicit (ORG-07, KON-03)", () => {
     )) as Awaited<ReturnType<typeof previewMerge>>;
     const moved = Object.fromEntries(preview.moves.map((m) => [m.table, m.count]));
     expect(moved).toMatchObject({ person: 1, job: 1, task: 1, note: 1, web_domain: 1, comment: 1 });
-    expect(preview.fills.map((f) => f.field).sort()).toEqual(["dic", "ico", "web"].sort());
+    expect(preview.fills.map((f) => f.field).sort()).toEqual(
+      ["clientSince", "clientStatus", "dic", "ico", "web"].sort(),
+    );
     expect(preview.warnings.join(" ")).toMatch(/Stav klienta se liší/);
     expect(preview.adds.join(" ")).toMatch(/Služby/);
 
@@ -835,7 +1042,11 @@ describe("sloučení duplicit (ORG-07, KON-03)", () => {
     expect(after.ico).toBeTruthy();
     expect((await rawPerson(kid.id)).primaryCompanyId).toBe(target.id);
     expect(
-      (await app.db.execute(sql`select company_id from job where id = ${(job as { id: string }).id}::uuid`))[0],
+      (
+        await app.db.execute(
+          sql`select company_id from job where id = ${(job as { id: string }).id}::uuid`,
+        )
+      )[0],
     ).toMatchObject({ company_id: target.id });
     const left = await app.db.execute(
       sql`select (select count(*) from task where company_id = ${source.id}::uuid)::int as t, (select count(*) from note where company_id = ${source.id}::uuid)::int as n, (select count(*) from comment where entity_id = ${source.id}::uuid)::int as c`,
@@ -855,8 +1066,20 @@ describe("sloučení duplicit (ORG-07, KON-03)", () => {
     const t = tag();
     const firmA = await mkCompany(u, { name: `A ${t}` });
     const firmB = await mkCompany(u, { name: `B ${t}` });
-    const target = await mkPerson(u, { lastName: `Cíl ${t}`, email: `a-${t}@example.cz`, phone: "+420 777 000 111", company: firmA.id });
-    const source = await mkPerson(u, { lastName: `Zdroj ${t}`, email: `b-${t}@example.cz`, phone: "777000111", position: "Ředitel", company: firmB.id, isDecisionMaker: true });
+    const target = await mkPerson(u, {
+      lastName: `Cíl ${t}`,
+      email: `a-${t}@example.cz`,
+      phone: "+420 777 000 111",
+      company: firmA.id,
+    });
+    const source = await mkPerson(u, {
+      lastName: `Zdroj ${t}`,
+      email: `b-${t}@example.cz`,
+      phone: "777000111",
+      position: "Ředitel",
+      company: firmB.id,
+      isDecisionMaker: true,
+    });
     await setPersonPointsCommand.handler(
       u.ctx,
       {
@@ -869,7 +1092,9 @@ describe("sloučení duplicit (ORG-07, KON-03)", () => {
       },
       deps(),
     );
-    await app.db.execute(sql`insert into note (id, person_id) values (gen_random_uuid(), ${source.id}::uuid)`);
+    await app.db.execute(
+      sql`insert into note (id, person_id) values (gen_random_uuid(), ${source.id}::uuid)`,
+    );
 
     const preview = await previewMerge(u.ctx, "person", source.id, target.id);
     expect(preview.adds.join(" ")).toMatch(/E-maily a telefony/);
@@ -877,7 +1102,12 @@ describe("sloučení duplicit (ORG-07, KON-03)", () => {
     await mergeContacts(u.ctx, "person", source.id, target.id);
 
     const merged = await rawPerson(target.id);
-    expect(merged).toMatchObject({ position: "Ředitel", isDecisionMaker: true, primaryEmail: `a-${t}@example.cz`, primaryCompanyId: firmA.id });
+    expect(merged).toMatchObject({
+      position: "Ředitel",
+      isDecisionMaker: true,
+      primaryEmail: `a-${t}@example.cz`,
+      primaryCompanyId: firmA.id,
+    });
     const pts = await livePoints(target.id);
     const norms = pts.map((p) => `${p.kind}:${p.valueNorm}:${p.isPrimary}`).sort();
     expect(norms).toEqual(
@@ -890,12 +1120,23 @@ describe("sloučení duplicit (ORG-07, KON-03)", () => {
     );
     expect(pts.find((p) => p.valueNorm === "+420602123456")?.label).toBe("work");
     // hlavní organizace zdroje zůstala jako další organizace cíle
-    const others = await app.db.select().from(personCompany).where(and(eq(personCompany.personId, target.id), isNull(personCompany.deletedAt)));
+    const others = await app.db
+      .select()
+      .from(personCompany)
+      .where(and(eq(personCompany.personId, target.id), isNull(personCompany.deletedAt)));
     expect(others.map((o) => o.companyId)).toEqual([firmB.id]);
-    expect((await app.db.execute(sql`select count(*)::int as n from note where person_id = ${target.id}::uuid`))[0]).toMatchObject({ n: 1 });
+    expect(
+      (
+        await app.db.execute(
+          sql`select count(*)::int as n from note where person_id = ${target.id}::uuid`,
+        )
+      )[0],
+    ).toMatchObject({ n: 1 });
     expect((await rawPerson(source.id)).deletedAt).not.toBeNull();
     // po sloučení je duplicita pryč
-    expect((await findContactDuplicates(u.ctx, { phones: ["602123456"] })).map((d) => d.personId)).toEqual([target.id]);
+    expect(
+      (await findContactDuplicates(u.ctx, { phones: ["602123456"] })).map((d) => d.personId),
+    ).toEqual([target.id]);
   });
 
   it("chrání: stejný záznam, cizí rozsah, chybějící potvrzení a oprávnění; zámek se nepřenáší", async () => {
@@ -903,7 +1144,10 @@ describe("sloučení duplicit (ORG-07, KON-03)", () => {
     const a = await mkCompany(u, { name: `A ${tag()}` });
     const b = await mkCompany(u, { name: `B ${tag()}` });
     await expect(mergeContacts(u.ctx, "company", a.id, a.id)).rejects.toThrow(UserError);
-    expect(mergeApplyCommand.input.safeParse({ entity: "company", sourceId: a.id, targetId: b.id }).success).toBe(false);
+    expect(
+      mergeApplyCommand.input.safeParse({ entity: "company", sourceId: a.id, targetId: b.id })
+        .success,
+    ).toBe(false);
     expect(mergeApplyCommand.permission).toBe("kontakty.merge");
     expect(mergePreviewCommand.permission).toBe("kontakty.merge");
     // partner nemá kontakty.merge
@@ -917,9 +1161,13 @@ describe("sloučení duplicit (ORG-07, KON-03)", () => {
     ]);
     await expect(mergeContacts(mine.ctx, "company", a.id, b.id)).rejects.toThrow();
     // zámek zdroje se nepřenáší na hlavní záznam
-    await app.db.execute(sql`insert into private_record (entity_type, entity_id) values ('company', ${a.id}::uuid)`);
+    await app.db.execute(
+      sql`insert into private_record (entity_type, entity_id) values ('company', ${a.id}::uuid)`,
+    );
     await mergeContacts(u.ctx, "company", a.id, b.id);
-    const lock = await app.db.execute(sql`select count(*)::int as n from private_record where entity_id = ${b.id}::uuid`);
+    const lock = await app.db.execute(
+      sql`select count(*)::int as n from private_record where entity_id = ${b.id}::uuid`,
+    );
     expect(lock[0]).toMatchObject({ n: 0 });
   });
 
@@ -942,12 +1190,20 @@ describe("sloučení duplicit (ORG-07, KON-03)", () => {
         "calendar_event.company_id",
       ]),
     );
-    expect(refs.poly.map((p) => p.table)).toEqual(expect.arrayContaining(["comment", "attachment"]));
+    expect(refs.poly.map((p) => p.table)).toEqual(
+      expect.arrayContaining(["comment", "attachment"]),
+    );
     for (const skip of ["audit_log", "search_document", "private_record", "recent_record"])
       expect(refs.poly.map((p) => p.table)).not.toContain(skip);
     const personRefs = await discoverReferences(app.db, "person");
     expect(personRefs.columns.map((c) => `${c.table}.${c.column}`)).toEqual(
-      expect.arrayContaining(["deal.person_id", "task.person_id", "note.person_id", "job_participant.person_id", "deal_participant.person_id"]),
+      expect.arrayContaining([
+        "deal.person_id",
+        "task.person_id",
+        "note.person_id",
+        "job_participant.person_id",
+        "deal_participant.person_id",
+      ]),
     );
   });
 });

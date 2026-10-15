@@ -146,6 +146,11 @@ export async function setRolePermissions(
   if (unknown.length) throw new UserError(`Neznámá oprávnění: ${unknown.join(", ")}.`);
   for (const [k, s] of Object.entries(permissions))
     if (s !== "all" && s !== "own") throw new UserError(`Neplatný rozsah u oprávnění ${k}.`);
+  // soukromé záznamy vidí jen vlastník (systémová role); žádné roli, ani Patrikově, ho nejde přidělit
+  if ("private.read" in permissions)
+    throw new UserError(
+      "Oprávnění vidět soukromé záznamy nejde přidělit žádné roli: vidí je jen vlastník.",
+    );
 
   await inTx(ctx, async (c) => {
     const role = await loadRole(c, id);

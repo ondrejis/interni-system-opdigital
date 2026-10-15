@@ -1,10 +1,6 @@
 export { defineIngest } from "../modules/server";
 export type { IngestDef } from "../modules/server";
-export {
-  INGEST_MAX_BODY_BYTES,
-  processIngest,
-  reprocessInbound,
-} from "./process";
+export { INGEST_MAX_BODY_BYTES, processIngest, reprocessInbound } from "./process";
 export type { IngestRequest, IngestResponse } from "./process";
 export {
   PREVIOUS_SECRET_GRACE_HOURS,

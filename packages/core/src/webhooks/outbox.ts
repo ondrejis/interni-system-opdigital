@@ -53,7 +53,9 @@ export async function enqueueWebhookDeliveries(ctx: Ctx, event: DomainEvent): Pr
           includePrivate: schema.webhookEndpoint.includePrivate,
         })
         .from(schema.webhookEndpoint)
-        .where(and(eq(schema.webhookEndpoint.active, true), isNull(schema.webhookEndpoint.deletedAt)));
+        .where(
+          and(eq(schema.webhookEndpoint.active, true), isNull(schema.webhookEndpoint.deletedAt)),
+        );
       const targets = endpoints.filter(
         (e) => matchesEvent(e.events, event.name) && (!event.entity.isPrivate || e.includePrivate),
       );

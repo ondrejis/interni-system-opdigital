@@ -59,6 +59,7 @@ export const ARES_FIELDS = [
   "city",
   "zip",
 ] as const;
+/** Pole organizace, které jde doplnit z ARES. */
 export type AresField = (typeof ARES_FIELDS)[number];
 
 /** Popisky polí v náhledu změn. */

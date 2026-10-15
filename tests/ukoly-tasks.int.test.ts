@@ -119,7 +119,12 @@ let jobSeq = 0;
 async function makeJob(companyId: string) {
   const [j] = await db
     .insert(job)
-    .values({ number: `Z-2026-9${String(++jobSeq).padStart(2, "0")}`, title: "Web", companyId, type: "web" })
+    .values({
+      number: `Z-2026-9${String(++jobSeq).padStart(2, "0")}`,
+      title: "Web",
+      companyId,
+      type: "web",
+    })
     .returning();
   return j!.id;
 }
@@ -147,12 +152,9 @@ describe("založení a rychlé zadání", () => {
   it("quickAdd „zavolat Novákovi zítra 10:00“ založí Hovor na zítra 10:00 a vrátí rozpoznání", async () => {
     const now = new Date("2026-10-14T07:00:00Z"); // středa 9:00 v Praze
     const r = T(
-      await (await import("../packages/modules/ukoly/src/tasks/write")).quickAdd(
-        owner(),
-        deps,
-        { text: "zavolat Novákovi zítra 10:00" },
-        now,
-      ),
+      await (
+        await import("../packages/modules/ukoly/src/tasks/write")
+      ).quickAdd(owner(), deps, { text: "zavolat Novákovi zítra 10:00" }, now),
     );
     expect(r.task).toMatchObject({
       title: "Zavolat Novákovi",
@@ -174,32 +176,55 @@ describe("založení a rychlé zadání", () => {
         override: { typeKey: "meeting", dueDate: "2027-01-05", dueTime: "08:30", title: "Porada" },
       }),
     );
-    expect(r.task).toMatchObject({ title: "Porada", typeKey: "meeting", dueDate: "2027-01-05", dueTime: "08:30" });
-    await expect(run(quickAddCommand, owner(), { text: "zítra 10:00" })).rejects.toBeInstanceOf(UserError);
+    expect(r.task).toMatchObject({
+      title: "Porada",
+      typeKey: "meeting",
+      dueDate: "2027-01-05",
+      dueTime: "08:30",
+    });
+    await expect(run(quickAddCommand, owner(), { text: "zítra 10:00" })).rejects.toBeInstanceOf(
+      UserError,
+    );
   });
 
   it("ukoly.parse vrací náhled s typem z nastavení a příznakem prázdného názvu", async () => {
     const p = T(await run(parseCommand, owner(), { text: "schůzka v pátek 14:00 na hodinu" }));
-    expect(p).toMatchObject({ typeKey: "meeting", dueTime: "14:00", durationMin: 60, needsTitle: false });
+    expect(p).toMatchObject({
+      typeKey: "meeting",
+      dueTime: "14:00",
+      durationMin: 60,
+      needsTitle: false,
+    });
     expect(p.type).toMatchObject({ key: "meeting", name: "Schůzka" });
     expect(T(await run(parseCommand, owner(), { text: "zítra" })).needsTitle).toBe(true);
   });
 
   it("čas bez data se odmítne, odebrání data odebere i čas; neexistující typ se odmítne", async () => {
-    const t = T(await run(createCommand, owner(), { title: "A", dueDate: today, dueTime: "10:00" }));
+    const t = T(
+      await run(createCommand, owner(), { title: "A", dueDate: today, dueTime: "10:00" }),
+    );
     expect(t.dueTime).toBe("10:00");
     await expect(
       run(createCommand, owner(), { title: "B", dueTime: "10:00" }),
     ).resolves.toMatchObject({ dueDate: null, dueTime: null });
     const cleared = T(await run(updateCommand, owner(), { id: t.id, dueDate: null }));
     expect(cleared).toMatchObject({ dueDate: null, dueTime: null, state: "nodate" });
-    await expect(run(createCommand, owner(), { title: "C", typeKey: "neexistuje" })).rejects.toBeInstanceOf(UserError);
+    await expect(
+      run(createCommand, owner(), { title: "C", typeKey: "neexistuje" }),
+    ).rejects.toBeInstanceOf(UserError);
   });
 
   it("vazby: obchod doplní organizaci, popis a štítky se uloží", async () => {
     const c = await makeCompany();
     const d = await makeDeal({ companyId: c });
-    const t = T(await run(createCommand, owner(), { title: "Obchodní krok", dealId: d, description: "Podrobnosti", tags: [] }));
+    const t = T(
+      await run(createCommand, owner(), {
+        title: "Obchodní krok",
+        dealId: d,
+        description: "Podrobnosti",
+        tags: [],
+      }),
+    );
     expect(t.deal.id).toBe(d);
     expect(t.company.id).toBe(c);
     expect(t.description).toBe("Podrobnosti");
@@ -223,10 +248,16 @@ describe("podúkoly (jedna úroveň)", () => {
   it("podúkol podúkolu a podúkol úkolu s podúkoly se odmítne", async () => {
     const a = T(await run(createCommand, owner(), { title: "A" }));
     const b = T(await run(createCommand, owner(), { title: "B", parentId: a.id }));
-    await expect(run(createCommand, owner(), { title: "C", parentId: b.id })).rejects.toThrow(/jednu úroveň/);
+    await expect(run(createCommand, owner(), { title: "C", parentId: b.id })).rejects.toThrow(
+      /jednu úroveň/,
+    );
     const x = T(await run(createCommand, owner(), { title: "X" }));
-    await expect(run(updateCommand, owner(), { id: a.id, parentId: x.id })).rejects.toThrow(/podúkoly/);
-    await expect(run(updateCommand, owner(), { id: x.id, parentId: x.id })).rejects.toThrow(/sám sebe/);
+    await expect(run(updateCommand, owner(), { id: a.id, parentId: x.id })).rejects.toThrow(
+      /podúkoly/,
+    );
+    await expect(run(updateCommand, owner(), { id: x.id, parentId: x.id })).rejects.toThrow(
+      /sám sebe/,
+    );
   });
 });
 
@@ -238,24 +269,46 @@ describe("stavy, dokončení a nabídka dalšího kroku (UKO-07)", () => {
     expect(r.task).toMatchObject({ status: "done", state: "done" });
     expect(r.task.completedAt).toBeTruthy();
     expect(r.offer).toEqual({ outcome: false, next: null }); // obyčejný úkol nic nenabízí
-    expect(seen.map((s) => s.name)).toEqual(expect.arrayContaining(["task.completed", "task.changed"]));
+    expect(seen.map((s) => s.name)).toEqual(
+      expect.arrayContaining(["task.completed", "task.changed"]),
+    );
     const reopened = T(await run(setStatusCommand, owner(), { id: t.id, status: "in_progress" }));
     expect(reopened).toMatchObject({ status: "in_progress", completedAt: null });
   });
 
   it("dokončení hovoru nabídne výsledek a další aktivitu, ale nic nevytvoří", async () => {
     const before = (await db.select().from(task)).length;
-    const t = T(await run(createCommand, owner(), { title: "Zavolat", typeKey: "call", dueDate: "2026-10-16", dueTime: "10:00", durationMin: 15 }));
+    const t = T(
+      await run(createCommand, owner(), {
+        title: "Zavolat",
+        typeKey: "call",
+        dueDate: "2026-10-16",
+        dueTime: "10:00",
+        durationMin: 15,
+      }),
+    );
     const r = T(await run(completeCommand, owner(), { id: t.id }));
     expect(r.offer.outcome).toBe(true);
-    expect(r.offer.next).toMatchObject({ typeKey: "call", title: "Zavolat", dueTime: "10:00", durationMin: 15 });
+    expect(r.offer.next).toMatchObject({
+      typeKey: "call",
+      title: "Zavolat",
+      dueTime: "10:00",
+      durationMin: 15,
+    });
     expect(r.offer.next.dueDate > today).toBe(true);
     expect(r.next).toBeNull();
     expect((await db.select().from(task)).length).toBe(before + 1); // jen ten jeden
   });
 
   it("výsledek zadaný při dokončení ukáže, že nabídka výsledku už není potřeba; další aktivita se založí jen na požádání", async () => {
-    const t = T(await run(createCommand, owner(), { title: "Schůzka", typeKey: "meeting", dueDate: today, dueTime: "09:00" }));
+    const t = T(
+      await run(createCommand, owner(), {
+        title: "Schůzka",
+        typeKey: "meeting",
+        dueDate: today,
+        dueTime: "09:00",
+      }),
+    );
     const r = T(
       await run(completeCommand, owner(), {
         id: t.id,
@@ -269,27 +322,61 @@ describe("stavy, dokončení a nabídka dalšího kroku (UKO-07)", () => {
   });
 
   it("vlastní typ s příznakem „v kalendáři“ se chová jako aktivita", async () => {
-    await run(typeSaveCommand, owner(), { key: "navsteva", name: "Návštěva", icon: "map-pin", isCalendarEvent: true });
-    const t = T(await run(createCommand, owner(), { title: "U klienta", typeKey: "navsteva", dueDate: today }));
+    await run(typeSaveCommand, owner(), {
+      key: "navsteva",
+      name: "Návštěva",
+      icon: "map-pin",
+      isCalendarEvent: true,
+    });
+    const t = T(
+      await run(createCommand, owner(), {
+        title: "U klienta",
+        typeKey: "navsteva",
+        dueDate: today,
+      }),
+    );
     expect(T(await run(completeCommand, owner(), { id: t.id })).offer.next).not.toBeNull();
   });
 
   it("hotový úkol nejde přeplánovat; otevřený ano (datum, čas, odložení o dny)", async () => {
-    const t = T(await run(createCommand, owner(), { title: "Odložit", dueDate: today, dueTime: "10:00" }));
-    const moved = T(await run(rescheduleCommand, owner(), { id: t.id, dueDate: addDaysIso(today, 2), dueTime: "15:00" }));
+    const t = T(
+      await run(createCommand, owner(), { title: "Odložit", dueDate: today, dueTime: "10:00" }),
+    );
+    const moved = T(
+      await run(rescheduleCommand, owner(), {
+        id: t.id,
+        dueDate: addDaysIso(today, 2),
+        dueTime: "15:00",
+      }),
+    );
     expect(moved).toMatchObject({ dueDate: addDaysIso(today, 2), dueTime: "15:00" });
     const snoozed = T(await run(rescheduleCommand, owner(), { id: t.id, days: 7 }));
     expect(snoozed).toMatchObject({ dueDate: addDaysIso(today, 7), dueTime: "15:00" });
     await run(completeCommand, owner(), { id: t.id });
-    await expect(run(rescheduleCommand, owner(), { id: t.id, dueDate: today })).rejects.toBeInstanceOf(UserError);
+    await expect(
+      run(rescheduleCommand, owner(), { id: t.id, dueDate: today }),
+    ).rejects.toBeInstanceOf(UserError);
   });
 });
 
 describe("systémová pole obchodu (OBCH-14)", () => {
   it("další a poslední aktivita obchodu se přepočítá po vzniku, dokončení i smazání úkolu", async () => {
     const d = await makeDeal();
-    const t1 = T(await run(createCommand, owner(), { title: "Dřív", dealId: d, dueDate: addDaysIso(today, 2), dueTime: "10:00" }));
-    const t2 = T(await run(createCommand, owner(), { title: "Později", dealId: d, dueDate: addDaysIso(today, 5) }));
+    const t1 = T(
+      await run(createCommand, owner(), {
+        title: "Dřív",
+        dealId: d,
+        dueDate: addDaysIso(today, 2),
+        dueTime: "10:00",
+      }),
+    );
+    const t2 = T(
+      await run(createCommand, owner(), {
+        title: "Později",
+        dealId: d,
+        dueDate: addDaysIso(today, 5),
+      }),
+    );
     let row = await dealRow(d);
     expect(row.nextTaskId).toBe(t1.id);
     expect(row.nextActivityAt).toBeTruthy();
@@ -309,8 +396,19 @@ describe("systémová pole obchodu (OBCH-14)", () => {
 
   it("soukromý úkol u sdíleného obchodu se do polí nepočítá (partner by termín uviděl)", async () => {
     const d = await makeDeal();
-    const open = T(await run(createCommand, owner(), { title: "Sdílený", dealId: d, dueDate: addDaysIso(today, 9) }));
-    await run(createCommand, owner(), { title: "Soukromý", dealId: d, dueDate: addDaysIso(today, 1), isPrivate: true });
+    const open = T(
+      await run(createCommand, owner(), {
+        title: "Sdílený",
+        dealId: d,
+        dueDate: addDaysIso(today, 9),
+      }),
+    );
+    await run(createCommand, owner(), {
+      title: "Soukromý",
+      dealId: d,
+      dueDate: addDaysIso(today, 1),
+      isPrivate: true,
+    });
     expect((await dealRow(d)).nextTaskId).toBe(open.id);
   });
 
@@ -318,7 +416,13 @@ describe("systémová pole obchodu (OBCH-14)", () => {
     const c = await makeCompany("Jiná s.r.o.");
     const a = await makeDeal({ companyId: c });
     const b = await makeDeal({ companyId: c });
-    const t = T(await run(createCommand, owner(), { title: "Přesun", dealId: a, dueDate: addDaysIso(today, 3) }));
+    const t = T(
+      await run(createCommand, owner(), {
+        title: "Přesun",
+        dealId: a,
+        dueDate: addDaysIso(today, 3),
+      }),
+    );
     expect((await dealRow(a)).nextTaskId).toBe(t.id);
     await run(updateCommand, owner(), { id: t.id, dealId: b });
     expect((await dealRow(a)).nextTaskId).toBeNull();
@@ -331,7 +435,13 @@ describe("systémová pole obchodu (OBCH-14)", () => {
 
 describe("soukromí a přiřazení (VID-06)", () => {
   it("soukromý úkol partner nevidí (detail, seznam, počty); vlastník ano", async () => {
-    const t = T(await run(createCommand, owner(), { title: "PRIVATE-CANARY-1", isPrivate: true, dueDate: today }));
+    const t = T(
+      await run(createCommand, owner(), {
+        title: "PRIVATE-CANARY-1",
+        isPrivate: true,
+        dueDate: today,
+      }),
+    );
     expect(t.isPrivate).toBe(true);
     await expect(run(getCommand, partner(), { id: t.id })).rejects.toBeInstanceOf(NotFoundError);
     const list = T(await run(listCommand, partner(), { view: "all", scope: "all" }));
@@ -341,7 +451,9 @@ describe("soukromí a přiřazení (VID-06)", () => {
   });
 
   it("partner nesmí založit soukromý úkol", async () => {
-    await expect(run(createCommand, partner(), { title: "X", isPrivate: true })).rejects.toBeInstanceOf(UserError);
+    await expect(
+      run(createCommand, partner(), { title: "X", isPrivate: true }),
+    ).rejects.toBeInstanceOf(UserError);
   });
 
   it("soukromý úkol nejde přiřadit partnerovi; „Zveřejnit a přiřadit“ ho zveřejní a přiřadí", async () => {
@@ -350,12 +462,18 @@ describe("soukromí a přiřazení (VID-06)", () => {
       run(assignCommand, owner(), { id: t.id, assigneeId: f.people.partner.id }),
     ).rejects.toBeInstanceOf(PrivateAssignmentError);
     await expect(
-      run(createCommand, owner(), { title: "Rovnou", isPrivate: true, assigneeId: f.people.partner.id }),
+      run(createCommand, owner(), {
+        title: "Rovnou",
+        isPrivate: true,
+        assigneeId: f.people.partner.id,
+      }),
     ).rejects.toBeInstanceOf(PrivateAssignmentError);
     await expect(
       run(publishAndAssignCommand, partner(), { id: t.id, assigneeId: f.people.partner.id }),
-    ).rejects.toBeInstanceOf(NotFoundError); // partner o úkolu neví
-    const r = T(await run(publishAndAssignCommand, owner(), { id: t.id, assigneeId: f.people.partner.id }));
+    ).rejects.toBeInstanceOf(PermissionError); // zveřejnit smí jen vlastník
+    const r = T(
+      await run(publishAndAssignCommand, owner(), { id: t.id, assigneeId: f.people.partner.id }),
+    );
     expect(r).toMatchObject({ isPrivate: false, assigneeId: f.people.partner.id });
     // přiřazený úkol se druhému objeví okamžitě (UKO-09)
     const theirs = T(await run(listCommand, partner(), { view: "all" }));
@@ -375,13 +493,16 @@ describe("soukromí a přiřazení (VID-06)", () => {
 describe("pohledy „Moje úkoly“ a počty (UKO-04)", () => {
   it("Dnes obsahuje i po termínu; Nadcházejících 7 dní, Bez termínu, Delegované a Hotové jsou oddělené", async () => {
     const [a, b] = [f.people.owner.id, f.people.partner.id];
-    const mk = (title: string, extra: object = {}) => run(createCommand, owner(), { title, assigneeId: a, ...extra });
+    const mk = (title: string, extra: object = {}) =>
+      run(createCommand, owner(), { title, assigneeId: a, ...extra });
     const overdue = T(await mk("L-po-termínu", { dueDate: addDaysIso(today, -3) }));
     const dnes = T(await mk("L-dnes", { dueDate: today }));
     const brzy = T(await mk("L-za-4-dny", { dueDate: addDaysIso(today, 4) }));
     const daleko = T(await mk("L-za-30-dní", { dueDate: addDaysIso(today, 30) }));
     const bez = T(await mk("L-bez-termínu"));
-    const delegovany = T(await run(createCommand, owner(), { title: "L-delegovaný", assigneeId: b, dueDate: today }));
+    const delegovany = T(
+      await run(createCommand, owner(), { title: "L-delegovaný", assigneeId: b, dueDate: today }),
+    );
     const hotovy = T(await mk("L-hotový", { dueDate: today }));
     await run(completeCommand, owner(), { id: hotovy.id });
 
@@ -410,7 +531,9 @@ describe("pohledy „Moje úkoly“ a počty (UKO-04)", () => {
     expect(t).toMatchObject({ jobPhaseId: null, jobPhaseName: null });
     expect(t.job.id).toBe(j);
     expect(t.company.id).toBe(c);
-    const done = T(await run(createCommand, owner(), { title: "Hotový v zakázce", jobId: j, done: true }));
+    const done = T(
+      await run(createCommand, owner(), { title: "Hotový v zakázce", jobId: j, done: true }),
+    );
     const r = T(await run(forRecordCommand, owner(), { jobId: j }));
     expect(r.open.map((x: { id: string }) => x.id)).toEqual([t.id]);
     expect(r.done.map((x: { id: string }) => x.id)).toEqual([done.id]);
@@ -431,19 +554,38 @@ describe("typy aktivit (NAS-07)", () => {
   it("seed je idempotentní a obsahuje pět systémových typů", async () => {
     await ensureTaskTypes(db);
     await ensureTaskTypes(db);
-    const types = T(await run(typeListCommand, owner(), {})) as { key: string; isSystem: boolean }[];
+    const types = T(await run(typeListCommand, owner(), {})) as {
+      key: string;
+      isSystem: boolean;
+    }[];
     const system = types.filter((t) => t.isSystem).map((t) => t.key);
-    expect(system).toEqual(expect.arrayContaining(["task", "call", "meeting", "email", "deadline"]));
+    expect(system).toEqual(
+      expect.arrayContaining(["task", "call", "meeting", "email", "deadline"]),
+    );
     expect(new Set(types.map((t) => t.key)).size).toBe(types.length);
   });
 
   it("typ jde založit a změnit, klíč se nemění, systémový ani používaný typ se nesmaže", async () => {
-    const t = T(await run(typeSaveCommand, owner(), { key: "workshop", name: "Workshop", icon: "users", color: "teal", isCalendarEvent: true }));
+    const t = T(
+      await run(typeSaveCommand, owner(), {
+        key: "workshop",
+        name: "Workshop",
+        icon: "users",
+        color: "teal",
+        isCalendarEvent: true,
+      }),
+    );
     expect(t).toMatchObject({ key: "workshop", isSystem: false, isCalendarEvent: true });
-    const renamed = T(await run(typeSaveCommand, owner(), { id: t.id, key: "workshop", name: "Školení" }));
+    const renamed = T(
+      await run(typeSaveCommand, owner(), { id: t.id, key: "workshop", name: "Školení" }),
+    );
     expect(renamed.name).toBe("Školení");
-    await expect(run(typeSaveCommand, owner(), { id: t.id, key: "jiny", name: "Školení" })).rejects.toThrow(/Klíč/);
-    await expect(run(typeSaveCommand, owner(), { key: "workshop", name: "Dup" })).rejects.toThrow(/už existuje/);
+    await expect(
+      run(typeSaveCommand, owner(), { id: t.id, key: "jiny", name: "Školení" }),
+    ).rejects.toThrow(/Klíč/);
+    await expect(run(typeSaveCommand, owner(), { key: "workshop", name: "Dup" })).rejects.toThrow(
+      /už existuje/,
+    );
 
     const sys = (await db.select().from(taskType)).find((x) => x.key === "call")!;
     await expect(run(typeDeleteCommand, owner(), { id: sys.id })).rejects.toThrow(/systémový/);
@@ -471,17 +613,90 @@ describe("služba tasks pro ostatní moduly", () => {
       phaseIds: [phase],
       items: [
         { phaseId: phase, title: "Sběr podkladů", dueDate: addDaysIso(today, -2) },
-        { phaseId: phase, title: "Návrh", dueDate: addDaysIso(today, 5), estimateMin: 120, priority: "high" },
+        {
+          phaseId: phase,
+          title: "Návrh",
+          dueDate: addDaysIso(today, 5),
+          estimateMin: 120,
+          priority: "high",
+        },
       ],
     });
     expect(r.taskIds).toHaveLength(2);
     const rows = await db.select().from(task).where(eq(task.jobId, j));
     expect(rows).toHaveLength(2);
-    expect(rows.every((x) => x.assigneeId === f.people.owner.id && x.companyId === c && x.jobPhaseId === phase)).toBe(true);
-    expect(rows.find((x) => x.title === "Návrh")).toMatchObject({ estimateMin: 120, priority: "high" });
+    expect(
+      rows.every(
+        (x) => x.assigneeId === f.people.owner.id && x.companyId === c && x.jobPhaseId === phase,
+      ),
+    ).toBe(true);
+    expect(rows.find((x) => x.title === "Návrh")).toMatchObject({
+      estimateMin: 120,
+      priority: "high",
+    });
     expect(await svc().openCounts(owner(), { jobId: j })).toEqual({ open: 2, overdue: 1 });
     expect(await svc().overdueJobIds(owner())).toContain(j);
     expect(await svc().overdueJobIds(partner())).toContain(j);
+  });
+
+  it("po fázích: openCountsByPhase, completeOpenInPhases (task.completed) a listForTemplate", async () => {
+    const c = await makeCompany("Fázová s.r.o.");
+    const j = await makeJob(c);
+    const [p1, p2] = [crypto.randomUUID(), crypto.randomUUID()];
+    const { taskIds } = await svc().createFromTemplate(owner(), {
+      jobId: j,
+      ownerId: f.people.owner.id,
+      startDate: today,
+      phaseIds: [p1, p2],
+      items: [
+        { phaseId: p1, title: "A1" },
+        { phaseId: p1, title: "A2", dueDate: addDaysIso(today, 3), priority: "high" },
+        { phaseId: p2, title: "B1" },
+      ],
+    });
+    expect(await svc().openCountsByPhase(owner(), { jobId: j, phaseIds: [p1, p2] })).toEqual({
+      [p1]: 2,
+      [p2]: 1,
+    });
+    const tpl = await svc().listForTemplate(owner(), { jobId: j });
+    expect(tpl.map((x) => x.title).sort()).toEqual(["A1", "A2", "B1"]);
+    expect(tpl.find((x) => x.title === "A2")).toMatchObject({
+      phaseId: p1,
+      priority: "high",
+      dueDate: addDaysIso(today, 3),
+    });
+    seen.length = 0;
+    expect(await svc().completeOpenInPhases(owner(), { jobId: j, phaseIds: [p1] })).toEqual({
+      completed: 2,
+    });
+    expect(seen.filter((s) => s.name === "task.completed")).toHaveLength(2);
+    expect(await svc().openCountsByPhase(owner(), { jobId: j, phaseIds: [p1, p2] })).toEqual({
+      [p1]: 0,
+      [p2]: 1,
+    });
+    expect((await db.select().from(task).where(eq(task.id, taskIds[2]!)))[0]!.status).toBe("todo");
+    expect((await svc().listForTemplate(owner(), { jobId: j })).map((x) => x.title)).toEqual([
+      "B1",
+    ]);
+  });
+
+  it("estimateByJob sečte odhady otevřených i hotových, bez zrušených a bez dvojího počítání podúkolů", async () => {
+    const c = await makeCompany("Odhadová s.r.o.");
+    const j = await makeJob(c);
+    const mk = (i: object) => run(createCommand, owner(), { jobId: j, ...i });
+    const parent = T(await mk({ title: "Rodič", estimateMin: 600 }));
+    await mk({ title: "Pod 1", parentId: parent.id, estimateMin: 120 });
+    await mk({ title: "Pod 2", parentId: parent.id, estimateMin: 60, done: true });
+    await mk({ title: "Samostatný", estimateMin: 30 });
+    const zrusen = T(await mk({ title: "Zrušený", estimateMin: 999 }));
+    await run(setStatusCommand, owner(), { id: zrusen.id, status: "canceled" });
+    await mk({ title: "Bez odhadu" });
+    await mk({ title: "PRIVATE-CANARY-3", estimateMin: 1000, isPrivate: true });
+    expect(await svc().estimateByJob(owner(), j)).toEqual({
+      estimateMin: 120 + 60 + 30 + 1000,
+      tasks: 4,
+    });
+    expect(await svc().estimateByJob(partner(), j)).toEqual({ estimateMin: 210, tasks: 3 });
   });
 
   it("soukromá zakázka: její úkoly se partnerovi nepočítají", async () => {
@@ -505,9 +720,18 @@ describe("služba tasks pro ostatní moduly", () => {
 
   it("logDoneActivity zapíše hotový hovor nebo e-mail", async () => {
     const c = await makeCompany();
-    const { id } = await svc().logDoneActivity(owner(), { typeKey: "email", subject: "Nabídka odeslána", companyId: c });
+    const { id } = await svc().logDoneActivity(owner(), {
+      typeKey: "email",
+      subject: "Nabídka odeslána",
+      companyId: c,
+    });
     const [row] = await db.select().from(task).where(eq(task.id, id));
-    expect(row).toMatchObject({ status: "done", typeKey: "email", companyId: c, assigneeId: f.people.owner.id });
+    expect(row).toMatchObject({
+      status: "done",
+      typeKey: "email",
+      companyId: c,
+      assigneeId: f.people.owner.id,
+    });
     expect(row!.completedAt).toBeTruthy();
   });
 
@@ -531,10 +755,15 @@ describe("služba tasks pro ostatní moduly", () => {
   });
 
   it("createPrivateNote smí jen vlastník a poznámka je soukromá", async () => {
-    await expect(svc().createPrivateNote(partner(), { title: "x", bodyJson: {} })).rejects.toBeInstanceOf(PermissionError);
+    await expect(
+      svc().createPrivateNote(partner(), { title: "x", bodyJson: {} }),
+    ).rejects.toBeInstanceOf(PermissionError);
     const { id } = await svc().createPrivateNote(owner(), {
       title: "Můj nápad",
-      bodyJson: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Obsah" }] }] },
+      bodyJson: {
+        type: "doc",
+        content: [{ type: "paragraph", content: [{ type: "text", text: "Obsah" }] }],
+      },
     });
     const { note } = await import("@rebar/ukoly/schema");
     const [row] = await db.select().from(note).where(eq(note.id, id));
@@ -548,7 +777,16 @@ describe("metriky", () => {
       const m = metrics.find((x) => x.key === key)!;
       const r = await m.compute(
         who,
-        { from: null, to: null, jobId: null, userId: null, bucket: null, limit: 10, params: {}, today },
+        {
+          from: null,
+          to: null,
+          jobId: null,
+          userId: null,
+          bucket: null,
+          limit: 10,
+          params: {},
+          today,
+        },
         deps,
       );
       return (r as { value: number }).value;

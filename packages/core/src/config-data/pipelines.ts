@@ -4,7 +4,7 @@ import { recordAudit } from "../audit/audit";
 import { schema, type Executor } from "../db/client";
 import { inTx } from "../rbac/context";
 import { NotFoundError, UserError } from "../rbac/errors";
-import { assertCan } from "../rbac/permissions";
+import { assertCanAny } from "../rbac/permissions";
 import type { Ctx } from "../rbac/types";
 
 export type StageKind = "open" | "won" | "lost" | "done";
@@ -223,7 +223,7 @@ export async function getPipeline(db: Executor, entityType: string, key: string)
 }
 
 export async function addStage(ctx: Ctx, pipelineId: string, def: StageDef) {
-  assertCan(ctx, "settings.manage");
+  assertCanAny(ctx, "settings.manage", "settings.pipelines");
   if (!def.name.trim()) throw new UserError("Vyplňte název stavu.");
   return inTx(ctx, async (c) => {
     const [pl] = await c.db
@@ -273,7 +273,7 @@ export async function addStage(ctx: Ctx, pipelineId: string, def: StageDef) {
 }
 
 export async function updateStage(ctx: Ctx, stageId: string, patch: Partial<StageDef>) {
-  assertCan(ctx, "settings.manage");
+  assertCanAny(ctx, "settings.manage", "settings.pipelines");
   await inTx(ctx, async (c) => {
     const [before] = await c.db
       .select()
@@ -324,7 +324,7 @@ export async function updateStage(ctx: Ctx, stageId: string, patch: Partial<Stag
 
 /** Přeuspořádá stavy; `orderedIds` musí obsahovat všechny stavy pipeline právě jednou. */
 export async function reorderStages(ctx: Ctx, pipelineId: string, orderedIds: readonly string[]) {
-  assertCan(ctx, "settings.manage");
+  assertCanAny(ctx, "settings.manage", "settings.pipelines");
   await inTx(ctx, async (c) => {
     const current = await c.db
       .select({ id: schema.pipelineStage.id })
@@ -357,7 +357,7 @@ export async function reorderStages(ctx: Ctx, pipelineId: string, orderedIds: re
 
 /** Smaže (měkce) nepoužívaný stav; používaný se odmítne a doporučí se přesunout záznamy jinam. */
 export async function deleteStage(ctx: Ctx, stageId: string) {
-  assertCan(ctx, "settings.manage");
+  assertCanAny(ctx, "settings.manage", "settings.pipelines");
   await inTx(ctx, async (c) => {
     const [stage] = await c.db
       .select({ stage: schema.pipelineStage, entityType: schema.pipeline.entityType })
@@ -390,7 +390,7 @@ export async function deleteStage(ctx: Ctx, stageId: string) {
 
 /** Vrátí smazaný stav na konec pipeline (zpět po omylu). */
 export async function restoreStage(ctx: Ctx, stageId: string) {
-  assertCan(ctx, "settings.manage");
+  assertCanAny(ctx, "settings.manage", "settings.pipelines");
   await inTx(ctx, async (c) => {
     const [stage] = await c.db
       .select()

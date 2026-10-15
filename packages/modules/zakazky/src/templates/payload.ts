@@ -78,7 +78,7 @@ export async function payloadFromJob(
     payments: [],
   };
   const tasks = tasksOf(deps);
-  if (opts.includeTasks && tasks?.listForTemplate) {
+  if (opts.includeTasks && tasks) {
     const lead = (
       await c.db
         .select({ userId: jobMember.userId })

@@ -46,8 +46,7 @@ export function parseSignatureHeader(
 
 /** Výsledek ověření podpisu; `reason` rozlišuje, proč se požadavek odmítl (do protokolu, ne do odpovědi). */
 export type SignatureCheck =
-  | { ok: true }
-  | { ok: false; reason: "missing" | "malformed" | "expired" | "mismatch" };
+  { ok: true } | { ok: false; reason: "missing" | "malformed" | "expired" | "mismatch" };
 
 /**
  * Ověří podpis těla jedním nebo více tajemstvími (aktuální + předchozí při rotaci). Porovnání v konstantním čase,
@@ -60,8 +59,13 @@ export function verifySignature(opts: {
   nowMs?: number;
   toleranceSeconds?: number;
 }): SignatureCheck {
-  const { secrets, header, body, nowMs = Date.now(), toleranceSeconds = SIGNATURE_TOLERANCE_SECONDS } =
-    opts;
+  const {
+    secrets,
+    header,
+    body,
+    nowMs = Date.now(),
+    toleranceSeconds = SIGNATURE_TOLERANCE_SECONDS,
+  } = opts;
   if (!header) return { ok: false, reason: "missing" };
   const parsed = parseSignatureHeader(header);
   if (!parsed) return { ok: false, reason: "malformed" };

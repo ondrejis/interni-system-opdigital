@@ -60,7 +60,10 @@ export const userFieldsInput = z.object({
  * Upraví zkratku, IČO a fakturační nástroj uživatele (jen majitel). Zkratka a IČO jsou mezi aktivními uživateli
  * jedinečné. Změna jde do historie s hodnotami před a po.
  */
-export async function updateUserFields(ctx: Ctx, raw: z.input<typeof userFieldsInput>) {
+export async function updateUserFields(
+  ctx: Ctx,
+  raw: z.input<typeof userFieldsInput> | z.output<typeof userFieldsInput>,
+) {
   assertCan(ctx, "users.manage");
   const input = userFieldsInput.parse(raw);
   await inTx(ctx, async (c) => {

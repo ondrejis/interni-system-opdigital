@@ -49,7 +49,11 @@ describe("buildWeekGrid", () => {
       e({ jobId: "A", date: "2026-10-13", minutes: 30 }),
       e({ jobId: "A", date: "2026-10-13", minutes: 45 }),
     ]);
-    expect(g.rows[0]!.cells["2026-10-13"]).toEqual({ gridMinutes: 75, taskMinutes: 0, gridEntries: 2 });
+    expect(g.rows[0]!.cells["2026-10-13"]).toEqual({
+      gridMinutes: 75,
+      taskMinutes: 0,
+      gridEntries: 2,
+    });
   });
 
   it("záznam mimo týden se ignoruje", () => {
@@ -107,7 +111,13 @@ describe("planCellSave", () => {
 
   it("sloučení i při stejném součtu (víc záznamů se vždy sloučí)", () => {
     const plan = planCellSave([c("a", 60, null, "1"), c("b", 30, null, "2")], 90);
-    expect(plan).toMatchObject({ kind: "update", id: "a", minutes: 90, note: null, deleteIds: ["b"] });
+    expect(plan).toMatchObject({
+      kind: "update",
+      id: "a",
+      minutes: 90,
+      note: null,
+      deleteIds: ["b"],
+    });
   });
 
   it("spojená poznámka se ořízne na limit", () => {

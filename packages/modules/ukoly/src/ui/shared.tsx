@@ -221,14 +221,22 @@ export function DueText({
   const text = formatDue(task.dueDate, task.dueTime);
   const dur = withDuration && task.dueTime ? formatDuration(task.durationMin) : "";
   return (
-    <span className={cn("tabular whitespace-nowrap", DUE_TONE[state], className)} data-due-state={state}>
+    <span
+      className={cn("tabular whitespace-nowrap", DUE_TONE[state], className)}
+      data-due-state={state}
+    >
       {text}
       {dur && <span className="text-faint"> · {dur}</span>}
     </span>
   );
 }
 
-const LINK_ICON = { deal: "handshake", company: "building", person: "user", job: "briefcase" } as const;
+const LINK_ICON = {
+  deal: "handshake",
+  company: "building",
+  person: "user",
+  job: "briefcase",
+} as const;
 /** Entity jádra pro odkaz. */
 export type LinkKind = keyof typeof LINK_ICON;
 const LINK_ENTITY: Record<LinkKind, string> = {

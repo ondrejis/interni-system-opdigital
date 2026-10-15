@@ -73,7 +73,8 @@ export const testEndpointAction = defineAction({
 export const retryDeliveryAction = defineAction({
   permission: PERMISSION,
   input: z.object({ id }),
-  handler: async (ctx, i) => (await retryDelivery(ctx, { cipher: getServices().cipher }, i.id)) ?? null,
+  handler: async (ctx, i) =>
+    (await retryDelivery(ctx, { cipher: getServices().cipher }, i.id)) ?? null,
 });
 
 /** Vrátí všechna chybná doručení (volitelně jednoho webhooku) do fronty; odešle je worker. Vrací jejich počet. */
@@ -87,7 +88,9 @@ export const retryAllFailedAction = defineAction({
 export const deliveryPayloadAction = defineAction({
   permission: PERMISSION,
   input: z.object({ id }),
-  handler: async (ctx, i) => ({ json: JSON.stringify(await getDeliveryPayload(ctx, i.id), null, 2) }),
+  handler: async (ctx, i) => ({
+    json: JSON.stringify(await getDeliveryPayload(ctx, i.id), null, 2),
+  }),
 });
 
 /** Nové tajemství příchozích požadavků; vrací ho (zobrazí se jen teď). Staré platí 24 h, nebo skončí hned. */

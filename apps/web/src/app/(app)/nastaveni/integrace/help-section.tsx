@@ -46,21 +46,29 @@ export function HelpSection({ baseUrl, sources }: { baseUrl: string; sources: st
         <section>
           <h4 className="font-semibold">Webhooky z OPSYS do n8n</h4>
           <ol className="mt-1 list-decimal space-y-1 pl-5 text-muted">
-            <li>V n8n vytvořte workflow s uzlem Webhook (POST) a jeho Production URL vložte do nového webhooku výše.</li>
-            <li>Tajemství <code>whsec_…</code>, které se po vytvoření zobrazí jednou, uložte do n8n.</li>
+            <li>
+              V n8n vytvořte workflow s uzlem Webhook (POST) a jeho Production URL vložte do nového
+              webhooku výše.
+            </li>
+            <li>
+              Tajemství <code>whsec_…</code>, které se po vytvoření zobrazí jednou, uložte do n8n.
+            </li>
             <li>
               Každý požadavek nese hlavičky <code>X-Opsys-Event</code> (název události),{" "}
               <code>X-Opsys-Delivery</code> (ID doručení) a <code>X-Opsys-Signature</code> ve tvaru{" "}
               <code>t=&lt;unix&gt;,v1=&lt;hex&gt;</code>.
             </li>
             <li>
-              Podpis <code>v1</code> je hex HMAC-SHA256 z řetězce <code>t + &quot;.&quot; + tělo</code> s tajemstvím jako klíčem; tělo je
-              přesně přijatý text (před parsováním JSON). Požadavek, jehož <code>t</code> se od hodin n8n liší o víc než 5 minut,
-              odmítněte.
+              Podpis <code>v1</code> je hex HMAC-SHA256 z řetězce{" "}
+              <code>t + &quot;.&quot; + tělo</code> s tajemstvím jako klíčem; tělo je přesně přijatý
+              text (před parsováním JSON). Požadavek, jehož <code>t</code> se od hodin n8n liší o
+              víc než 5 minut, odmítněte.
             </li>
             <li>
-              Tělo je JSON <code>{`{ id, event, occurredAt, actor, entity, data, previous? }`}</code>; <code>entity.isPrivate</code> říká,
-              zda jde o soukromý záznam. Odpovězte stavem 2xx, jinak se doručení opakuje (po 1 min, 5 min, 15 min, 30 min, 1 h).
+              Tělo je JSON{" "}
+              <code>{`{ id, event, occurredAt, actor, entity, data, previous? }`}</code>;{" "}
+              <code>entity.isPrivate</code> říká, zda jde o soukromý záznam. Odpovězte stavem 2xx,
+              jinak se doručení opakuje (po 1 min, 5 min, 15 min, 30 min, 1 h).
             </li>
           </ol>
           <Code>{VERIFY_SNIPPET}</Code>
@@ -71,17 +79,19 @@ export function HelpSection({ baseUrl, sources }: { baseUrl: string; sources: st
             <li>
               Vygenerujte tajemství příchozích požadavků a vložte ho do n8n. Volejte{" "}
               <code>POST {baseUrl}/api/ingest/&lt;zdroj&gt;</code>
-              {sources.length > 0 && <> (zdroje: {sources.join(", ")})</>}
-              {" "}s hlavičkou <code>Content-Type: application/json</code>.
+              {sources.length > 0 && <> (zdroje: {sources.join(", ")})</>} s hlavičkou{" "}
+              <code>Content-Type: application/json</code>.
             </li>
             <li>
-              Hlavička <code>X-Opsys-Signature: t=&lt;unix&gt;,v1=&lt;hex&gt;</code>, kde hex je HMAC-SHA256(tajemství, <code>t + &quot;.&quot; + tělo</code>) a{" "}
-              <code>t</code> je aktuální čas v sekundách (tolerance ±5 minut).
+              Hlavička <code>X-Opsys-Signature: t=&lt;unix&gt;,v1=&lt;hex&gt;</code>, kde hex je
+              HMAC-SHA256(tajemství, <code>t + &quot;.&quot; + tělo</code>) a <code>t</code> je
+              aktuální čas v sekundách (tolerance ±5 minut).
             </li>
             <li>
-              Odpovědi: <code>200</code> přijato (<code>duplicate: true</code> = už zpracováno dřív, nic se nestalo),{" "}
-              <code>401</code> špatný nebo prošlý podpis, <code>404</code> neznámý zdroj, <code>422</code> neplatná data,{" "}
-              <code>500</code> zpracování selhalo (n8n smí požadavek zopakovat, stejné ID se zpracuje znovu).
+              Odpovědi: <code>200</code> přijato (<code>duplicate: true</code> = už zpracováno dřív,
+              nic se nestalo), <code>401</code> špatný nebo prošlý podpis, <code>404</code> neznámý
+              zdroj, <code>422</code> neplatná data, <code>500</code> zpracování selhalo (n8n smí
+              požadavek zopakovat, stejné ID se zpracuje znovu).
             </li>
           </ol>
           <Code>{SIGN_SNIPPET}</Code>

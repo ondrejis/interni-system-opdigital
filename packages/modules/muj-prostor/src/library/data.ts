@@ -1,4 +1,15 @@
-import { and, arrayContains, arrayOverlaps, asc, desc, eq, isNull, or, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  arrayContains,
+  arrayOverlaps,
+  asc,
+  desc,
+  eq,
+  isNull,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { getLookup } from "@rebar/core/config-data";
 import { NotFoundError } from "@rebar/core/rbac";
 import type { Ctx } from "@rebar/core/rbac";
@@ -16,7 +27,9 @@ const likeNorm = (col: SQL | unknown, pattern: string) =>
   sql`lower(f_unaccent(coalesce(${col}, ''))) like ${pattern} escape '\\'`;
 
 /** Řádek knihovny pro seznam. */
-export function toLibraryRow(r: Pick<Raw, "id" | "title" | "category" | "subject" | "tags" | "bodyText" | "updatedAt">): LibraryRow {
+export function toLibraryRow(
+  r: Pick<Raw, "id" | "title" | "category" | "subject" | "tags" | "bodyText" | "updatedAt">,
+): LibraryRow {
   return {
     id: r.id,
     title: r.title,
@@ -35,7 +48,12 @@ export function toLibraryRow(r: Pick<Raw, "id" | "title" | "category" | "subject
  */
 export async function listLibrary(
   ctx: Ctx,
-  input: { q?: string | undefined; category?: string | undefined; tag?: string | undefined; sort?: "title" | "updated" | undefined },
+  input: {
+    q?: string | undefined;
+    category?: string | undefined;
+    tag?: string | undefined;
+    sort?: "title" | "updated" | undefined;
+  },
 ): Promise<LibraryList> {
   const t = emailLibraryItem;
   const tagItems = await getLookup(ctx.db, "tag", { includeInactive: true });
@@ -81,7 +99,10 @@ export async function listLibrary(
         asc(t.id),
       )
       .limit(LIBRARY_LIMIT),
-    ctx.db.select({ n: sql<number>`count(*)::int` }).from(t).where(where),
+    ctx.db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(t)
+      .where(where),
     ctx.db.select({ category: t.category, tags: t.tags }).from(t).where(isNull(t.deletedAt)),
   ]);
 

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Vlastní pole" };
 
 export default async function CustomFieldsPage() {
-  const ctx = await requireCan("settings.manage");
+  const ctx = await requireCan(["settings.manage", "settings.custom_fields"]);
   const { registry } = getServices();
   // vlastní pole mají entity, jejichž tabulka má sloupec `custom`
   const customizable = registry.all().filter((d) => "custom" in getTableColumns(d.table));
@@ -27,6 +27,7 @@ export default async function CustomFieldsPage() {
         type: f.type,
         required: f.required,
         showInTable: f.showInTable,
+        showInForm: f.showInForm,
         hidden: !!f.options.hidden,
         defaultValue: f.options.defaultValue ?? null,
         choices: f.options.choices ?? [],
@@ -38,7 +39,7 @@ export default async function CustomFieldsPage() {
     <SettingsPage
       width="xl"
       title="Vlastní pole"
-      description="Doplňte si k firmám, zakázkám, fakturám a dalším záznamům vlastní údaje. Pole se objeví v tabulce, filtrech, řazení, detailu, exportu i hledání."
+      description="Doplňte si k organizacím, kontaktům, obchodům, zakázkám a úkolům vlastní údaje. Pole se objeví v tabulce, filtrech, řazení, detailu, exportu i hledání."
       icon={<SlidersHorizontal />}
     >
       <FieldsAdmin

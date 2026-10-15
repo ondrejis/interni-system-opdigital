@@ -49,7 +49,7 @@ describe("ensureRoles", () => {
     expect(perms).toEqual({ "zakazky.read": "own", "dochazka.own": "all" }); // sklad není v katalogu (vypnutý modul)
   });
 
-  it("existující roli nemění (správce ji upravil), jen dorovná povinné 2FA", async () => {
+  it("existující roli nemění (správce ji upravil), jen dorovná povinné 2FA a nová oprávnění", async () => {
     const key = k();
     await ensureRoles(app.db, [{ key, name: "Kancelář", permissions: { "kontakty.read": "all" } }]);
     await app.db
@@ -68,7 +68,8 @@ describe("ensureRoles", () => {
     const { role, perms } = await rolePerms(key);
     expect(role?.name).toBe("Upraveno správcem");
     expect(role?.require2fa).toBe(true);
-    expect(perms["zakazky.read"]).toBeUndefined(); // oprávnění se nepřidávají zpětně
+    expect(perms["zakazky.read"]).toBe("all"); // nové oprávnění ze seedu se doplní
+    expect(perms["kontakty.read"]).toBeUndefined(); // co správce odebral, se nevrací
   });
 
   it("povinné 2FA z konfigurace se nikdy nesnižuje", async () => {

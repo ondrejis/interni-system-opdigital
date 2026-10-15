@@ -58,6 +58,7 @@ export const securityActionLabel = (action: string): string =>
 /** Neznámý účet v historii (někdo zkoušel přihlášení na neexistující e-mail); vidí ho jen správce. */
 export const UNKNOWN_ACCOUNT = "unknown";
 
+/** Bezpečnostní událost k zápisu do historie (kdo, čeho se týká, co se stalo). */
 export type SecurityEvent = {
   action: SecurityAction;
   /** Účet, kterého se událost týká; `null` = neznámý účet (neúspěšné přihlášení na cizí e-mail). */
@@ -109,6 +110,7 @@ export function securityVisibility(ctx: Ctx): SQL | undefined {
   return sql`(${schema.auditLog.category} <> 'security' or (${schema.auditLog.entityType} = 'user' and ${schema.auditLog.entityId} = ${me}))`;
 }
 
+/** Řádek výpisu bezpečnostních událostí účtu. */
 export type SecurityEventRow = {
   id: string;
   occurredAt: Date;

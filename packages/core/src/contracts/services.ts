@@ -112,6 +112,37 @@ export type ServiceMap = {
       ctx: Ctx,
       input: { title: string; bodyJson: unknown },
     ): Promise<{ id: string }>;
+    /**
+     * Součet odhadu času (`estimateMin`) nezrušených úkolů zakázky, otevřených i hotových, a jejich počet. Podúkoly se
+     * nepočítají dvakrát (nadřazený úkol, jehož podúkol má odhad, se vynechá); soukromé úkoly jen tomu, kdo je smí vidět.
+     */
+    estimateByJob(ctx: Ctx, jobId: string): Promise<{ estimateMin: number; tasks: number }>;
+    /** Počet otevřených úkolů po fázích zakázky (klíč = id fáze; fáze bez úkolů mají 0). */
+    openCountsByPhase(
+      ctx: Ctx,
+      input: { jobId: string; phaseIds: string[] },
+    ): Promise<Record<string, number>>;
+    /** Dokončí otevřené úkoly daných fází zakázky (jako aktér volání, vyšle `task.completed`); vrací jejich počet. */
+    completeOpenInPhases(
+      ctx: Ctx,
+      input: { jobId: string; phaseIds: string[] },
+    ): Promise<{ completed: number }>;
+    /** Otevřené (nadřazené) úkoly zakázky pro uložení hotové zakázky jako šablony. */
+    listForTemplate(
+      ctx: Ctx,
+      input: { jobId: string },
+    ): Promise<
+      {
+        phaseId: string | null;
+        title: string;
+        typeKey: string;
+        priority: "none" | "low" | "medium" | "high" | "urgent";
+        assigneeId: string | null;
+        dueDate: string | null;
+        estimateMin: number | null;
+        description: string | null;
+      }[]
+    >;
   };
   /** Vlastník: modul `finance`. */
   finance: {

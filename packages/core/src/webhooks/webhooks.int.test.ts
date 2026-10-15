@@ -3,7 +3,8 @@ import { createServer, type IncomingMessage, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { desc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import type { DealSnap, DriveEventData } from "../contracts/events";
+import type { DriveEventData } from "../contracts/events";
+import type { DealSnap } from "../contracts/types";
 import { schema } from "../db/client";
 import { newId } from "../db/ids";
 import { emitDomain } from "../events";
@@ -38,15 +39,19 @@ import { verifySignature } from "./signature";
 */
 
 const app = connectAppDb();
-const cipher = createCipher(parseKeyRing({ APP_ENCRYPTION_KEY: randomBytes(32).toString("base64") }));
+const cipher = createCipher(
+  parseKeyRing({ APP_ENCRYPTION_KEY: randomBytes(32).toString("base64") }),
+);
 const sys = systemCtx(app.db);
 
 type Hit = { headers: IncomingMessage["headers"]; body: string };
 let server: Server;
 let base: string;
 let hits: Hit[] = [];
-let respond: (hit: Hit, n: number) => { status: number; body?: string; headers?: Record<string, string> } =
-  () => ({ status: 200 });
+let respond: (
+  hit: Hit,
+  n: number,
+) => { status: number; body?: string; headers?: Record<string, string> } = () => ({ status: 200 });
 
 beforeAll(async () => {
   server = createServer((req, res) => {
@@ -84,7 +89,11 @@ async function deadUrl(): Promise<string> {
   return `http://127.0.0.1:${port}/nikdo`;
 }
 
-const owner = () => makeUser(app.db, [["settings.integrations", "all"], ["private.read", "all"]]);
+const owner = () =>
+  makeUser(app.db, [
+    ["settings.integrations", "all"],
+    ["private.read", "all"],
+  ]);
 const deps = (extra: Partial<DeliverDeps> = {}): DeliverDeps => ({ db: app.db, cipher, ...extra });
 
 const deal = (id = newId()): DealSnap => ({
@@ -114,7 +123,10 @@ async function addEndpoint(
 }
 
 const deliveriesOf = async (endpointId: string) =>
-  app.db.select().from(schema.webhookDelivery).where(eq(schema.webhookDelivery.endpointId, endpointId));
+  app.db
+    .select()
+    .from(schema.webhookDelivery)
+    .where(eq(schema.webhookDelivery.endpointId, endpointId));
 
 async function emit(isPrivate = false, name: "deal.won" | "deal.created" = "deal.won") {
   const d = deal();
@@ -212,9 +224,14 @@ describe("outbox: zápis doručení v transakci změny", () => {
     await expect(
       inTx(sys, async (c) => {
         const d = deal();
-        await emitDomain(c, "deal.won", { deal: d, jobIds: [] }, {
-          entity: { type: "deal", id: d.id, isPrivate: false },
-        });
+        await emitDomain(
+          c,
+          "deal.won",
+          { deal: d, jobIds: [] },
+          {
+            entity: { type: "deal", id: d.id, isPrivate: false },
+          },
+        );
         throw new Error("změna se nepovedla");
       }),
     ).rejects.toThrow("změna se nepovedla");
@@ -238,7 +255,10 @@ describe("outbox: zápis doručení v transakci změny", () => {
       await c.db.insert(schema.setting).values({ key: `${key}-po`, value: { a: 2 } });
     });
     const saved = await app.db.select().from(schema.setting).where(eq(schema.setting.key, key));
-    const after = await app.db.select().from(schema.setting).where(eq(schema.setting.key, `${key}-po`));
+    const after = await app.db
+      .select()
+      .from(schema.setting)
+      .where(eq(schema.setting.key, `${key}-po`));
     expect(saved).toHaveLength(1);
     expect(after).toHaveLength(1);
     expect(await deliveriesOf(e.id)).toHaveLength(0);
@@ -284,7 +304,10 @@ describe("doručení: podpis, hlavičky, výsledek", () => {
   it("tajemství je v databázi jen zašifrované a seznam endpointů ho neobsahuje", async () => {
     const { ctx } = await owner();
     const e = await addEndpoint(ctx, ["deal.won"]);
-    const [row] = await app.db.select().from(schema.webhookEndpoint).where(eq(schema.webhookEndpoint.id, e.id));
+    const [row] = await app.db
+      .select()
+      .from(schema.webhookEndpoint)
+      .where(eq(schema.webhookEndpoint.id, e.id));
     expect(row!.secretEnc).not.toContain(e.secret);
     expect(cipher.decrypt(row!.secretEnc)).toBe(e.secret);
     expect(JSON.stringify(await listEndpoints(ctx))).not.toContain(e.secret);
@@ -341,7 +364,9 @@ describe("opakování: 1 min → 5 min → 15 min → 30 min → 1 h, pak chyba"
         const delay = RETRY_DELAYS_SECONDS[attempt - 1]!;
         expect(row!.nextAttemptAt.getTime()).toBe(now.getTime() + delay * 1000);
         // před uplynutím odkladu se nic neodešle
-        const early = await deliverDue(deps({ now: () => new Date(now.getTime() + delay * 1000 - 1) }));
+        const early = await deliverDue(
+          deps({ now: () => new Date(now.getTime() + delay * 1000 - 1) }),
+        );
         expect(early.claimed).toBe(0);
         now = new Date(now.getTime() + delay * 1000);
       }
@@ -351,7 +376,9 @@ describe("opakování: 1 min → 5 min → 15 min → 30 min → 1 h, pak chyba"
     expect(row!.lastError).toContain("HTTP 500: n8n spadlo stack");
     expect(hits).toHaveLength(6);
     // nic dalšího se už neodesílá
-    expect((await deliverDue(deps({ now: () => new Date(now.getTime() + 86_400_000) }))).claimed).toBe(0);
+    expect(
+      (await deliverDue(deps({ now: () => new Date(now.getTime() + 86_400_000) }))).claimed,
+    ).toBe(0);
     // každý pokus podepsán časem svého pokusu (a opakování po hodině proto prošlo ověřením ±5 min)
     hits.forEach((h, i) =>
       expect(
@@ -409,7 +436,9 @@ describe("opakování: 1 min → 5 min → 15 min → 30 min → 1 h, pak chyba"
     await emit();
     const t0 = new Date(Date.now() + 1000);
     // worker doručení převzal (zámek), ale spadl dřív, než odeslal
-    await app.db.execute(sql`update webhook_delivery set attempts = 1, next_attempt_at = ${new Date(t0.getTime() + 120_000).toISOString()}::timestamptz`);
+    await app.db.execute(
+      sql`update webhook_delivery set attempts = 1, next_attempt_at = ${new Date(t0.getTime() + 120_000).toISOString()}::timestamptz`,
+    );
     expect((await deliverDue(deps({ now: () => t0 }))).claimed).toBe(0);
     const later = new Date(t0.getTime() + 121_000);
     expect(await deliverDue(deps({ now: () => later }))).toMatchObject({ delivered: 1 });
@@ -441,7 +470,9 @@ describe("správa endpointů a doručení", () => {
     const input = { name: "x", url: `${base}/h`, events: ["deal.won"], includePrivate: false };
     await expect(listEndpoints(nobody.ctx)).rejects.toThrow(PermissionError);
     await expect(createEndpoint(nobody.ctx, cipher, input)).rejects.toThrow(PermissionError);
-    await expect(updateEndpoint(nobody.ctx, e.id, { ...input, active: true })).rejects.toThrow(PermissionError);
+    await expect(updateEndpoint(nobody.ctx, e.id, { ...input, active: true })).rejects.toThrow(
+      PermissionError,
+    );
     await expect(rotateEndpointSecret(nobody.ctx, cipher, e.id)).rejects.toThrow(PermissionError);
     await expect(deleteEndpoint(nobody.ctx, e.id)).rejects.toThrow(PermissionError);
     await expect(sendTestDelivery(nobody.ctx, { cipher }, e.id)).rejects.toThrow(PermissionError);
@@ -455,9 +486,13 @@ describe("správa endpointů a doručení", () => {
     const ok = { name: "n8n", url: `${base}/h`, events: ["deal.won"], includePrivate: false };
     await expect(createEndpoint(ctx, cipher, { ...ok, name: " " })).rejects.toThrow(UserError);
     await expect(createEndpoint(ctx, cipher, { ...ok, url: "ftp://x" })).rejects.toThrow(UserError);
-    await expect(createEndpoint(ctx, cipher, { ...ok, url: "http://n8n.firma.cz/x" })).rejects.toThrow(/https/);
+    await expect(
+      createEndpoint(ctx, cipher, { ...ok, url: "http://n8n.firma.cz/x" }),
+    ).rejects.toThrow(/https/);
     await expect(createEndpoint(ctx, cipher, { ...ok, events: [] })).rejects.toThrow(/aspoň jednu/);
-    await expect(createEndpoint(ctx, cipher, { ...ok, events: ["client.renamed"] })).rejects.toThrow(/Neznámá událost/);
+    await expect(
+      createEndpoint(ctx, cipher, { ...ok, events: ["client.renamed"] }),
+    ).rejects.toThrow(/Neznámá událost/);
     expect(await listEndpoints(ctx)).toHaveLength(0);
   });
 
@@ -525,7 +560,10 @@ describe("správa endpointů a doručení", () => {
     expect(ok).toMatchObject({ outcome: "delivered", error: null });
     expect(hits).toHaveLength(1);
     expect(hits[0]!.headers["x-opsys-event"]).toBe("webhook.test");
-    expect(JSON.parse(hits[0]!.body)).toMatchObject({ event: "webhook.test", entity: { isPrivate: false } });
+    expect(JSON.parse(hits[0]!.body)).toMatchObject({
+      event: "webhook.test",
+      entity: { isPrivate: false },
+    });
     expect(
       verifySignature({
         secrets: [e.secret],
@@ -566,7 +604,10 @@ describe("správa endpointů a doručení", () => {
     const [after] = await deliveriesOf(e.id);
     expect(after).toMatchObject({ status: "delivered", attempts: 1, lastError: null });
     await expect(retryDelivery(ctx, { cipher }, failed!.id)).rejects.toThrow(/selhalo/);
-    const log = await app.db.select().from(schema.auditLog).where(eq(schema.auditLog.action, "retry"));
+    const log = await app.db
+      .select()
+      .from(schema.auditLog)
+      .where(eq(schema.auditLog.action, "retry"));
     expect(log.some((l) => l.entityId === e.id)).toBe(true);
   });
 
@@ -594,7 +635,9 @@ describe("správa endpointů a doručení", () => {
     expect((await listEndpoints(full.ctx))[0]!.counts.pending).toBe(2);
     const [priv] = (await listDeliveries(full.ctx)).filter((d) => d.isPrivate);
     await expect(getDeliveryPayload(limited.ctx, priv!.id)).rejects.toThrow(/nenalezeno/);
-    expect(await getDeliveryPayload(full.ctx, priv!.id)).toMatchObject({ entity: { isPrivate: true } });
+    expect(await getDeliveryPayload(full.ctx, priv!.id)).toMatchObject({
+      entity: { isPrivate: true },
+    });
     await app.db.update(schema.webhookDelivery).set({ status: "failed" });
     expect(await retryAllFailed(limited.ctx, { endpointId: e.id })).toBe(1); // jen to, co vidí
     const stillFailed = await listDeliveries(full.ctx, { status: "failed" });
@@ -616,7 +659,12 @@ describe("endpointy pro soukromá data", () => {
     expect(await listEndpoints(full.ctx)).toHaveLength(2);
     // nemůže ho přesměrovat, vyměnit mu tajemství, smazat ho, otestovat ani zapnout soukromá data u jiného
     await expect(
-      updateEndpoint(limited.ctx, mine.id, { ...input, includePrivate: false, url: "https://utok.example/x", active: true }),
+      updateEndpoint(limited.ctx, mine.id, {
+        ...input,
+        includePrivate: false,
+        url: "https://utok.example/x",
+        active: true,
+      }),
     ).rejects.toThrow(/nenalezen/);
     await expect(rotateEndpointSecret(limited.ctx, cipher, mine.id)).rejects.toThrow(/nenalezen/);
     await expect(deleteEndpoint(limited.ctx, mine.id)).rejects.toThrow(/nenalezen/);

@@ -190,11 +190,14 @@ function DateEditor({ value, onCommit, onCancel }: EditorProps) {
 function optionsOf(attr: AttributeDescriptor): ComboOption[] {
   if (attr.type === "status")
     return (attr.stages ?? []).map((s) => ({ value: s.id, label: s.name, color: s.color }));
-  return (attr.choices ?? []).map((c) => ({
-    value: c.value,
-    label: c.label,
-    ...(c.color ? { color: c.color } : {}),
-  }));
+  // archivované štítky a možnosti se k novému výběru nenabízejí (u záznamů, které je mají, zůstávají vidět)
+  return (attr.choices ?? [])
+    .filter((c) => !c.archived)
+    .map((c) => ({
+      value: c.value,
+      label: c.label,
+      ...(c.color ? { color: c.color } : {}),
+    }));
 }
 
 function ChoiceEditor({ attr, value, onCommit, onCancel }: EditorProps) {

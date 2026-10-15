@@ -193,7 +193,11 @@ export class Autosaver<P, R = unknown> {
       this.inflight = null;
     }
     // změny během zápisu: uložit hned po něm (jen když nejde o chybu nebo konflikt)
-    if (!this.disposed && this.pending && (this.s.status === "dirty" || this.s.status === "saving")) {
+    if (
+      !this.disposed &&
+      this.pending &&
+      (this.s.status === "dirty" || this.s.status === "saving")
+    ) {
       this.schedule(Math.min(this.opts.delayMs, 50));
     }
   }

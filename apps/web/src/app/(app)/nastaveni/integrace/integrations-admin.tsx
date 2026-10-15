@@ -3,11 +3,7 @@
 import { Chip, FormSection, SettingsPage, Slot } from "@rebar/ui";
 import type { InboundEventRow } from "@rebar/core/ingest";
 import type { IntegrationStatus } from "@rebar/core/integrations";
-import type {
-  DeliveryRow,
-  EndpointRow,
-  WebhookEventGroup,
-} from "@rebar/core/webhooks";
+import type { DeliveryRow, EndpointRow, WebhookEventGroup } from "@rebar/core/webhooks";
 import { Activity, Plug } from "lucide-react";
 import { formatDateTime } from "../_shared/format";
 import { DeliveriesSection } from "./deliveries-section";
@@ -56,7 +52,9 @@ function StatusSummary({ status }: { status: IntegrationStatus }) {
             {w.pending} čeká · {w.failed} chybných · {w.delivered24h} doručeno za 24 h
           </dd>
           {w.lastDeliveredAt && (
-            <dd className="text-sm text-faint">Poslední doručení {formatDateTime(w.lastDeliveredAt)}</dd>
+            <dd className="text-sm text-faint">
+              Poslední doručení {formatDateTime(w.lastDeliveredAt)}
+            </dd>
           )}
         </div>
         <div>

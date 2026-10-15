@@ -20,13 +20,21 @@ export const JOB_MEMBER_ROLES = ["lead", "member"] as const;
 /** Důvod ukončení zakázky (`project.completed`). */
 export const COMPLETE_REASONS = ["finished", "retainer_ended", "cancelled"] as const;
 
+/** Kód typu zakázky. */
 export type JobType = (typeof JOB_TYPES)[number];
+/** Kód stavu zakázky. */
 export type JobStatusCode = (typeof JOB_STATUSES)[number];
+/** Kód způsobu fakturace. */
 export type BillingModelCode = (typeof BILLING_MODELS)[number];
+/** Kód fáze marketingové zakázky. */
 export type MarketingStageCode = (typeof MARKETING_STAGES)[number];
+/** Kód stavu fáze. */
 export type PhaseStatus = (typeof PHASE_STATUSES)[number];
+/** Kód zvláštní role fáze. */
 export type PhaseRole = (typeof PHASE_ROLES)[number];
+/** Kód role člena týmu. */
 export type MemberRole = (typeof JOB_MEMBER_ROLES)[number];
+/** Kód důvodu ukončení zakázky. */
 export type CompleteReason = (typeof COMPLETE_REASONS)[number];
 
 /** Popisky typů zakázek (služeb). */

@@ -96,10 +96,7 @@ export async function taskTitles(
 }
 
 /** Jména lidí (zkratka, jinak celé jméno) podle id uživatelů. */
-export async function userNames(
-  ctx: Ctx,
-  ids: readonly string[],
-): Promise<Record<string, string>> {
+export async function userNames(ctx: Ctx, ids: readonly string[]): Promise<Record<string, string>> {
   const unique = [...new Set(ids)];
   if (!unique.length) return {};
   const rows = await ctx.db
@@ -114,10 +111,7 @@ export async function userNames(
  * `docs/opsys/ZADOSTI.md`): součet odhadů úkolů zakázky. Dokud ho služba nenabízí, čte se odhad přes registr entit.
  */
 export type TasksEstimateExtension = {
-  estimateByJob(
-    ctx: Ctx,
-    jobId: string,
-  ): Promise<{ estimateMin: number; tasks: number }>;
+  estimateByJob(ctx: Ctx, jobId: string): Promise<{ estimateMin: number; tasks: number }>;
 };
 
 /**
@@ -130,8 +124,7 @@ export async function estimateOf(
   jobId: string,
 ): Promise<{ estimateMin: number; tasks: number } | null> {
   const service = deps.services.optional("tasks") as
-    | (ServiceMap["tasks"] & Partial<TasksEstimateExtension>)
-    | undefined;
+    (ServiceMap["tasks"] & Partial<TasksEstimateExtension>) | undefined;
   try {
     if (service?.estimateByJob) return await service.estimateByJob(ctx, jobId);
     const def = deps.registry.get("task");

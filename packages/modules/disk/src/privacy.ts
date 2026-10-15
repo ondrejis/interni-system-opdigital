@@ -1,22 +1,24 @@
 /*
-  Soukromí (R-13, D §5.1): kdo smí vidět soukromé záznamy a které záznamy smí aktér vidět při čtení mimo engine
-  entit. Dokud C1 nedodá `privateScope`, počítá se podle sloupce `is_private` entity a oprávnění `private.read`;
-  po dodání C1 stačí nahradit `privateFilter` jeho voláním.
+  Soukromí (R-13, D §5.1): které záznamy smí aktér vidět při čtení mimo engine entit (`privateScope` z jádra,
+  rozsah „jen moje“).
 */
 import { and, eq, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
 import { getTableColumns } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
-import type { EntityDef, EntityRegistry } from "@rebar/core/entities";
-import { can, scopeOf, type Ctx } from "@rebar/core/rbac";
+import {
+  canSeePrivate,
+  privateScope,
+  type EntityDef,
+  type EntityRegistry,
+} from "@rebar/core/entities";
+import { scopeOf, type Ctx } from "@rebar/core/rbac";
 import type { DriveEntityType } from "./types";
 
-/** Smí aktér vidět soukromé záznamy? (jen vlastník Ondřej, oprávnění `private.read`) */
-export const canSeePrivate = (ctx: Ctx): boolean => can(ctx, "private.read");
+export { canSeePrivate };
 
-/** Podmínka do `WHERE`: aktér bez `private.read` nikdy nedostane soukromý záznam. */
+/** Podmínka do `WHERE`: aktér bez `private.read` nikdy nedostane soukromý záznam (`privateScope` z jádra). */
 export function privateFilter(ctx: Ctx, isPrivateColumn: AnyPgColumn | undefined): SQL | undefined {
-  if (!isPrivateColumn || canSeePrivate(ctx)) return undefined;
-  return eq(isPrivateColumn, false);
+  return isPrivateColumn ? privateScope(ctx, { isPrivate: isPrivateColumn }) : undefined;
 }
 
 /** Podmínka rozsahu čtení („jen moje“) entity: `undefined` = vše, `sql\`false\`` = nic. */

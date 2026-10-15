@@ -77,16 +77,23 @@ export async function upsertContactFromLead(
       const missing = leadPoints.filter(
         (p) =>
           !have.some(
-            (h) =>
-              h.kind === p.kind &&
-              h.valueNorm === (p.kind === "email" ? email : phone),
+            (h) => h.kind === p.kind && h.valueNorm === (p.kind === "email" ? email : phone),
           ),
       );
       if (missing.length)
         await setPersonPoints(
           c,
           personId,
-          [...have.map((h) => ({ id: h.id, kind: h.kind, value: h.value, label: h.label, isPrimary: h.isPrimary })), ...missing],
+          [
+            ...have.map((h) => ({
+              id: h.id,
+              kind: h.kind,
+              value: h.value,
+              label: h.label,
+              isPrimary: h.isPrimary,
+            })),
+            ...missing,
+          ],
           { audit: true },
         );
       if (companyId) {

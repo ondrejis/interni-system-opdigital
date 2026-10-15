@@ -1,18 +1,22 @@
+import { SettingsPage } from "@rebar/ui";
 import { Tag } from "lucide-react";
 import { requireCan } from "@/server/request";
-import { SettingsPlaceholder } from "../_shared/settings-placeholder";
+import { TagsAdmin } from "./tags-admin";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Štítky" };
 
-/** Zástupná stránka (kostra S0): Štítky záznamů: názvy a barvy společné pro celý systém. */
+/** Štítky záznamů: názvy, barvy a rozsah použití (které entity je nabízejí), společné pro celý systém. */
 export default async function Page() {
   await requireCan("settings.tags");
   return (
-    <SettingsPlaceholder
+    <SettingsPage
+      width="xl"
       title="Štítky"
-      description="Štítky záznamů: názvy a barvy společné pro celý systém."
+      description="Štítky s barvou pro firmy, kontakty, obchody, zakázky a úkoly. Štítek se dá omezit jen na některé typy záznamů."
       icon={<Tag />}
-    />
+    >
+      <TagsAdmin />
+    </SettingsPage>
   );
 }

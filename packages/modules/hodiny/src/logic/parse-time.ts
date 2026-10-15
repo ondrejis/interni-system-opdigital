@@ -38,7 +38,11 @@ const HOURS_MINUTES = new RegExp(`^(\\d+)\\s*${H}\\.?\\s*(\\d{1,2})$`);
  * Desetinné hodiny se zaokrouhlí na celé minuty. Nula je platná (minuty 0); nejvýš 24 hodin.
  */
 export function parseDuration(input: string): ParsedDuration {
-  const text = input.replace(/\u00a0/g, " ").trim().toLowerCase().replace(/\s+/g, " ");
+  const text = input
+    .replace(/\u00a0/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
   if (!text) return fail(HINT);
   if (text.startsWith("-") || text.startsWith("−")) return fail("Čas nesmí být záporný.");
 

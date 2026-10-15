@@ -74,6 +74,8 @@ export type EntityApi = {
   ): Promise<RecordResult>;
   remove(entity: string, ids: string[]): Promise<void>;
   restore(entity: string, ids: string[]): Promise<void>;
+  /** Zamkne (soukromé) nebo zveřejní (sdílené) záznamy; smí jen vlastník. Vrací počet změněných i s potomky. */
+  setVisibility(entity: string, ids: string[], isPrivate: boolean): Promise<{ changed: number }>;
   lookups: Lookups;
   /** Adresa záznamu v aplikaci (odkazy mezi záznamy); `null`, když pro daný typ stránka není. */
   hrefFor(entity: string, id: string): string | null;

@@ -24,6 +24,7 @@ import { deleteTrustedDevices } from "./trusted-devices";
   - zápis bezpečnostních událostí do historie (AUT-08) a historie přihlášení (`login_event`).
 */
 
+/** Volby pluginu přihlášení OPSYS (databáze, zásada druhého faktoru, pravidla hesel). */
 export type SecurityPluginOptions = {
   db: Db;
   twoFactorPolicy?: TwoFactorPolicy | undefined;

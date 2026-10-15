@@ -1,6 +1,6 @@
 import { getPipeline } from "../config-data";
 import type { Executor } from "../db/client";
-import { can, scopeOf } from "../rbac/permissions";
+import { can, canSeePrivate, scopeOf } from "../rbac/permissions";
 import type { Ctx } from "../rbac/types";
 import { visibleTo, type EntityRegistry, type ResolvedEntity } from "./engine";
 import type { AttributeDescriptor, EntityDescriptor } from "./shared";
@@ -32,6 +32,7 @@ export async function describeEntity(
       aggregate: !!a.aggregate?.includes("sum"),
       defaultVisible: a.defaultVisible ?? false,
       width: a.width ?? 160,
+      ...(a.showInForm ? { showInForm: true } : {}),
       ...(a.default !== undefined ? { default: a.default } : {}),
       ...(a.unit ? { unit: a.unit } : {}),
       ...(a.choices ? { choices: a.choices } : {}),
@@ -59,6 +60,14 @@ export async function describeEntity(
     titleKey: e.def.titleKey,
     statusKey: e.def.statusKey ?? null,
     attributes,
+    ...(e.def.visibility
+      ? {
+          visibility: {
+            hasLock: true,
+            lockable: canSeePrivate(ctx) && e.def.visibility.ownLock !== false,
+          },
+        }
+      : {}),
     can: {
       create: !e.def.noCreate && scopeOf(ctx, p.create ?? p.write) !== null,
       write: can(ctx, p.write),

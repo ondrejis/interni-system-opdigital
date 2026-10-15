@@ -14,6 +14,7 @@ import {
   listInput,
   parseEstimate,
   quickOverridePayload,
+  slugKey,
   splitMentions,
   swipeOffset,
   swipeOutcome,
@@ -51,6 +52,7 @@ function task(p: Partial<TaskDto> = {}): TaskDto {
     outcome: null,
     completedAt: null,
     parentId: null,
+    parentTitle: null,
     subtasks: { total: 0, done: 0 },
     deal: null,
     company: null,
@@ -349,5 +351,15 @@ describe("odhad času", () => {
     expect(parseEstimate("1:30")).toBe(90);
     expect(parseEstimate("")).toBeNull();
     expect(parseEstimate("brzy")).toBeUndefined();
+  });
+});
+
+describe("slugKey", () => {
+  it("klíč typu z názvu", () => {
+    expect(slugKey("Návštěva u klienta")).toBe("navsteva_u_klienta");
+    expect(slugKey("  Řeší se! ")).toBe("resi_se");
+    expect(slugKey("2. kolo")).toBe("t_2_kolo");
+    expect(slugKey("!!!")).toBe("");
+    expect(slugKey("A")).toBe("a_");
   });
 });

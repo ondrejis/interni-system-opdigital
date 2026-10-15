@@ -47,7 +47,11 @@ describe("computeJobEffort: odpracováno vs. odhad", () => {
 
   it("bez odhadu (null i 0) není z čeho počítat zbytek", () => {
     for (const estimateMin of [null, 0]) {
-      const r = computeJobEffort({ hours: [{ userId: "o", minutes: 60 }], estimateMin, incomeByUser: null });
+      const r = computeJobEffort({
+        hours: [{ userId: "o", minutes: 60 }],
+        estimateMin,
+        incomeByUser: null,
+      });
       expect(r.estimateMin).toBeNull();
       expect(r.remainingMinutes).toBeNull();
       expect(r.overrunMinutes).toBeNull();

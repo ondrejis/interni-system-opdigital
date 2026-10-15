@@ -87,7 +87,12 @@ export const dealHooks: Hooks = {
     await emitDomain(
       ctx,
       "deal.stage_changed",
-      { deal: dealSnap(a), fromStageId: b.stageId, toStageId: a.stageId, secondsInPrevious: seconds },
+      {
+        deal: dealSnap(a),
+        fromStageId: b.stageId,
+        toStageId: a.stageId,
+        secondsInPrevious: seconds,
+      },
       { entity: { type: "deal", id: a.id, isPrivate: a.isPrivate } },
     );
   },

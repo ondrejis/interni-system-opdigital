@@ -35,17 +35,22 @@ export type DeliverDeps = {
   now?: () => Date;
 };
 
+/** Počty z jednoho běhu doručovače (převzatá, doručená, odložená k opakování a definitivně chybná doručení). */
 export type DeliverResult = { claimed: number; delivered: number; retried: number; failed: number };
 
 type Outcome = "delivered" | "retry" | "failed";
 
 /** Zkrátí a očistí text z cizí odpovědi pro protokol (bez řídicích znaků a zalomení). */
 function clean(text: string, max = 300): string {
-  // eslint-disable-next-line no-control-regex
-  const flat = text.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim();
+  const flat = [...text]
+    .map((ch) => (ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127 ? " " : ch))
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim();
   return flat.length > max ? `${flat.slice(0, max)}…` : flat;
 }
 
+/** Přečte nejvýš `maxBytes` začátku odpovědi (zbytek zahodí). */
 async function readSnippet(res: Response, maxBytes = 2048): Promise<string> {
   if (!res.body) return "";
   const reader = res.body.getReader();
@@ -110,7 +115,10 @@ export async function attemptDelivery(
       deletedAt: schema.webhookEndpoint.deletedAt,
     })
     .from(schema.webhookDelivery)
-    .innerJoin(schema.webhookEndpoint, eq(schema.webhookDelivery.endpointId, schema.webhookEndpoint.id))
+    .innerJoin(
+      schema.webhookEndpoint,
+      eq(schema.webhookDelivery.endpointId, schema.webhookEndpoint.id),
+    )
     .where(and(eq(schema.webhookDelivery.id, id), eq(schema.webhookDelivery.status, "pending")));
   if (!row) return "failed";
 
@@ -163,7 +171,8 @@ export async function attemptDelivery(
   }
 
   if (row.attempts >= maxAttempts) return fail(error);
-  const delay = RETRY_DELAYS_SECONDS[Math.min(row.attempts, RETRY_DELAYS_SECONDS.length) - 1] ?? 3600;
+  const delay =
+    RETRY_DELAYS_SECONDS[Math.min(row.attempts, RETRY_DELAYS_SECONDS.length) - 1] ?? 3600;
   await record({
     nextAttemptAt: new Date(now().getTime() + delay * 1000),
     lastError: stamp(error),
@@ -175,7 +184,10 @@ export async function attemptDelivery(
  * Odešle všechna čekající doručení, jejichž čas nadešel. Bezpečné spouštět souběžně (každé doručení převezme jen
  * jeden běh) i opakovaně.
  */
-export async function deliverDue(deps: DeliverDeps, opts: { limit?: number } = {}): Promise<DeliverResult> {
+export async function deliverDue(
+  deps: DeliverDeps,
+  opts: { limit?: number } = {},
+): Promise<DeliverResult> {
   const { db } = deps;
   const now = deps.now?.() ?? new Date();
   const result: DeliverResult = { claimed: 0, delivered: 0, retried: 0, failed: 0 };
@@ -204,14 +216,20 @@ export async function deliverDue(deps: DeliverDeps, opts: { limit?: number } = {
           }),
         ),
       );
-      for (const o of outcomes) result[o === "delivered" ? "delivered" : o === "retry" ? "retried" : "failed"]++;
+      for (const o of outcomes)
+        result[o === "delivered" ? "delivered" : o === "retry" ? "retried" : "failed"]++;
     }
   }
   return result;
 }
 
 /** Jak dlouho se uchovávají vyřízená doručení a zpracované příchozí události (dny). */
-export const RETENTION_DAYS = { delivered: 30, failed: 90, inboundProcessed: 90, inboundFailed: 180 } as const;
+export const RETENTION_DAYS = {
+  delivered: 30,
+  failed: 90,
+  inboundProcessed: 90,
+  inboundFailed: 180,
+} as const;
 
 /** Úklid: smaže stará doručená a chybná doručení a zpracované příchozí události (idempotence tím nesmí trpět: dny jsou dlouhé). */
 export async function cleanupWebhookData(

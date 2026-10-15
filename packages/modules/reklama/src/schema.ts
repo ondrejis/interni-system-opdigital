@@ -32,6 +32,8 @@ export const adAccount = pgTable(
     companyId: uuid("company_id"),
     active: boolean("active").notNull().default(true),
     lastSyncAt: ts("last_sync_at"),
+    /** Text chyby posledního běhu synchronizace; `null` = poslední běh dopadl dobře. */
+    lastSyncError: text("last_sync_error"),
     ...audit(),
   },
   (t) => [

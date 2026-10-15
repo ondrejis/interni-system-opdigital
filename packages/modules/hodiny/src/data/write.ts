@@ -22,7 +22,10 @@ const ENTITY = "time_entry";
 type Row = typeof timeEntry.$inferSelect;
 
 /** Minuty ze vstupu příkazu: `minutes` má přednost, jinak se rozebere text `time`. */
-function minutesOf(input: { time?: string | undefined; minutes?: number | undefined }, allowZero: boolean): number {
+function minutesOf(
+  input: { time?: string | undefined; minutes?: number | undefined },
+  allowZero: boolean,
+): number {
   if (input.minutes !== undefined) {
     if (input.minutes <= 0 && !allowZero) throw new UserError("Čas musí být větší než nula.");
     return input.minutes;
@@ -98,7 +101,9 @@ async function syncPrivateRecord(db: Executor, id: string, isPrivate: boolean): 
   else
     await db
       .delete(schema.privateRecord)
-      .where(and(eq(schema.privateRecord.entityType, ENTITY), eq(schema.privateRecord.entityId, id)));
+      .where(
+        and(eq(schema.privateRecord.entityType, ENTITY), eq(schema.privateRecord.entityId, id)),
+      );
 }
 
 const fmtDate = (d: string) => d.split("-").reverse().join(". ");
@@ -111,7 +116,11 @@ async function auditEntry(
   deps: ModuleDeps,
 ): Promise<void> {
   const job = (await loadJobTitle(ctx, deps, after.jobId)) ?? "Zakázka";
-  const titles = await taskTitles(ctx, deps, [after.taskId, before?.taskId].filter((t): t is string => !!t));
+  const titles = await taskTitles(
+    ctx,
+    deps,
+    [after.taskId, before?.taskId].filter((t): t is string => !!t),
+  );
   const changes: { field: string; old: unknown; new: unknown }[] = [];
   const diff = (field: string, o: unknown, n: unknown) => {
     if ((o ?? null) !== (n ?? null)) changes.push({ field, old: o ?? null, new: n ?? null });
@@ -122,7 +131,11 @@ async function auditEntry(
     before ? formatDuration(before.minutes) : null,
     action === "delete" ? null : formatDuration(after.minutes),
   );
-  diff("Úkol", before?.taskId ? (titles[before.taskId] ?? "Úkol") : null, after.taskId ? (titles[after.taskId] ?? "Úkol") : null);
+  diff(
+    "Úkol",
+    before?.taskId ? (titles[before.taskId] ?? "Úkol") : null,
+    after.taskId ? (titles[after.taskId] ?? "Úkol") : null,
+  );
   diff("Poznámka", before?.note, after.note);
   if (action === "create") diff("Zakázka", null, job);
   await recordAudit(ctx, {
@@ -145,7 +158,10 @@ async function loadJobTitle(ctx: Ctx, deps: ModuleDeps, jobId: string): Promise<
 }
 
 async function ownEntry(ctx: Ctx, id: string): Promise<Row> {
-  const [row] = await ctx.db.select().from(timeEntry).where(myEntries(ctx, eq(timeEntry.id, id)));
+  const [row] = await ctx.db
+    .select()
+    .from(timeEntry)
+    .where(myEntries(ctx, eq(timeEntry.id, id)));
   if (!row) throw new NotFoundError("Záznam hodin nenalezen.");
   return row;
 }
@@ -161,7 +177,7 @@ export async function saveEntry(ctx: Ctx, deps: ModuleDeps, input: SaveInput): P
     const before = input.id ? await ownEntry(c, input.id) : null;
 
     let jobId = input.jobId ?? before?.jobId ?? null;
-    let taskId = input.taskId === undefined ? (before?.taskId ?? null) : input.taskId;
+    const taskId = input.taskId === undefined ? (before?.taskId ?? null) : input.taskId;
     if (taskId) {
       const task = await loadTask(c, deps, taskId);
       if (!task.jobId)
@@ -206,7 +222,17 @@ export async function saveEntry(ctx: Ctx, deps: ModuleDeps, input: SaveInput): P
     }
     const [created] = await c.db
       .insert(timeEntry)
-      .values({ userId, jobId, taskId, date: input.date, minutes, note, ...lock, createdBy: userId, updatedBy: userId })
+      .values({
+        userId,
+        jobId,
+        taskId,
+        date: input.date,
+        minutes,
+        note,
+        ...lock,
+        createdBy: userId,
+        updatedBy: userId,
+      })
       .returning();
     await syncPrivateRecord(c.db, created!.id, lock.isPrivate);
     await auditEntry(c, "create", null, created!, deps);
@@ -260,14 +286,12 @@ export async function saveCell(
       )
       .orderBy(asc(timeEntry.createdAt), asc(timeEntry.id));
     const plan = planCellSave(
-      existing.map(
-        (e): CellEntry => ({
-          id: e.id,
-          minutes: e.minutes,
-          note: e.note,
-          createdAt: e.createdAt.toISOString(),
-        }),
-      ),
+      existing.map((e): CellEntry => ({
+        id: e.id,
+        minutes: e.minutes,
+        note: e.note,
+        createdAt: e.createdAt.toISOString(),
+      })),
       minutes,
     );
     const others = await dayMinutesExcept(

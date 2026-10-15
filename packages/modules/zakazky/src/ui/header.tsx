@@ -70,7 +70,11 @@ function StatusPicker({
 }) {
   return (
     <Combobox
-      options={JOB_STATUSES.map((s) => ({ value: s, label: JOB_STATUS_LABELS[s], color: JOB_STATUS_COLORS[s] }))}
+      options={JOB_STATUSES.map((s) => ({
+        value: s,
+        label: JOB_STATUS_LABELS[s],
+        color: JOB_STATUS_COLORS[s],
+      }))}
       value={status}
       onChange={(v) => v && onPick(v as JobStatusCode)}
       disabled={disabled}
@@ -110,7 +114,10 @@ export const JobHeader: RecordHeader = ({ entity, id, row, labels }) => {
   if (q.error || !q.data)
     return (
       <div data-testid="job-header">
-        <LoadError message={q.error?.message ?? "Zakázka nenalezena."} onRetry={() => void q.refetch()} />
+        <LoadError
+          message={q.error?.message ?? "Zakázka nenalezena."}
+          onRetry={() => void q.refetch()}
+        />
       </div>
     );
   return (
@@ -142,7 +149,9 @@ function HeaderBody({
   const j = detail.job;
   const flow = usePhaseFlow();
   const update = useUpdateAttribute("job");
-  const setStatus = useCommandMutation<{ jobId: string; status: JobStatusCode }>("zakazky.setStatus");
+  const setStatus = useCommandMutation<{ jobId: string; status: JobStatusCode }>(
+    "zakazky.setStatus",
+  );
   const financeOn = useModuleUi().has("finance");
   const [closing, setClosing] = useState<CompleteReason | null>(null);
   const [retainerOpen, setRetainerOpen] = useState(false);
@@ -159,7 +168,9 @@ function HeaderBody({
   ]);
   const team = [
     ...(j.ownerId && j.ownerName ? [{ id: j.ownerId, name: j.ownerName }] : []),
-    ...detail.members.filter((m) => m.userId !== j.ownerId).map((m) => ({ id: m.userId, name: m.name })),
+    ...detail.members
+      .filter((m) => m.userId !== j.ownerId)
+      .map((m) => ({ id: m.userId, name: m.name })),
   ];
   const warningCard = { overdue: detail.overdue, slipping: detail.slipping, dueDate: j.dueDate };
 
@@ -168,7 +179,10 @@ function HeaderBody({
     if (s === "done" || s === "cancelled") return setClosing(reasonForStatus(s, j));
     setStatus.mutate(
       { jobId, status: s },
-      { onSuccess: () => successToast(`Stav: ${JOB_STATUS_LABELS[s]}.`), onError: (e) => errorToast(e.message) },
+      {
+        onSuccess: () => successToast(`Stav: ${JOB_STATUS_LABELS[s]}.`),
+        onError: (e) => errorToast(e.message),
+      },
     );
   }
 
@@ -189,7 +203,11 @@ function HeaderBody({
           {j.number}
         </span>
         <TypeChip type={j.type} />
-        <StatusPicker status={j.status} disabled={!canWrite || update.isPending} onPick={pickStatus} />
+        <StatusPicker
+          status={j.status}
+          disabled={!canWrite || update.isPending}
+          onPick={pickStatus}
+        />
         <WarningIcon card={warningCard} />
         {j.isPrivate && <PrivateBadge />}
         {j.marketingStage && j.type === "marketing" && (
@@ -206,7 +224,11 @@ function HeaderBody({
         <span className="text-sm text-muted">
           Klient:{" "}
           {clientHref ? (
-            <Link href={clientHref} className="font-medium text-fg hover:underline" data-testid="job-client">
+            <Link
+              href={clientHref}
+              className="font-medium text-fg hover:underline"
+              data-testid="job-client"
+            >
               {clientLabel ?? "Klient"}
             </Link>
           ) : (
@@ -324,7 +346,12 @@ function HeaderBody({
                   <CheckCheck /> Dokončit fázi
                 </Button>
               )}
-              <Button size="sm" variant="ghost" onClick={() => setPhasesOpen(true)} aria-label="Upravit fáze zakázky">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setPhasesOpen(true)}
+                aria-label="Upravit fáze zakázky"
+              >
                 <Pencil /> Fáze
               </Button>
             </div>
@@ -392,7 +419,10 @@ function HeaderBody({
               onClick={() =>
                 setStatus.mutate(
                   { jobId, status: "active" },
-                  { onSuccess: () => successToast("Zakázka je znovu aktivní."), onError: (e) => errorToast(e.message) },
+                  {
+                    onSuccess: () => successToast("Zakázka je znovu aktivní."),
+                    onError: (e) => errorToast(e.message),
+                  },
                 )
               }
             >
@@ -404,7 +434,12 @@ function HeaderBody({
 
       {flow.dialog}
       {closing && (
-        <CompleteDialog jobId={jobId} reason={closing} open onOpenChange={(o) => !o && setClosing(null)} />
+        <CompleteDialog
+          jobId={jobId}
+          reason={closing}
+          open
+          onOpenChange={(o) => !o && setClosing(null)}
+        />
       )}
       <RetainerDialog
         jobId={jobId}
@@ -418,4 +453,4 @@ function HeaderBody({
       )}
     </div>
   );
-};
+}

@@ -42,6 +42,8 @@
     "./notifications": "./src/notifications/index.ts",
     "./contracts": "./src/contracts/index.ts",
     "./events": "./src/events/index.ts",
+    "./trash": "./src/trash/index.ts",
+    "./tags": "./src/tags/index.ts",
     "./webhooks": "./src/webhooks/index.ts",
     "./ingest": "./src/ingest/index.ts",
     "./integrations": "./src/integrations/index.ts"

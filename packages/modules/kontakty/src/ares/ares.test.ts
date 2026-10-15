@@ -167,7 +167,9 @@ describe("dotaz s cache 24 h (ORG-04)", () => {
       ok: true,
       cached: false,
     });
-    expect(await lookupAres("27082440", { cache, client: ares, now: later, fresh: true })).toMatchObject({
+    expect(
+      await lookupAres("27082440", { cache, client: ares, now: later, fresh: true }),
+    ).toMatchObject({
       cached: false,
     });
     expect(ares.calls).toHaveLength(3);

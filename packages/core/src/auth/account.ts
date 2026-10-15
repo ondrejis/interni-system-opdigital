@@ -71,7 +71,10 @@ export const profileInput = z.object({
  * pozvánku. IČO a fakturační nástroj mění jen správce uživatelů. Jméno i telefon se čtou ze stejných tabulek všude jinde
  * (záznamy, aktivita, docházka), takže se změna projeví hned všude.
  */
-export async function updateOwnProfile(ctx: Ctx, raw: z.input<typeof profileInput>) {
+export async function updateOwnProfile(
+  ctx: Ctx,
+  raw: z.input<typeof profileInput> | z.output<typeof profileInput>,
+) {
   const id = ctx.actor.userId;
   if (!id) throw new PermissionError();
   const input = profileInput.parse(raw);

@@ -54,19 +54,18 @@ export const HEADING_LEVELS = [1, 2, 3, 4] as const;
 const TEXT_MARKS = ["link", "bold", "italic", "underline", "strike", "code"] as const;
 const MARK_ORDER = new Map<string, number>(TEXT_MARKS.map((m, i) => [m, i]));
 
-const BLOCKS = new Set([
-  "paragraph",
-  "heading",
-  "bulletList",
-  "orderedList",
-  "taskList",
-  "blockquote",
-  "codeBlock",
-  "horizontalRule",
-]);
-
 /** Řídicí znaky (bez tabulátoru a nového řádku), úprava směru textu a znak BOM: do poznámky nepatří. */
-const BAD_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F‪-‮⁦-⁩﻿]/g;
+const BAD_CHARS = new RegExp(
+  // eslint-disable-next-line no-control-regex -- seznam zakázaných znaků je záměrný
+  "[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F\\u202A-\\u202E\\u2066-\\u2069\\uFEFF]",
+  "g",
+);
+
+/** Znaky, které v odkazu nemají co dělat (mezera, řídicí znaky, uvozovky, lomítko zpět, úprava směru textu). */
+const UNSAFE_HREF_CHARS = new RegExp(
+  // eslint-disable-next-line no-control-regex -- seznam zakázaných znaků je záměrný
+  "[\\s\\u0000-\\u001F\\u007F-\\u009F<>\"'`\\\\\\u202A-\\u202E\\u2066-\\u2069]",
+);
 
 /** Prázdný dokument (jeden prázdný odstavec). */
 export function emptyNoteDoc(): NoteDoc {
@@ -76,7 +75,9 @@ export function emptyNoteDoc(): NoteDoc {
 /** Prostý text jako dokument: každý neprázdný řádek je odstavec, prázdné řádky oddělují (jako nová poznámka z textu). */
 export function textToNoteDoc(text: string): NoteDoc {
   const lines = text.replace(/\r\n?/g, "\n").replace(BAD_CHARS, "").split("\n");
-  const content = lines.map((l): NoteNode => (l ? { type: "paragraph", content: [{ type: "text", text: l }] } : { type: "paragraph" }));
+  const content = lines.map((l): NoteNode =>
+    l ? { type: "paragraph", content: [{ type: "text", text: l }] } : { type: "paragraph" },
+  );
   return sanitizeNoteDoc({ type: "doc", content }).doc;
 }
 
@@ -95,7 +96,7 @@ export function sanitizeHref(raw: unknown): string | null {
   const href = raw.trim();
   if (!href || href.length > NOTE_LIMITS.maxHrefLength) return null;
   // mezera, řídicí znak nebo znak, který v odkazu nemá co dělat: odkaz se zahodí (text zůstane)
-  if (/[\s\u0000-\u001F\u007F-\u009F<>"'`\\‪-‮⁦-⁩]/.test(href)) return null;
+  if (UNSAFE_HREF_CHARS.test(href)) return null;
   if (href.startsWith("#")) return href.length > 1 ? href : null;
   if (href.startsWith("/") && !href.startsWith("//")) return href;
   const scheme = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(href);
@@ -168,7 +169,13 @@ function checkBudget(ctx: Ctx, depth: number, chars = 0) {
 }
 
 /** Vložený obsah (odstavec, nadpis): jen text a zalomení; cizí uzly se rozbalí na jejich text. */
-function inlineOf(raw: unknown, ctx: Ctx, depth: number, marksAllowed: boolean, keepNewlines: boolean): NoteNode[] {
+function inlineOf(
+  raw: unknown,
+  ctx: Ctx,
+  depth: number,
+  marksAllowed: boolean,
+  keepNewlines: boolean,
+): NoteNode[] {
   if (!Array.isArray(raw)) return [];
   const out: NoteNode[] = [];
   const pushText = (text: string, marks: NoteMark[] | undefined) => {
@@ -195,7 +202,10 @@ function inlineOf(raw: unknown, ctx: Ctx, depth: number, marksAllowed: boolean, 
       });
     } else if (n.type === "hardBreak") {
       checkBudget(ctx, depth);
-      out.push({ type: keepNewlines ? "text" : "hardBreak", ...(keepNewlines ? { text: "\n" } : {}) });
+      out.push({
+        type: keepNewlines ? "text" : "hardBreak",
+        ...(keepNewlines ? { text: "\n" } : {}),
+      });
     } else if (Array.isArray(n.content)) {
       checkBudget(ctx, depth);
       // neznámý nebo blokový uzel uvnitř odstavce: zůstane jeho text
@@ -208,7 +218,12 @@ function inlineOf(raw: unknown, ctx: Ctx, depth: number, marksAllowed: boolean, 
 const intIn = (v: unknown, min: number, max: number): number | null =>
   typeof v === "number" && Number.isInteger(v) && v >= min && v <= max ? v : null;
 
-function itemsOf(raw: unknown, itemType: "listItem" | "taskItem", ctx: Ctx, depth: number): NoteNode[] {
+function itemsOf(
+  raw: unknown,
+  itemType: "listItem" | "taskItem",
+  ctx: Ctx,
+  depth: number,
+): NoteNode[] {
   const list = Array.isArray(raw) ? raw : [];
   const out: NoteNode[] = [];
   const makeItem = (children: unknown, attrs: NoteNode["attrs"] | undefined) => {
@@ -245,7 +260,8 @@ function blocksOf(raw: unknown, ctx: Ctx, depth: number): NoteNode[] {
         break;
       }
       case "heading": {
-        const level = intIn(isRecord(n.attrs) ? n.attrs.level : null, 1, HEADING_LEVELS.length) ?? 2;
+        const level =
+          intIn(isRecord(n.attrs) ? n.attrs.level : null, 1, HEADING_LEVELS.length) ?? 2;
         const content = inlineOf(n.content, ctx, depth + 1, true, false);
         out.push({ type: "heading", attrs: { level }, ...(content.length ? { content } : {}) });
         break;
@@ -268,12 +284,16 @@ function blocksOf(raw: unknown, ctx: Ctx, depth: number): NoteNode[] {
         break;
       case "blockquote": {
         const content = blocksOf(n.content, ctx, depth + 1);
-        out.push({ type: "blockquote", content: content.length ? content : [{ type: "paragraph" }] });
+        out.push({
+          type: "blockquote",
+          content: content.length ? content : [{ type: "paragraph" }],
+        });
         break;
       }
       case "codeBlock": {
         const text = inlineOf(n.content, ctx, depth + 1, false, true);
-        const lang = isRecord(n.attrs) && typeof n.attrs.language === "string" ? n.attrs.language : "";
+        const lang =
+          isRecord(n.attrs) && typeof n.attrs.language === "string" ? n.attrs.language : "";
         const language = /^[A-Za-z0-9_+#.-]{1,30}$/.test(lang) ? lang : null;
         out.push({
           type: "codeBlock",
@@ -386,9 +406,20 @@ export function isEmptyNoteDoc(doc: NoteDoc): boolean {
   return noteDocText(doc) === "" && !doc.content.some((n) => n.type === "horizontalRule");
 }
 
-/** Jsou dva (už sanitizované) dokumenty stejné? */
+/** JSON s klíči seřazenými podle abecedy: databáze (`jsonb`) pořadí klíčů nezachovává, porovnání na něm nesmí záviset. */
+function stableJson(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(stableJson).join(",")}]`;
+  if (v && typeof v === "object")
+    return `{${Object.keys(v)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${stableJson((v as Record<string, unknown>)[k])}`)
+      .join(",")}}`;
+  return JSON.stringify(v ?? null);
+}
+
+/** Jsou dva (už sanitizované) dokumenty stejné? Nezáleží na pořadí klíčů. */
 export function sameNoteDoc(a: NoteDoc | null | undefined, b: NoteDoc | null | undefined): boolean {
-  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  return stableJson(a ?? null) === stableJson(b ?? null);
 }
 
 /**
@@ -405,7 +436,7 @@ export function nextTitle(args: {
   /** Název zadaný uživatelem v téže změně (`undefined` = beze změny). */
   explicit?: string | null | undefined;
 }): string | null {
-  const explicit = args.explicit === undefined ? undefined : (args.explicit?.trim() || null);
+  const explicit = args.explicit === undefined ? undefined : args.explicit?.trim() || null;
   if (explicit !== undefined) {
     return explicit ? explicit.slice(0, NOTE_LIMITS.maxTitle) : deriveNoteTitle(args.nextText);
   }

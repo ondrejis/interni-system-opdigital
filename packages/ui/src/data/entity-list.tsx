@@ -19,6 +19,8 @@ import {
   Trash2,
   UserRound,
   X,
+  Lock,
+  LockOpen,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button, IconButton } from "../components/button";
@@ -411,6 +413,18 @@ export function EntityList({
     onError: (e: Error) => errorToast(e.message),
   });
 
+  /** Hromadná změna viditelnosti (SPOL-06): jen vlastník; zamčení zamkne i podřízené záznamy. */
+  const bulkLock = useMutation({
+    mutationFn: (isPrivate: boolean) => api.setVisibility(entity.key, [...selected], isPrivate),
+    onSuccess: (r, isPrivate) => {
+      void invalidate();
+      successToast(
+        isPrivate ? `Zamčeno záznamů: ${r.changed}.` : `Zveřejněno záznamů: ${r.changed}.`,
+      );
+    },
+    onError: (e: Error) => errorToast(e.message),
+  });
+
   function exportCsv() {
     const cols = (cfg.columns ?? defaultColumns(entity))
       .map((k) => entity.attributes.find((a) => a.key === k))
@@ -712,6 +726,18 @@ export function EntityList({
           <Button variant="secondary" onClick={exportCsv}>
             <Download /> Exportovat
           </Button>
+          {entity.visibility?.lockable &&
+            entity.visibility.hasLock &&
+            (["lock", "unlock"] as const).map((m) => (
+              <Button
+                key={m}
+                variant="secondary"
+                loading={bulkLock.isPending}
+                onClick={() => bulkLock.mutate(m === "lock")}
+              >
+                {m === "lock" ? <Lock /> : <LockOpen />} {m === "lock" ? "Zamknout" : "Zveřejnit"}
+              </Button>
+            ))}
           {bulkActions.map((a) => (
             <Button key={a.id} variant="secondary" onClick={() => setBulkOpen(a)}>
               {a.label}

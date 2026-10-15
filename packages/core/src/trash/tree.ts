@@ -44,7 +44,11 @@ export async function deleteTree(
   const visited = new Set<string>([`${def.key}:${id}`]);
   let children = 0;
 
-  const markRow = (table: EntityDef["table"], columns: Record<string, AnyPgColumn>, rowId: string) => {
+  const markRow = (
+    table: EntityDef["table"],
+    columns: Record<string, AnyPgColumn>,
+    rowId: string,
+  ) => {
     const set: Row = { deletedAt: now };
     if (columns.deletedBy) set.deletedBy = stamp.deletedBy;
     if (columns.deletedBatch) set.deletedBatch = stamp.deletedBatch;
@@ -148,7 +152,10 @@ export async function restoreTree(
     if (columns.deletedBy) set.deletedBy = null;
     if (columns.deletedBatch) set.deletedBatch = null;
     if (columns.updatedBy) set.updatedBy = c.actor.userId;
-    await c.db.update(table).set(set).where(eq(columns.id!, String(row.id)));
+    await c.db
+      .update(table)
+      .set(set)
+      .where(eq(columns.id!, String(row.id)));
     restored++;
     if (d) {
       await reindexRow(d, row);
@@ -201,4 +208,3 @@ export async function restoreTree(
   await walk(def, id, 1);
   return restored;
 }
-

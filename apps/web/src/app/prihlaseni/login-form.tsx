@@ -25,7 +25,7 @@ export function LoginForm({ notice }: { notice?: string | undefined }) {
     }
     // tlačítko zůstává ve stavu načítání, dokud se nepřejde na další stránku
     router.replace(
-      data && "twoFactorRedirect" in data && data.twoFactorRedirect ? "/overeni" : "/",
+      data && "twoFactorRedirect" in data && data.twoFactorRedirect ? "/overeni" : "/start",
     );
     router.refresh();
   }

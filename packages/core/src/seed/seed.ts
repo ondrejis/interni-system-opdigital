@@ -45,6 +45,8 @@ export async function runSeed(
     await ensurePipeline(db, p);
   for (const l of [...moduleSeeds.flatMap((m) => m.lookups ?? []), ...(seed.lookups ?? [])])
     await ensureLookup(db, l);
+  // společný číselník štítků (štítky s barvou na více entit; rozsah položky určuje entity, kde se nabízí)
+  await ensureLookup(db, { key: "tag", name: "Štítky", items: [] });
   await ensureSeries(db, [...moduleSeeds.flatMap((m) => m.series ?? []), ...(seed.series ?? [])]);
   // výchozí nástěnky pro role z konfigurace klienta (zakládají se jen jednou, role musí existovat)
   if (config.dashboards?.enabled !== false && config.dashboards?.defaults.length)

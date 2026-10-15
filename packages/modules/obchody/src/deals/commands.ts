@@ -1,4 +1,3 @@
-import { NotImplementedError } from "@rebar/core/contracts";
 import { defineCommand } from "@rebar/core/module-server";
 import {
   archiveInput,
@@ -26,155 +25,179 @@ import {
   winInput,
   winPreviewInput,
 } from "../contract";
+import {
+  addDealStage,
+  addLostReason,
+  deleteDealStage,
+  getPipelineAdmin,
+  reorderDealStages,
+  reorderLostReasons,
+  updateDealStage,
+  updateLostReason,
+} from "./pipeline-admin";
+import { board, detail, history, lostReasons, winPreview } from "./queries";
+import { quickAdd } from "./quick-add";
+import {
+  addParticipant,
+  archiveDeal,
+  createDeal,
+  loseDeal,
+  markDealOpened,
+  moveDealStage,
+  removeParticipant,
+  reopenDeal,
+  updateDeal,
+  winDeal,
+} from "./transitions";
 
-/* M1: stub příkazů (vstupy jsou finální, těla doplní OBC-A). */
-const todo = (name: string) => async (): Promise<never> => {
-  throw new NotImplementedError(`obchody.${name}`);
-};
+const R = "obchody.read";
+const W = "obchody.write";
+const PL = "obchody.pipelines";
 
+/** Příkazy modulu „obchody“ (`obchody.<akce>`); vstupy a výstupy jsou v `contract.ts`. */
 export const commands = [
   defineCommand({
     name: "obchody.board",
-    permission: "obchody.read",
+    permission: R,
     input: boardInput,
-    handler: todo("board"),
+    handler: (ctx, i, deps) => board(ctx, deps, i),
   }),
   defineCommand({
     name: "obchody.detail",
-    permission: "obchody.read",
+    permission: R,
     input: detailInput,
-    handler: todo("detail"),
+    handler: (ctx, i, deps) => detail(ctx, deps, i.dealId),
   }),
   defineCommand({
     name: "obchody.history",
-    permission: "obchody.read",
+    permission: R,
     input: historyInput,
-    handler: todo("history"),
+    handler: (ctx, i) => history(ctx, i.dealId),
   }),
   defineCommand({
     name: "obchody.winPreview",
-    permission: "obchody.read",
+    permission: R,
     input: winPreviewInput,
-    handler: todo("winPreview"),
+    handler: (ctx, i) => winPreview(ctx, i.dealId),
   }),
   defineCommand({
     name: "obchody.lostReasons",
-    permission: "obchody.read",
+    permission: R,
     input: lostReasonsInput,
-    handler: todo("lostReasons"),
+    handler: (ctx, i) => lostReasons(ctx, i),
   }),
   defineCommand({
     name: "obchody.create",
     permission: "obchody.create",
     input: createInput,
-    handler: todo("create"),
+    handler: (ctx, i, deps) => createDeal(ctx, deps, i),
   }),
   defineCommand({
     name: "obchody.quickAdd",
     permission: "obchody.create",
     input: quickAddInput,
-    handler: todo("quickAdd"),
+    handler: (ctx, i, deps) => quickAdd(ctx, deps, i),
   }),
   defineCommand({
     name: "obchody.update",
-    permission: "obchody.write",
+    permission: W,
     input: updateInput,
-    handler: todo("update"),
+    handler: (ctx, i, deps) => updateDeal(ctx, deps, i),
   }),
   defineCommand({
     name: "obchody.moveStage",
-    permission: "obchody.write",
+    permission: W,
     input: moveStageInput,
-    handler: todo("moveStage"),
+    handler: (ctx, i, deps) => moveDealStage(ctx, deps, i),
   }),
   defineCommand({
     name: "obchody.win",
-    permission: "obchody.write",
+    permission: W,
     input: winInput,
-    handler: todo("win"),
+    handler: (ctx, i, deps) => winDeal(ctx, deps, i),
   }),
   defineCommand({
     name: "obchody.lose",
-    permission: "obchody.write",
+    permission: W,
     input: loseInput,
-    handler: todo("lose"),
+    handler: (ctx, i, deps) => loseDeal(ctx, deps, i),
   }),
   defineCommand({
     name: "obchody.reopen",
-    permission: "obchody.write",
+    permission: W,
     input: reopenInput,
-    handler: todo("reopen"),
+    handler: (ctx, i, deps) => reopenDeal(ctx, deps, i),
   }),
   defineCommand({
     name: "obchody.markOpened",
-    permission: "obchody.write",
+    permission: R,
     input: markOpenedInput,
-    handler: todo("markOpened"),
+    handler: (ctx, i) => markDealOpened(ctx, i.dealId),
   }),
   defineCommand({
     name: "obchody.archive",
     permission: "obchody.delete",
     input: archiveInput,
-    handler: todo("archive"),
+    handler: (ctx, i, deps) => archiveDeal(ctx, deps, i.dealId),
   }),
   defineCommand({
     name: "obchody.participants.add",
-    permission: "obchody.write",
+    permission: W,
     input: participantAddInput,
-    handler: todo("participants.add"),
+    handler: (ctx, i, deps) => addParticipant(ctx, deps, i),
   }),
   defineCommand({
     name: "obchody.participants.remove",
-    permission: "obchody.write",
+    permission: W,
     input: participantRemoveInput,
-    handler: todo("participants.remove"),
+    handler: (ctx, i, deps) => removeParticipant(ctx, deps, i),
   }),
   defineCommand({
     name: "obchody.pipeline.get",
-    permission: "obchody.pipelines",
+    permission: PL,
     input: pipelineGetInput,
-    handler: todo("pipeline.get"),
+    handler: (ctx) => getPipelineAdmin(ctx),
   }),
   defineCommand({
     name: "obchody.pipeline.stage.add",
-    permission: "obchody.pipelines",
+    permission: PL,
     input: stageAddInput,
-    handler: todo("pipeline.stage.add"),
+    handler: (ctx, i) => addDealStage(ctx, i),
   }),
   defineCommand({
     name: "obchody.pipeline.stage.update",
-    permission: "obchody.pipelines",
+    permission: PL,
     input: stageUpdateInput,
-    handler: todo("pipeline.stage.update"),
+    handler: (ctx, i) => updateDealStage(ctx, i),
   }),
   defineCommand({
     name: "obchody.pipeline.stage.delete",
-    permission: "obchody.pipelines",
+    permission: PL,
     input: stageDeleteInput,
-    handler: todo("pipeline.stage.delete"),
+    handler: (ctx, i) => deleteDealStage(ctx, i.stageId),
   }),
   defineCommand({
     name: "obchody.pipeline.stage.reorder",
-    permission: "obchody.pipelines",
+    permission: PL,
     input: stageReorderInput,
-    handler: todo("pipeline.stage.reorder"),
+    handler: (ctx, i) => reorderDealStages(ctx, i.stageIds),
   }),
   defineCommand({
     name: "obchody.pipeline.lostReason.add",
-    permission: "obchody.pipelines",
+    permission: PL,
     input: lostReasonAddInput,
-    handler: todo("pipeline.lostReason.add"),
+    handler: (ctx, i) => addLostReason(ctx, i),
   }),
   defineCommand({
     name: "obchody.pipeline.lostReason.update",
-    permission: "obchody.pipelines",
+    permission: PL,
     input: lostReasonUpdateInput,
-    handler: todo("pipeline.lostReason.update"),
+    handler: (ctx, i) => updateLostReason(ctx, i),
   }),
   defineCommand({
     name: "obchody.pipeline.lostReason.reorder",
-    permission: "obchody.pipelines",
+    permission: PL,
     input: lostReasonReorderInput,
-    handler: todo("pipeline.lostReason.reorder"),
+    handler: (ctx, i) => reorderLostReasons(ctx, i.itemIds),
   }),
 ];

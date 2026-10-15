@@ -62,6 +62,11 @@ export const manifest = defineModule({
       permission: "muj-prostor.domains",
     },
     {
+      path: "/muj-prostor/knihovna",
+      title: "E-mailová knihovna",
+      permission: "muj-prostor.email_library",
+    },
+    {
       path: "/muj-prostor/soukrome",
       title: "Soukromé",
       permission: "muj-prostor.private_overview",

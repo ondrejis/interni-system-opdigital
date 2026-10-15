@@ -1,18 +1,11 @@
-import { HardDrive } from "lucide-react";
+import { DriveSettings } from "@rebar/disk/ui";
 import { requireCan } from "@/server/request";
-import { SettingsPlaceholder } from "../_shared/settings-placeholder";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Google Disk" };
 
-/** Zástupná stránka (kostra S0): Strom složek klienta na sdíleném Google Disku a test napojení. */
+/** Nastavení → Google Disk: stav napojení na n8n, test, strom složek klienta a typů zakázek, poslední požadavky. */
 export default async function Page() {
   await requireCan("disk.manage");
-  return (
-    <SettingsPlaceholder
-      title="Google Disk"
-      description="Strom složek klienta na sdíleném Google Disku a test napojení."
-      icon={<HardDrive />}
-    />
-  );
+  return <DriveSettings />;
 }

@@ -24,7 +24,7 @@ type StatusFilter = "all" | DeliveryRow["status"];
 
 const STATUS_OPTIONS: SegmentOption<StatusFilter>[] = [
   { value: "all", label: "Vše" },
-  { value: "failed", label: "Chyby", tone: "danger" },
+  { value: "failed", label: "Chyby" },
   { value: "pending", label: "Čeká" },
   { value: "delivered", label: "Doručeno" },
 ];
@@ -67,7 +67,8 @@ export function DeliveriesSection({
   const rows = useMemo(
     () =>
       deliveries.filter(
-        (d) => (status === "all" || d.status === status) && (!endpointId || d.endpointId === endpointId),
+        (d) =>
+          (status === "all" || d.status === status) && (!endpointId || d.endpointId === endpointId),
       ),
     [deliveries, status, endpointId],
   );
@@ -99,7 +100,8 @@ export function DeliveriesSection({
 
   async function show(d: DeliveryRow) {
     const r = await runAction(deliveryPayloadAction({ id: d.id }));
-    if (r) setPayload({ title: `${webhookEventLabel(d.event)} · ${d.endpointName}`, json: r.data.json });
+    if (r)
+      setPayload({ title: `${webhookEventLabel(d.event)} · ${d.endpointName}`, json: r.data.json });
   }
 
   return (
@@ -125,7 +127,12 @@ export function DeliveriesSection({
       }
     >
       <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
-        <SegmentedControl label="Stav doručení" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+        <SegmentedControl
+          label="Stav doručení"
+          value={status}
+          onChange={setStatus}
+          options={STATUS_OPTIONS}
+        />
         {endpoints.length > 1 && (
           <select
             aria-label="Webhook"
@@ -167,11 +174,19 @@ export function DeliveriesSection({
               cell: (d) => (
                 <span>
                   {webhookEventLabel(d.event)}
-                  {d.isPrivate && <Chip color="purple" className="ml-2">Soukromé</Chip>}
+                  {d.isPrivate && (
+                    <Chip color="purple" className="ml-2">
+                      Soukromé
+                    </Chip>
+                  )}
                 </span>
               ),
             },
-            { key: "ep", header: "Webhook", cell: (d) => <span className="text-muted">{d.endpointName}</span> },
+            {
+              key: "ep",
+              header: "Webhook",
+              cell: (d) => <span className="text-muted">{d.endpointName}</span>,
+            },
             { key: "status", header: "Stav", cell: (d) => <DeliveryStatus d={d} /> },
             {
               key: "attempts",
@@ -185,7 +200,9 @@ export function DeliveriesSection({
                     </span>
                   )}
                   {d.status === "delivered" && d.deliveredAt && (
-                    <span className="block text-xs text-faint">{formatDateTime(d.deliveredAt)}</span>
+                    <span className="block text-xs text-faint">
+                      {formatDateTime(d.deliveredAt)}
+                    </span>
                   )}
                 </span>
               ),
@@ -195,7 +212,10 @@ export function DeliveriesSection({
               header: "Poslední chyba",
               cell: (d) =>
                 d.lastError ? (
-                  <span className="block max-w-80 break-words text-sm text-danger" title={d.lastError}>
+                  <span
+                    className="block max-w-80 break-words text-sm text-danger"
+                    title={d.lastError}
+                  >
                     {d.lastError.replace(/^\S+ · /, "")}
                   </span>
                 ) : (
@@ -210,7 +230,12 @@ export function DeliveriesSection({
                   <RotateCcw /> Opakovat
                 </Button>
               )}
-              <Button size="sm" variant="ghost" onClick={() => void show(d)} aria-label="Zobrazit tělo zprávy">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => void show(d)}
+                aria-label="Zobrazit tělo zprávy"
+              >
                 <Eye /> Tělo
               </Button>
             </span>
@@ -224,7 +249,9 @@ export function DeliveriesSection({
           {...(payload ? { description: payload.title } : {})}
           className="w-[min(44rem,calc(100vw-2rem))]"
         >
-          <pre className="max-h-[60vh] overflow-auto px-5 py-4 font-mono text-xs">{payload?.json}</pre>
+          <pre className="max-h-[60vh] overflow-auto px-5 py-4 font-mono text-xs">
+            {payload?.json}
+          </pre>
         </DialogContent>
       </Dialog>
     </FormSection>

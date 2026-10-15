@@ -105,7 +105,10 @@ export async function checkCompanyDuplicates(
   const seen = new Set<string>(icoMatch?.id ? [icoMatch.id] : []);
   // bez oprávnění ke čtení organizací se podobné nehledají (a nic se neprozradí); stejné IČO se hlásí vždy
   if (!scopeOf(ctx, "kontakty.read")) return { icoMatch, similar };
-  const scope = and(privateScope(ctx, company), scopedWhere(ctx, "kontakty.read", [company.ownerId]));
+  const scope = and(
+    privateScope(ctx, company),
+    scopedWhere(ctx, "kontakty.read", [company.ownerId]),
+  );
   const name = (q.name ?? "").trim();
   if (name) {
     const key = nameKey(sql`${name}`);
@@ -156,16 +159,26 @@ export type PersonDuplicate = {
  */
 export async function findPersonDuplicates(
   ctx: Ctx,
-  q: { emails?: readonly string[] | undefined; phones?: readonly string[] | undefined; excludeId?: string | null | undefined },
+  q: {
+    emails?: readonly string[] | undefined;
+    phones?: readonly string[] | undefined;
+    excludeId?: string | null | undefined;
+  },
 ): Promise<PersonDuplicate[]> {
   const emails = [...new Set((q.emails ?? []).map(normalizeEmail).filter((x): x is string => !!x))];
-  const phones = [...new Set((q.phones ?? []).map(normalizePhoneE164).filter((x): x is string => !!x))];
+  const phones = [
+    ...new Set((q.phones ?? []).map(normalizePhoneE164).filter((x): x is string => !!x)),
+  ];
   if (!emails.length && !phones.length) return [];
   const conds: SQL[] = [];
   if (emails.length)
-    conds.push(and(eq(personContactPoint.kind, "email"), inArray(personContactPoint.valueNorm, emails))!);
+    conds.push(
+      and(eq(personContactPoint.kind, "email"), inArray(personContactPoint.valueNorm, emails))!,
+    );
   if (phones.length)
-    conds.push(and(eq(personContactPoint.kind, "phone"), inArray(personContactPoint.valueNorm, phones))!);
+    conds.push(
+      and(eq(personContactPoint.kind, "phone"), inArray(personContactPoint.valueNorm, phones))!,
+    );
   const rows = await ctx.db
     .select({
       personId: person.id,
@@ -224,7 +237,8 @@ export type PersonMatch = {
   matchedBy: MatchedBy[];
 };
 
-const digitsOf = (col: SQL | AnyPgColumn) => sql`regexp_replace(coalesce(${col}, ''), '\\D', '', 'g')`;
+const digitsOf = (col: SQL | AnyPgColumn) =>
+  sql`regexp_replace(coalesce(${col}, ''), '\\D', '', 'g')`;
 
 /**
  * Najde existující organizace a osoby, které se shodují v IČO (jen organizace), e-mailu nebo telefonu (bez ohledu
@@ -299,7 +313,11 @@ export async function matchContactDuplicates(
       });
   }
 
-  const by = (r: { ico?: string | null; email: string | null; phone: string | null }): MatchedBy[] => {
+  const by = (r: {
+    ico?: string | null;
+    email: string | null;
+    phone: string | null;
+  }): MatchedBy[] => {
     const out: MatchedBy[] = [];
     if (ico && normalizeIco(r.ico) === ico) out.push("ico");
     if (email && normalizeEmail(r.email) === email) out.push("email");

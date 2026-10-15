@@ -3,11 +3,10 @@ import { NotImplementedError, type EmailVarsProvider } from "@rebar/core/contrac
 import { schema } from "@rebar/core/db";
 import { queryRecords, resolveEntity, visibleRecordTitles } from "@rebar/core/entities";
 import type { ModuleDeps } from "@rebar/core/module-server";
-import { NotFoundError, UserError, canSeePrivate, scopedWhere } from "@rebar/core/rbac";
+import { NotFoundError } from "@rebar/core/rbac";
 import type { Ctx } from "@rebar/core/rbac";
 import { getPrimaryContact, searchContacts } from "@rebar/kontakty/api";
 import { company, person } from "@rebar/kontakty/schema";
-import { sql } from "drizzle-orm";
 import { loadLibraryItem } from "./data";
 import { buildPreview, composeLinks } from "./logic";
 import type {
@@ -43,8 +42,6 @@ export const DEFAULT_VARIABLES: readonly LibraryVariable[] = [
   { key: "odesilatel", label: "Jméno odesílatele (vy)", source: "sender", available: true },
 ];
 
-const KINDS = ["person", "company", "deal", "job"] as const;
-
 /** Katalog proměnných: příspěvky modulů (`emailVars`) doplněné výchozími; odesílatele umí vyplnit knihovna sama. */
 export function buildCatalog(deps: Pick<ModuleDeps, "services">): LibraryVariables {
   const providers = deps.services.all("emailVars");
@@ -61,7 +58,12 @@ export function buildCatalog(deps: Pick<ModuleDeps, "services">): LibraryVariabl
   const has = (t: EmailVarsProvider["entityType"]) => providers.some((p) => p.entityType === t);
   return {
     variables: [...byKey.values()],
-    pickers: ["person", "company", ...(has("deal") ? (["deal"] as const) : []), ...(has("job") ? (["job"] as const) : [])],
+    pickers: [
+      "person",
+      "company",
+      ...(has("deal") ? (["deal"] as const) : []),
+      ...(has("job") ? (["job"] as const) : []),
+    ],
     templatesAvailable: !!emailTemplatesPort(deps),
   };
 }
@@ -99,7 +101,9 @@ export type EmailTemplatesPort = Port;
  * Služba modulu `sablony-emailu` pro přesun textů (`emailTemplates`), nebo `undefined`, dokud ji modul nenabízí. Klíč zatím
  * není v `ServiceMap` (kontrakty jsou zmrazené), proto se bere bez typové kontroly; až ho architekt doplní, zmizí přetypování.
  */
-export function emailTemplatesPort(deps: Pick<ModuleDeps, "services">): EmailTemplatesPort | undefined {
+export function emailTemplatesPort(
+  deps: Pick<ModuleDeps, "services">,
+): EmailTemplatesPort | undefined {
   const optional = deps.services.optional as unknown as (key: string) => unknown;
   return optional.call(deps.services, "emailTemplates") as EmailTemplatesPort | undefined;
 }
@@ -261,7 +265,7 @@ export async function previewLibraryItem(
 export async function pickRecords(
   ctx: Ctx,
   deps: Pick<ModuleDeps, "registry">,
-  input: { kind: (typeof KINDS)[number]; q?: string | undefined },
+  input: { kind: "person" | "company" | "deal" | "job"; q?: string | undefined },
 ): Promise<PickOption[]> {
   if (input.kind === "person" || input.kind === "company") {
     const found = await searchContacts(ctx, { q: input.q, limit: 8, kinds: [input.kind] });
@@ -282,11 +286,9 @@ export async function pickRecords(
   const def = deps.registry.get(input.kind);
   if (!def) return [];
   const entity = await resolveEntity(ctx.db, def);
-  const page = await queryRecords(ctx, deps.registry as never, entity, {
+  const page = await queryRecords(ctx, deps.registry, entity, {
     ...(input.q ? { q: input.q } : {}),
     limit: 8,
   });
   return page.rows.map((r) => ({ id: r.id, label: String(r[def.titleKey] ?? ""), hint: null }));
 }
-
-export { UserError, canSeePrivate, scopedWhere, sql };

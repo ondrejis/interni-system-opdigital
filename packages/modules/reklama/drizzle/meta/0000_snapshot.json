@@ -1,5 +1,5 @@
 {
-  "id": "928e49b8-d5a9-4bba-adcd-d9869e58e76a",
+  "id": "4beb0cb2-8c1b-4271-b3f2-5f83b441fd74",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -126,8 +126,12 @@
           "name": "ad_ad_set_id_ad_set_id_fk",
           "tableFrom": "ad",
           "tableTo": "ad_set",
-          "columnsFrom": ["ad_set_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "ad_set_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -135,8 +139,12 @@
           "name": "ad_created_by_user_id_fk",
           "tableFrom": "ad",
           "tableTo": "user",
-          "columnsFrom": ["created_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -144,8 +152,12 @@
           "name": "ad_updated_by_user_id_fk",
           "tableFrom": "ad",
           "tableTo": "user",
-          "columnsFrom": ["updated_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -153,8 +165,12 @@
           "name": "ad_deleted_by_user_id_fk",
           "tableFrom": "ad",
           "tableTo": "user",
-          "columnsFrom": ["deleted_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "deleted_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -222,6 +238,12 @@
         "last_sync_at": {
           "name": "last_sync_at",
           "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_sync_error": {
+          "name": "last_sync_error",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -323,8 +345,12 @@
           "name": "ad_account_created_by_user_id_fk",
           "tableFrom": "ad_account",
           "tableTo": "user",
-          "columnsFrom": ["created_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -332,8 +358,12 @@
           "name": "ad_account_updated_by_user_id_fk",
           "tableFrom": "ad_account",
           "tableTo": "user",
-          "columnsFrom": ["updated_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -341,8 +371,12 @@
           "name": "ad_account_deleted_by_user_id_fk",
           "tableFrom": "ad_account",
           "tableTo": "user",
-          "columnsFrom": ["deleted_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "deleted_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -512,8 +546,12 @@
           "name": "ad_campaign_account_id_ad_account_id_fk",
           "tableFrom": "ad_campaign",
           "tableTo": "ad_account",
-          "columnsFrom": ["account_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -521,8 +559,12 @@
           "name": "ad_campaign_created_by_user_id_fk",
           "tableFrom": "ad_campaign",
           "tableTo": "user",
-          "columnsFrom": ["created_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -530,8 +572,12 @@
           "name": "ad_campaign_updated_by_user_id_fk",
           "tableFrom": "ad_campaign",
           "tableTo": "user",
-          "columnsFrom": ["updated_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -539,8 +585,12 @@
           "name": "ad_campaign_deleted_by_user_id_fk",
           "tableFrom": "ad_campaign",
           "tableTo": "user",
-          "columnsFrom": ["deleted_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "deleted_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -789,8 +839,12 @@
           "name": "ad_set_campaign_id_ad_campaign_id_fk",
           "tableFrom": "ad_set",
           "tableTo": "ad_campaign",
-          "columnsFrom": ["campaign_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "campaign_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -798,8 +852,12 @@
           "name": "ad_set_created_by_user_id_fk",
           "tableFrom": "ad_set",
           "tableTo": "user",
-          "columnsFrom": ["created_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -807,8 +865,12 @@
           "name": "ad_set_updated_by_user_id_fk",
           "tableFrom": "ad_set",
           "tableTo": "user",
-          "columnsFrom": ["updated_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -816,8 +878,12 @@
           "name": "ad_set_deleted_by_user_id_fk",
           "tableFrom": "ad_set",
           "tableTo": "user",
-          "columnsFrom": ["deleted_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "deleted_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -943,8 +1009,12 @@
           "name": "lead_form_mapping_owner_id_user_id_fk",
           "tableFrom": "lead_form_mapping",
           "tableTo": "user",
-          "columnsFrom": ["owner_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -952,8 +1022,12 @@
           "name": "lead_form_mapping_created_by_user_id_fk",
           "tableFrom": "lead_form_mapping",
           "tableTo": "user",
-          "columnsFrom": ["created_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -961,8 +1035,12 @@
           "name": "lead_form_mapping_updated_by_user_id_fk",
           "tableFrom": "lead_form_mapping",
           "tableTo": "user",
-          "columnsFrom": ["updated_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -970,8 +1048,12 @@
           "name": "lead_form_mapping_deleted_by_user_id_fk",
           "tableFrom": "lead_form_mapping",
           "tableTo": "user",
-          "columnsFrom": ["deleted_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "deleted_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

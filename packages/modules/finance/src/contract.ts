@@ -377,10 +377,14 @@ export type PaymentDetail = {
 /** Výsledek `finance.payment.create/update/transition/overrideAllocation`. */
 export type PaymentMutation = MutationResult<{ payment: PaymentRow; people: People }>;
 /** Výsledek `finance.payment.recalc`. */
-export type RecalcResult = MutationResult<Record<string, never>>;
+export type RecalcResult = MutationResult<unknown>;
 
 /** Pravidlo rozdělení v odpovědích (s id a pořadím). */
-export type SplitRuleView = SplitRuleInput & { id: string; position: number };
+export type SplitRuleView = Omit<SplitRuleInput, "appliesTo"> & {
+  id: string;
+  position: number;
+  appliesTo: "all" | "one_off" | "intro" | "retainer" | "extra";
+};
 /** Výsledek `finance.split.get`. */
 export type SplitGetResult = {
   rules: SplitRuleView[];

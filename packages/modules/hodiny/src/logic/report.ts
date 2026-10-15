@@ -64,7 +64,10 @@ export function groupHours(facts: readonly HourFact[], by: GroupBy): GroupRow[] 
 }
 
 /** Součty po dnech období (každý den období je v odpovědi, i bez hodin). */
-export function dayTotals(period: Period, facts: readonly HourFact[]): { date: string; minutes: number }[] {
+export function dayTotals(
+  period: Period,
+  facts: readonly HourFact[],
+): { date: string; minutes: number }[] {
   const by = new Map<string, number>();
   for (const f of facts) by.set(f.date, (by.get(f.date) ?? 0) + f.minutes);
   const out: { date: string; minutes: number }[] = [];

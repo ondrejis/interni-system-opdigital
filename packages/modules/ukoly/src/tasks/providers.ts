@@ -9,6 +9,7 @@ import {
   type PrivatePathDef,
   type WidgetProvider,
 } from "@rebar/core/module-server";
+import { scopeOf } from "@rebar/core/rbac";
 import { addDaysIso, todayIso } from "@rebar/core/time";
 import { task } from "../schema";
 import { OPEN_STATUSES } from "./constants";
@@ -21,6 +22,9 @@ import { visibleTasks } from "./scope";
   navigace, vrstva kalendáře a karta klienta. Všechny čtou tabulku `task` ručně, proto jdou přes `visibleTasks`
   (soukromé záznamy a rozsah „jen moje“) a jsou vyjmenované v `privatePaths` (canary test soukromí, D §5.4).
 */
+
+/** Bez `ukoly.read` poskytovatelé nic nevrací (nevyhazují chybu: přehled a navigace běží i pro role bez úkolů). */
+const noRead = (ctx: Parameters<typeof visibleTasks>[0]) => !scopeOf(ctx, "ukoly.read");
 
 const open = () => inArray(task.status, [...OPEN_STATUSES]);
 const mine = (userId: string | null) => (userId ? eq(task.assigneeId, userId) : sql`false`);

@@ -28,6 +28,11 @@ const DEFAULTS: { [K in keyof ServiceMap]: ServiceMap[K] } = {
     logDoneActivity: async () => ({ id: newId() }),
     createMeeting: async () => ({ taskId: newId() }),
     createPrivateNote: async () => ({ id: newId() }),
+    openCountsByPhase: async (_ctx, input) =>
+      Object.fromEntries(input.phaseIds.map((id) => [id, 0])),
+    estimateByJob: async () => ({ estimateMin: 0, tasks: 0 }),
+    completeOpenInPhases: async () => ({ completed: 0 }),
+    listForTemplate: async () => [],
   },
   finance: {
     initJobFinance: async (_ctx, input) => ({

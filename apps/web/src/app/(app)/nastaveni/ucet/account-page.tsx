@@ -2,7 +2,6 @@
 
 import { formatInstant } from "@rebar/core/time";
 import {
-  Avatar,
   Button,
   Chip,
   FormSection,
@@ -14,6 +13,7 @@ import {
   cn,
   useNav,
 } from "@rebar/ui";
+import { UserAvatar } from "@/components/user-avatar";
 import {
   KeyRound,
   Laptop,
@@ -21,6 +21,7 @@ import {
   LogOut,
   Monitor,
   ShieldCheck,
+  ShieldOff,
   Smartphone,
   Tablet,
   UserRound,
@@ -32,8 +33,10 @@ import { authClient } from "@/lib/auth-client";
 import { runAction } from "@/lib/run-action";
 import {
   changePasswordAction,
+  revokeAllTrustedDevicesAction,
   revokeOtherSessionsAction,
   revokeSessionAction,
+  revokeTrustedDeviceAction,
   updateProfileAction,
 } from "@/server/account-actions";
 
@@ -45,7 +48,24 @@ type Account = {
   twoFactorEnabled: boolean;
   twoFactorRequired: boolean;
   phone: string | null;
+  shortName: string;
+  avatarColor: AvatarColor | null;
+  ico: string | null;
+  billingTool: string | null;
 };
+type TrustedDevice = { id: string; current: boolean; createdAt: string; expiresAt: string };
+/** Barvy avataru (stejné jako `AVATAR_COLORS` v jádru; klient nesmí importovat serverový balíček). */
+const AVATAR_COLORS = [
+  "blue",
+  "green",
+  "orange",
+  "purple",
+  "pink",
+  "teal",
+  "indigo",
+  "yellow",
+] as const;
+type AvatarColor = (typeof AVATAR_COLORS)[number];
 type Session = {
   id: string;
   current: boolean;
@@ -67,17 +87,26 @@ const VISIBLE_SESSIONS = 8;
 
 const when = (iso: string) => formatInstant(iso);
 
-/** Můj účet: profil, změna hesla, přihlášená zařízení, dvoufázové ověření (podrobnosti na stránce Zabezpečení účtu). */
-export function AccountPage({ account, sessions }: { account: Account; sessions: Session[] }) {
+/** Profil: údaje, avatar, změna hesla, přihlášená a důvěryhodná zařízení, dvoufázové ověření (podrobnosti na stránce Zabezpečení účtu). */
+export function AccountPage({
+  account,
+  sessions,
+  trusted,
+}: {
+  account: Account;
+  sessions: Session[];
+  trusted: TrustedDevice[];
+}) {
   return (
     <SettingsPage
-      title="Můj účet"
-      description="Vaše údaje, heslo a zařízení, na kterých jste přihlášeni."
+      title="Profil"
+      description="Vaše údaje, avatar, heslo a zařízení, na kterých jste přihlášeni."
       icon={<UserRound />}
     >
       <ProfileSection account={account} />
       <PasswordSection />
       <SessionsSection sessions={sessions} />
+      <TrustedDevicesSection devices={trusted} />
       <TwoFactorSection account={account} />
     </SettingsPage>
   );
@@ -87,14 +116,25 @@ function ProfileSection({ account }: { account: Account }) {
   const router = useRouter();
   const [name, setName] = useState(account.name);
   const [phone, setPhone] = useState(account.phone ?? "");
+  const [shortName, setShortName] = useState(account.shortName);
+  const [color, setColor] = useState<AvatarColor | null>(account.avatarColor);
   const [busy, setBusy] = useState(false);
-  const dirty = name.trim() !== account.name || phone.trim() !== (account.phone ?? "");
+  const dirty =
+    name.trim() !== account.name ||
+    phone.trim() !== (account.phone ?? "") ||
+    shortName.trim() !== account.shortName ||
+    color !== account.avatarColor;
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     const res = await runAction(
-      updateProfileAction({ name, phone: phone || null }),
+      updateProfileAction({
+        name,
+        phone: phone || null,
+        shortName: shortName.trim(),
+        avatarColor: color,
+      }),
       "Profil uložen.",
     );
     setBusy(false);
@@ -106,7 +146,7 @@ function ProfileSection({ account }: { account: Account }) {
       <FormSection
         title="Profil"
         icon={<UserRound />}
-        description="Jméno a telefon uvidí kolegové u záznamů, v aktivitě a v docházce."
+        description="Jméno, zkratka a avatar se ukazují u záznamů, úkolů a v rozpisech plateb."
         footer={
           <>
             {dirty && <span className="mr-auto text-sm text-muted">Neuložené změny</span>}
@@ -117,12 +157,47 @@ function ProfileSection({ account }: { account: Account }) {
         }
       >
         <div className="mb-4 flex items-center gap-3">
-          <Avatar name={name.trim() || account.name} size={48} />
+          <UserAvatar
+            name={name.trim() || account.name}
+            shortName={shortName.trim() || account.shortName}
+            color={color}
+            size={48}
+          />
           <div className="min-w-0">
             <p className="truncate text-lg font-semibold">{name.trim() || account.name}</p>
             <p className="text-sm text-muted">{account.roleName}</p>
           </div>
         </div>
+        <fieldset className="mb-4">
+          <legend className="mb-1.5 text-sm font-medium text-muted">Barva avataru</legend>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Barva avataru">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={color === null}
+              onClick={() => setColor(null)}
+              className={cn(
+                "h-7 rounded-md border px-2 text-sm",
+                color === null ? "border-accent bg-accent-soft" : "border-line-strong",
+              )}
+            >
+              Podle jména
+            </button>
+            {AVATAR_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                role="radio"
+                aria-checked={color === c}
+                aria-label={c}
+                onClick={() => setColor(c)}
+                className={cn("rounded-full p-0.5", color === c && "ring-2 ring-accent")}
+              >
+                <span className="chip block size-6 !p-0" data-color={c} />
+              </button>
+            ))}
+          </div>
+        </fieldset>
         <div className="grid gap-x-4 gap-y-3 @lg:grid-cols-2">
           <TextField
             density="compact"
@@ -143,6 +218,22 @@ function ProfileSection({ account }: { account: Account }) {
             placeholder="+420 777 123 456"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+          />
+          <TextField
+            density="compact"
+            label="Zkratka"
+            maxLength={4}
+            value={shortName}
+            onChange={(e) => setShortName(e.target.value)}
+            hint="2 až 4 znaky, třeba OD. Prázdná = z jména."
+          />
+          <TextField
+            density="compact"
+            label="IČO a fakturační nástroj"
+            readOnly
+            disabled
+            value={[account.ico, account.billingTool].filter(Boolean).join(" · ") || "nenastaveno"}
+            hint="Nastavuje majitel v Nastavení → Uživatelé."
           />
           <div className="@lg:col-span-2">
             <TextField
@@ -385,5 +476,93 @@ function TwoFactorSection({ account }: { account: Account }) {
         </Link>
       }
     />
+  );
+}
+
+const day = (iso: string) => formatInstant(iso, { year: true });
+
+/** Důvěryhodná zařízení: kód z aplikace se na nich 30 dní nevyžaduje; tady jde důvěra zrušit. */
+function TrustedDevicesSection({ devices }: { devices: TrustedDevice[] }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function revoke(d: TrustedDevice) {
+    setBusy(d.id);
+    const res = await runAction(revokeTrustedDeviceAction({ id: d.id }), "Důvěra byla zrušena.");
+    setBusy(null);
+    if (res) router.refresh();
+  }
+  async function revokeAll() {
+    setBusy("all");
+    const res = await runAction(
+      revokeAllTrustedDevicesAction({}),
+      "Důvěra ke všem zařízením byla zrušena.",
+    );
+    setBusy(null);
+    if (res) router.refresh();
+  }
+
+  return (
+    <FormSection
+      title="Důvěryhodná zařízení"
+      icon={<ShieldCheck />}
+      badge={<Chip>{devices.length}</Chip>}
+      description="Na těchto zařízeních se po zadání hesla nevyžaduje kód z aplikace. Důvěra platí 30 dní od posledního přihlášení. Zařízení označíte při zadávání kódu."
+      flush
+      data-testid="trusted-devices"
+      footer={
+        <Button
+          type="button"
+          variant="danger"
+          loading={busy === "all"}
+          disabled={devices.length === 0}
+          onClick={() => void revokeAll()}
+        >
+          <ShieldOff /> Zrušit důvěru všude
+        </Button>
+      }
+    >
+      {devices.length === 0 ? (
+        <p className="border-t border-line px-5 py-4 text-muted">
+          Žádné zařízení není označené jako důvěryhodné. Při každém přihlášení se zadává kód.
+        </p>
+      ) : (
+        <ul className="divide-y divide-line border-t border-line">
+          {devices.map((d) => (
+            <li key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-3">
+              <div className="min-w-0 flex-1 basis-56">
+                <div className="flex flex-wrap items-center gap-2 font-medium">
+                  Důvěryhodné zařízení
+                  {d.current && (
+                    <Chip color="green" dot>
+                      Toto zařízení
+                    </Chip>
+                  )}
+                </div>
+                <div className="text-sm text-muted">
+                  Naposledy použito{" "}
+                  <time dateTime={d.createdAt} suppressHydrationWarning>
+                    {day(d.createdAt)}
+                  </time>{" "}
+                  · důvěra platí do{" "}
+                  <time dateTime={d.expiresAt} suppressHydrationWarning>
+                    {day(d.expiresAt)}
+                  </time>
+                </div>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                loading={busy === d.id}
+                onClick={() => void revoke(d)}
+              >
+                Zrušit důvěru
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </FormSection>
   );
 }

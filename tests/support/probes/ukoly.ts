@@ -23,4 +23,12 @@ export const ukolyProbes: Record<string, Probe> = {
   "ukoly.type.save": P(() => ({ key: "zkouska", name: "Zkouška" }), true),
   "ukoly.type.delete": P(() => ({ id: ID }), true),
   "ukoly.type.reorder": P(() => ({ ids: [ID] }), true),
+  // UKO-N: poznámky (`ukoly.note.*`)
+  "ukoly.note.get": P(() => ({ id: ID }), true),
+  "ukoly.note.list": P(() => ({ standalone: true }), true),
+  "ukoly.note.create": P(() => ({ title: "Zkouška" }), true),
+  "ukoly.note.save": P(() => ({ id: ID, baseVersion: 1, title: "Změna" }), true),
+  "ukoly.note.update": P(() => ({ id: ID, tags: [] }), true),
+  "ukoly.note.pin": P(() => ({ id: ID, pinned: true }), true),
+  "ukoly.note.delete": P(() => ({ id: ID }), true),
 };

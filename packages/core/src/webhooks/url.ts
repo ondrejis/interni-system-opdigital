@@ -52,7 +52,9 @@ export function parseWebhookUrl(raw: string): URL {
   try {
     url = new URL(text);
   } catch {
-    throw new UserError("Adresa webhooku není platná. Zadejte celou adresu, např. https://n8n.firma.cz/webhook/opsys.");
+    throw new UserError(
+      "Adresa webhooku není platná. Zadejte celou adresu, např. https://n8n.firma.cz/webhook/opsys.",
+    );
   }
   if (url.protocol !== "https:" && url.protocol !== "http:")
     throw new UserError("Adresa webhooku musí začínat https:// (nebo http:// v interní síti).");

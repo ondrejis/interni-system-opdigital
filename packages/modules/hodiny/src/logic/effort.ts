@@ -86,6 +86,7 @@ export function computeJobEffort(input: JobEffortInput): JobEffort {
     progressPct: estimate === null ? null : Math.round((workedMinutes / estimate) * 100),
     users,
     totalIncomeMinor,
-    effectiveRateMinor: totalIncomeMinor === null ? null : hourlyRate(totalIncomeMinor, workedMinutes),
+    effectiveRateMinor:
+      totalIncomeMinor === null ? null : hourlyRate(totalIncomeMinor, workedMinutes),
   };
 }

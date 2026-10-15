@@ -237,6 +237,7 @@ function makeApi(rows: Deal[]): EntityApi {
     create: nothing,
     remove: nothing,
     restore: nothing,
+    setVisibility: async () => ({ changed: 0 }),
     lookups: { records: async () => [], users: async () => [] },
     hrefFor: () => null,
     command: nothing,

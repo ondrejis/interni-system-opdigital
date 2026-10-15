@@ -230,6 +230,7 @@ export async function isPasswordBreached(
 /** Jak se kontroluje únik hesla: vypnuto, výchozí služba, nebo vlastní zdroj (testy, vlastní zrcadlo). */
 export type BreachCheck = "off" | "auto" | RangeFetcher;
 
+/** Volby kontroly nového hesla: údaje o uživateli, které heslo nesmí obsahovat, a zdroj uniklých hesel. */
 export type PasswordCheckOptions = PasswordSubject & {
   /**
    * Kontrola uniklých hesel. `auto` (výchozí) je zapnutá, kromě testů (`NODE_ENV=test`) a instance s

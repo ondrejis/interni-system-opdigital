@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Stavy a pipeline" };
 
 export default async function StagesPage() {
-  const ctx = await requireCan("settings.manage");
+  const ctx = await requireCan(["settings.manage", "settings.pipelines"]);
   const { registry } = getServices();
   const all = await listPipelines(ctx.db);
   // jen pipeline, ke kterým existuje entita zapnutého modulu (vypnutý modul v administraci nemá stopu)
@@ -37,7 +37,7 @@ export default async function StagesPage() {
     <SettingsPage
       width="lg"
       title="Stavy a pipeline"
-      description="Stavy, kterými prochází zakázky, poptávky a vady. Pořadí stavů je pořadí sloupců na kanbanu."
+      description="Fáze obchodů, jejich pravděpodobnosti a doby do zvýraznění; stavy dalších záznamů. Pořadí stavů je pořadí sloupců na kanbanu."
       icon={<Workflow />}
     >
       <StagesAdmin pipelines={pipelines} />

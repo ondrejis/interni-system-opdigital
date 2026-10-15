@@ -7,6 +7,7 @@ import { Button } from "../components/button";
 import { Field } from "../components/input";
 import { Dialog, DialogContent } from "../components/overlay";
 import { Kbd } from "../components/badges";
+import { SegmentedControl } from "../components/segmented-control";
 import { successToast } from "../components/toast";
 import { modKey } from "../hooks/use-hotkeys";
 import { useEntityApi } from "./context";
@@ -28,6 +29,8 @@ export function CreateDialog({ entity, open, onOpenChange, defaults, onCreated }
   const qc = useQueryClient();
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [more, setMore] = useState(false);
+  // zámek (SPOL-13): přepínač Sdílené / Soukromé vidí jen vlastník; výchozí je sdílené
+  const [locked, setLocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const initial = useMemo(() => {
@@ -49,12 +52,13 @@ export function CreateDialog({ entity, open, onOpenChange, defaults, onCreated }
     if (open) {
       setValues(initial);
       setMore(false);
+      setLocked(false);
       setError(null);
     }
   }
 
   const writable = entity.attributes.filter((a) => !a.readonly);
-  const primary = writable.filter((a) => a.required || a.key === entity.titleKey);
+  const primary = writable.filter((a) => a.required || a.key === entity.titleKey || a.showInForm);
   const extra = writable.filter((a) => !primary.includes(a));
   const shown = more ? [...primary, ...extra] : primary;
 
@@ -86,7 +90,9 @@ export function CreateDialog({ entity, open, onOpenChange, defaults, onCreated }
       return setError(`Vyplňte: ${missing.map((a) => a.label.toLowerCase()).join(", ")}.`);
     sending.current = true;
     try {
-      const res = await create.mutateAsync(clean);
+      const res = await create.mutateAsync(
+        entity.visibility?.lockable && locked ? { ...clean, isPrivate: true } : clean,
+      );
       successToast(`${entity.label.one} vytvořen${entity.label.one.endsWith("a") ? "a" : ""}.`);
       if (then === "another") setValues(initial);
       else onOpenChange(false);
@@ -131,6 +137,19 @@ export function CreateDialog({ entity, open, onOpenChange, defaults, onCreated }
               />
             </Field>
           ))}
+          {entity.visibility?.lockable && (
+            <Field label="Viditelnost" htmlFor="new-visibility">
+              <SegmentedControl
+                label="Viditelnost"
+                value={locked ? "private" : "shared"}
+                onChange={(v) => setLocked(v === "private")}
+                options={[
+                  { value: "shared", label: "Sdílené" },
+                  { value: "private", label: "Soukromé" },
+                ]}
+              />
+            </Field>
+          )}
           {extra.length > 0 && (
             <button
               type="button"

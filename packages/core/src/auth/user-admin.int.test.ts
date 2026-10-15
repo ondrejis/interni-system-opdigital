@@ -9,7 +9,11 @@ import { connectAppDb, uniqueEmail } from "../testing";
 import { getAccount, updateOwnProfile } from "./account";
 import { getOwnAppearance, updateOwnAppearance } from "./prefs";
 import { listSecurityEvents, recordSecurityEvent } from "./security-events";
-import { listTrustedDevices, revokeAllTrustedDevices, revokeTrustedDevice } from "./trusted-devices";
+import {
+  listTrustedDevices,
+  revokeAllTrustedDevices,
+  revokeTrustedDevice,
+} from "./trusted-devices";
 import {
   listManagedUsers,
   listUserSessions,
@@ -52,7 +56,8 @@ describe("správa uživatelů (jen majitel)", () => {
       userId: other.id,
       token: `t-${newId()}`,
       expiresAt: new Date(Date.now() + 3_600_000),
-      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605 Version/17.0 Safari/605.1",
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605 Version/17.0 Safari/605.1",
     });
     const rows = await listManagedUsers(owner.ctx);
     const row = rows.find((r) => r.id === other.id)!;
@@ -94,12 +99,12 @@ describe("správa uživatelů (jen majitel)", () => {
     );
     await expect(updateUserFields(owner.ctx, { userId: a.id, ico: "12345678" })).rejects.toThrow();
     await updateUserFields(owner.ctx, { userId: a.id, ico: "00006947", shortName: "XQ" });
-    await expect(
-      updateUserFields(owner.ctx, { userId: b.id, ico: "00006947" }),
-    ).rejects.toThrow(/už je přiřazené/);
-    await expect(
-      updateUserFields(owner.ctx, { userId: b.id, shortName: "xq" }),
-    ).rejects.toThrow(/už používá/);
+    await expect(updateUserFields(owner.ctx, { userId: b.id, ico: "00006947" })).rejects.toThrow(
+      /už je přiřazené/,
+    );
+    await expect(updateUserFields(owner.ctx, { userId: b.id, shortName: "xq" })).rejects.toThrow(
+      /už používá/,
+    );
     await expect(
       updateUserFields(owner.ctx, { userId: newId(), shortName: "ZZ" }),
     ).rejects.toBeInstanceOf(NotFoundError);
@@ -116,7 +121,9 @@ describe("správa uživatelů (jen majitel)", () => {
     await expect(revokeUserSession(u.ctx, u.id, s!.id)).rejects.toBeInstanceOf(PermissionError);
     await expect(revokeUserSession(owner.ctx, v.id, s!.id)).rejects.toBeInstanceOf(NotFoundError);
     await revokeUserSession(owner.ctx, u.id, s!.id);
-    expect(await app.db.select().from(schema.session).where(eq(schema.session.userId, u.id))).toHaveLength(0);
+    expect(
+      await app.db.select().from(schema.session).where(eq(schema.session.userId, u.id)),
+    ).toHaveLength(0);
     const events = await listSecurityEvents(u.ctx);
     expect(events[0]).toMatchObject({ action: "revoke_session", actorName: expect.any(String) });
   });
@@ -222,7 +229,8 @@ describe("důvěryhodná zařízení: správa", () => {
     await expect(revokeTrustedDevice(a.ctx, other.id)).rejects.toBeInstanceOf(NotFoundError);
     await revokeTrustedDevice(a.ctx, d1.id);
     expect((await listTrustedDevices(a.ctx)).map((d) => d.id)).toEqual([d2.id]);
-    expect(await revokeAllTrustedDevices(a.ctx)).toBe(1);
+    // smaže i prošlý záznam, který se ve výpisu neukazuje
+    expect(await revokeAllTrustedDevices(a.ctx)).toBe(2);
     expect(await listTrustedDevices(a.ctx)).toEqual([]);
     expect(await listTrustedDevices(b.ctx)).toHaveLength(1);
     const events = await listSecurityEvents(a.ctx);
@@ -252,6 +260,8 @@ describe("bezpečnostní události: zápis", () => {
       actorKind: "system",
       isPrivate: false,
     });
-    await expect(listSecurityEvents(owner.ctx, { userId: "unknown" })).resolves.toBeInstanceOf(Array);
+    await expect(listSecurityEvents(owner.ctx, { userId: "unknown" })).resolves.toBeInstanceOf(
+      Array,
+    );
   });
 });

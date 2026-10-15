@@ -25,7 +25,15 @@ import { computeJobEffort } from "../logic/effort";
 import { buildWeekGrid } from "../logic/grid";
 import { dayTotals, groupHours, periodOf, type HourFact } from "../logic/report";
 import { timeEntry } from "../schema";
-import { estimateOf, incomeByUser, jobRefs, loadJob, loadTask, taskTitles, userNames } from "./lookups";
+import {
+  estimateOf,
+  incomeByUser,
+  jobRefs,
+  loadJob,
+  loadTask,
+  taskTitles,
+  userNames,
+} from "./lookups";
 
 type Row = typeof timeEntry.$inferSelect;
 
@@ -155,14 +163,12 @@ export async function pickJobs(
 }
 
 /** Čas zapsaný u úkolu: zakázka úkolu, odhad, součty a záznamy (jen ty, které aktér smí číst). */
-export async function taskView(
-  ctx: Ctx,
-  deps: ModuleDeps,
-  taskId: string,
-): Promise<ForTaskOutput> {
+export async function taskView(ctx: Ctx, deps: ModuleDeps, taskId: string): Promise<ForTaskOutput> {
   readScope(ctx);
   const task = await loadTask(ctx, deps, taskId);
-  const job = task.jobId ? ((await jobRefs(ctx, deps, [task.jobId])).get(task.jobId) ?? null) : null;
+  const job = task.jobId
+    ? ((await jobRefs(ctx, deps, [task.jobId])).get(task.jobId) ?? null)
+    : null;
   const rows = await ctx.db
     .select()
     .from(timeEntry)
@@ -181,7 +187,10 @@ export async function taskView(
     estimateMin: task.estimateMin && task.estimateMin > 0 ? task.estimateMin : null,
     totalMinutes: rows.reduce((a, r) => a + r.minutes, 0),
     myMinutes: rows.filter((r) => r.userId === mine).reduce((a, r) => a + r.minutes, 0),
-    entries: rows.map((r) => ({ ...entryDto(r, { [taskId]: task.title }), userName: names[r.userId] ?? "" })),
+    entries: rows.map((r) => ({
+      ...entryDto(r, { [taskId]: task.title }),
+      userName: names[r.userId] ?? "",
+    })),
   };
 }
 

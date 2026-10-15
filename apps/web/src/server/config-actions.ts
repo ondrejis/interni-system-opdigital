@@ -38,13 +38,15 @@ import { getServices } from "./services";
 const id = z.uuid();
 const color = z.string().max(20);
 const PERM = "settings.manage";
+const PIPELINES = [PERM, "settings.pipelines"] as const;
+const FIELDS = [PERM, "settings.custom_fields"] as const;
 
 /* ---------- stavy a pipeline ---------- */
 
 const stageKind = z.enum(["open", "won", "lost", "done"]);
 
 export const addStageAction = defineAction({
-  permission: PERM,
+  permission: PIPELINES,
   input: z.object({
     pipelineId: id,
     name: z.string().max(80),
@@ -68,7 +70,7 @@ export const addStageAction = defineAction({
 });
 
 export const updateStageAction = defineAction({
-  permission: PERM,
+  permission: PIPELINES,
   input: z.object({
     id,
     name: z.string().max(80).optional(),
@@ -92,19 +94,19 @@ export const updateStageAction = defineAction({
 });
 
 export const reorderStagesAction = defineAction({
-  permission: PERM,
+  permission: PIPELINES,
   input: z.object({ pipelineId: id, ids: z.array(id).min(1).max(100) }),
   handler: (ctx, i) => reorderStages(ctx, i.pipelineId, i.ids),
 });
 
 export const deleteStageAction = defineAction({
-  permission: PERM,
+  permission: PIPELINES,
   input: z.object({ id }),
   handler: (ctx, i) => deleteStage(ctx, i.id),
 });
 
 export const restoreStageAction = defineAction({
-  permission: PERM,
+  permission: PIPELINES,
   input: z.object({ id }),
   handler: (ctx, i) => restoreStage(ctx, i.id),
 });
@@ -169,7 +171,7 @@ async function reindex(ctx: Ctx, entityType: string) {
 }
 
 export const createFieldAction = defineAction({
-  permission: PERM,
+  permission: FIELDS,
   input: fieldInput,
   handler: async (ctx, i) => {
     assertCustomizable(i.entityType);
@@ -181,7 +183,7 @@ export const createFieldAction = defineAction({
 });
 
 export const updateFieldAction = defineAction({
-  permission: PERM,
+  permission: FIELDS,
   input: z.object({
     id,
     entityType: z.string().max(40),
@@ -189,6 +191,7 @@ export const updateFieldAction = defineAction({
     options: fieldInput.shape.options.optional(),
     required: z.boolean().optional(),
     showInTable: z.boolean().optional(),
+    showInForm: z.boolean().optional(),
   }),
   handler: async (ctx, { id: fieldId, entityType, ...patch }) => {
     await updateFieldDef(ctx, fieldId, {
@@ -196,6 +199,7 @@ export const updateFieldAction = defineAction({
       ...(patch.options !== undefined ? { options: patch.options } : {}),
       ...(patch.required !== undefined ? { required: patch.required } : {}),
       ...(patch.showInTable !== undefined ? { showInTable: patch.showInTable } : {}),
+      ...(patch.showInForm !== undefined ? { showInForm: patch.showInForm } : {}),
     });
     await reindex(ctx, entityType);
     return { id: fieldId };
@@ -203,7 +207,7 @@ export const updateFieldAction = defineAction({
 });
 
 export const deleteFieldAction = defineAction({
-  permission: PERM,
+  permission: FIELDS,
   input: z.object({ id, entityType: z.string().max(40) }),
   handler: async (ctx, i) => {
     await deleteFieldDef(ctx, i.id);
@@ -212,7 +216,7 @@ export const deleteFieldAction = defineAction({
 });
 
 export const restoreFieldAction = defineAction({
-  permission: PERM,
+  permission: FIELDS,
   input: z.object({ id, entityType: z.string().max(40) }),
   handler: async (ctx, i) => {
     await restoreFieldDef(ctx, i.id);
@@ -221,7 +225,7 @@ export const restoreFieldAction = defineAction({
 });
 
 export const reorderFieldsAction = defineAction({
-  permission: PERM,
+  permission: FIELDS,
   input: z.object({ entityType: z.string().max(40), ids: z.array(id).min(1).max(200) }),
   handler: (ctx, i) => reorderFieldDefs(ctx, i.entityType, i.ids),
 });

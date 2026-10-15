@@ -1,18 +1,15 @@
-import { Palette } from "lucide-react";
+import { getOwnAppearance } from "@rebar/core/auth";
 import { requireCtx } from "@/server/request";
-import { SettingsPlaceholder } from "../_shared/settings-placeholder";
+import { allowedStartPages } from "@/server/start-pages";
+import { AppearanceForm } from "./appearance-form";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Vzhled" };
 
-/** Zástupná stránka (kostra S0): Motiv a osobní nastavení vzhledu aplikace. */
+/** Vzhled: motiv, hustota řádků a úvodní stránka po přihlášení. Osobní nastavení každého uživatele. */
 export default async function Page() {
-  await requireCtx();
+  const ctx = await requireCtx();
   return (
-    <SettingsPlaceholder
-      title="Vzhled"
-      description="Motiv a osobní nastavení vzhledu aplikace."
-      icon={<Palette />}
-    />
+    <AppearanceForm initial={await getOwnAppearance(ctx)} startPages={allowedStartPages(ctx)} />
   );
 }

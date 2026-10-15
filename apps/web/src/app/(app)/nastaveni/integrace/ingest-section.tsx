@@ -159,7 +159,10 @@ export function IngestSection({
               key: "id",
               header: "ID události",
               cell: (e) => (
-                <span className="block max-w-56 truncate font-mono text-xs text-muted" title={e.externalId}>
+                <span
+                  className="block max-w-56 truncate font-mono text-xs text-muted"
+                  title={e.externalId}
+                >
                   {e.externalId}
                 </span>
               ),
@@ -177,7 +180,9 @@ export function IngestSection({
             },
           ]}
           actions={(e) =>
-            e.status === "failed" && !e.externalId.startsWith("rejected:") && !e.externalId.startsWith("invalid:") ? (
+            e.status === "failed" &&
+            !e.externalId.startsWith("rejected:") &&
+            !e.externalId.startsWith("invalid:") ? (
               <Button size="sm" loading={busy === e.id} onClick={() => void reprocess(e)}>
                 <RotateCcw /> Zpracovat znovu
               </Button>
@@ -210,7 +215,9 @@ export function IngestSection({
       <Dialog open={!!secret} onOpenChange={(o) => !o && setSecret(null)}>
         <DialogContent title="Tajemství příchozích požadavků">
           <div className="space-y-3 px-5 py-4">
-            {secret && <SecretReveal secret={secret} label="Tajemství pro podepisování požadavků z n8n" />}
+            {secret && (
+              <SecretReveal secret={secret} label="Tajemství pro podepisování požadavků z n8n" />
+            )}
             <div className="flex justify-end">
               <Button variant="primary" onClick={() => setSecret(null)}>
                 Uložil(a) jsem si ho

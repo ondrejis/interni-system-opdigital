@@ -66,7 +66,7 @@ export async function jobDetailImpl(ctx: Ctx, deps: ModuleDeps, jobId: string): 
     participants.map((p) => p.personId),
   );
   let perPhase: Record<string, number> | null = null;
-  if (tasksSvc?.openCountsByPhase && phases.length)
+  if (tasksSvc && phases.length)
     perPhase = await tasksSvc.openCountsByPhase(ctx, {
       jobId: j.id,
       phaseIds: phases.map((p) => p.id),

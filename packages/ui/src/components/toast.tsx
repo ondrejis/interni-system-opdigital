@@ -31,5 +31,5 @@ export function errorToast(message: string) {
 
 /** Toast s tlačítkem „Zpět“ (vratná akce; zpětná změna se provede až po kliknutí). */
 export function undoToast(message: string, onUndo: () => void | Promise<void>) {
-  toast(message, { duration: 6000, action: { label: "Zpět", onClick: () => void onUndo() } });
+  toast(message, { duration: 10_000, action: { label: "Vrátit", onClick: () => void onUndo() } });
 }

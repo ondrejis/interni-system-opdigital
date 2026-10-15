@@ -20,8 +20,10 @@ export type EnsureRolesOptions = {
 };
 
 /**
- * Založí chybějící role z výchozí definice (seed klienta). Existující role se nemění
- * (správce je upravil v administraci), jen se jim dorovná povinné 2FA podle konfigurace.
+ * Založí chybějící role z výchozí definice (seed klienta). Existující role správce upravil v administraci, proto se jim
+ * dorovná jen povinné 2FA podle konfigurace a oprávnění, která seed přidal nově (např. nový modul): ta se jen přidají,
+ * nikdy neodeberou a nepřidá se znovu to, co správce ručně odebral (seznam už nasazených oprávnění je v nastavení
+ * `rbac.seeded.<klíč role>`). Oprávnění `private.read` nedostane žádná role kromě systémové.
  */
 export async function ensureRoles(
   db: Executor,
@@ -40,6 +42,7 @@ export async function ensureRoles(
           .update(schema.role)
           .set({ require2fa: true })
           .where(eq(schema.role.id, existing.id));
+      if (!existing.isSystem) await addNewPermissions(db, existing.id, def, catalog);
       continue;
     }
     const [role] = await db
@@ -53,12 +56,47 @@ export async function ensureRoles(
       })
       .returning({ id: schema.role.id });
     const rows = Object.entries(def.permissions ?? {})
-      .filter(([key]) => !catalog || catalog.has(key))
+      .filter(([key]) => (!catalog || catalog.has(key)) && key !== "private.read")
       .map(([permission, scope]) => ({
         roleId: role!.id,
         permission,
         scope: scope === true ? ("all" as const) : scope,
       }));
     if (rows.length) await db.insert(schema.rolePermission).values(rows);
+    await addNewPermissions(db, role!.id, def, catalog); // jen zapíše, co je nasazené
   }
+}
+
+/** Doplní existující roli oprávnění, která seed přidal od posledního běhu (ne ta, která správce odebral). */
+async function addNewPermissions(
+  db: Executor,
+  roleId: string,
+  def: RoleDef,
+  catalog: ReadonlySet<string> | undefined,
+): Promise<void> {
+  const wanted = Object.entries(def.permissions ?? {}).filter(
+    ([key]) => key !== "private.read" && (!catalog || catalog.has(key)),
+  );
+  if (!wanted.length) return;
+  const markerKey = `rbac.seeded.${def.key}`;
+  const [marker] = await db.select().from(schema.setting).where(eq(schema.setting.key, markerKey));
+  const seeded = new Set((marker?.value as string[] | undefined) ?? []);
+  const fresh = wanted.filter(([key]) => !seeded.has(key));
+  if (marker && fresh.length)
+    await db
+      .insert(schema.rolePermission)
+      .values(
+        fresh.map(([permission, scope]) => ({
+          roleId,
+          permission,
+          scope: scope === true ? ("all" as const) : scope,
+        })),
+      )
+      .onConflictDoNothing();
+  const all = [...new Set([...seeded, ...wanted.map(([k]) => k)])].sort();
+  if (!marker || fresh.length)
+    await db
+      .insert(schema.setting)
+      .values({ key: markerKey, value: all })
+      .onConflictDoUpdate({ target: schema.setting.key, set: { value: all } });
 }

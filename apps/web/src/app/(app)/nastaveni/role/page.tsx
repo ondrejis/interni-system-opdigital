@@ -11,14 +11,17 @@ export default async function RolesPage() {
   const { runtime } = getServices();
   const roles = await listRoles(ctx);
   const moduleOf = (key: string) => runtime.modules.find((m) => key.startsWith(`${m.id}.`));
-  const catalog = collectPermissions(runtime.modules).map((p) => ({
-    key: p.key,
-    label: p.label,
-    description: p.description ?? null,
-    group: moduleOf(p.key)?.name ?? "Platforma",
-    // Rozsah „jen moje“ dává smysl u oprávnění modulů (záznamy s vlastníkem) a u úkolů.
-    scoped: !!moduleOf(p.key) || p.key === "tasks.read",
-  }));
+  // soukromé záznamy vidí jen vlastník: oprávnění `private.read` nejde přidělit žádné roli
+  const catalog = collectPermissions(runtime.modules)
+    .filter((p) => p.key !== "private.read")
+    .map((p) => ({
+      key: p.key,
+      label: p.label,
+      description: p.description ?? null,
+      group: moduleOf(p.key)?.name ?? "Platforma",
+      // Rozsah „jen moje“ dává smysl u oprávnění modulů (záznamy s vlastníkem).
+      scoped: !!moduleOf(p.key),
+    }));
   return (
     <RolesAdmin
       catalog={catalog}

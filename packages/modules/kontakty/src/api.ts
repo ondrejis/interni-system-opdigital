@@ -28,11 +28,7 @@ export { getPrimaryContact, listCompanyContacts, countCompanyContacts, personUrl
 export type { CompanyContact } from "./persons";
 export { upsertContactFromLead } from "./leads";
 export type { LeadContactInput, LeadContactResult } from "./leads";
-export {
-  matchContactDuplicates,
-  checkCompanyDuplicates,
-  findPersonDuplicates,
-} from "./duplicates";
+export { matchContactDuplicates, checkCompanyDuplicates, findPersonDuplicates } from "./duplicates";
 export type {
   CompanyDuplicate,
   CompanyDuplicateCheck,

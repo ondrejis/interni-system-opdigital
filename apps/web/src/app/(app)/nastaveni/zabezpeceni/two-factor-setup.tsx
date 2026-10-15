@@ -56,7 +56,7 @@ export function TwoFactorSetup({ enabled, required }: { enabled: boolean; requir
       setCode("");
       return setError(authErrorMessage(error));
     }
-    router.replace("/");
+    router.replace("/start");
     router.refresh();
   }
 

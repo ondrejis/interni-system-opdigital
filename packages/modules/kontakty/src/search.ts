@@ -38,7 +38,11 @@ const digitsCol = (col: SQL | unknown) => sql`regexp_replace(coalesce(${col}, ''
  */
 export async function searchContacts(
   ctx: Ctx,
-  input: { q?: string | undefined; limit?: number | undefined; kinds?: ("company" | "person")[] | undefined },
+  input: {
+    q?: string | undefined;
+    limit?: number | undefined;
+    kinds?: ("company" | "person")[] | undefined;
+  },
 ): Promise<{ companies: CompanyHit[]; persons: PersonHit[] }> {
   const q = (input.q ?? "").trim();
   const limit = Math.min(Math.max(input.limit ?? 8, 1), 25);
@@ -102,7 +106,9 @@ export async function searchContacts(
                   like(person.fullName, q),
                   like(person.primaryEmail, q),
                   like(company.name, q),
-                  phoneKey ? sql`${digitsCol(person.primaryPhone)} like ${`%${phoneKey}%`}` : undefined,
+                  phoneKey
+                    ? sql`${digitsCol(person.primaryPhone)} like ${`%${phoneKey}%`}`
+                    : undefined,
                   sql`exists (select 1 from ${personContactPoint} p where p.person_id = ${person.id} and p.deleted_at is null and (${email ? sql`p.value_norm = ${email}` : sql`false`} or ${like(sql`p.value_norm`, q)}${phoneKey ? sql` or ${digitsCol(sql`p.value_norm`)} like ${`%${phoneKey}%`}` : sql``}))`,
                 )
               : undefined,

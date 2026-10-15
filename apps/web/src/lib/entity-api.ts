@@ -40,6 +40,8 @@ export function makeEntityApi(
       ),
     remove: async (entity, ids) => void unwrap(await A.deleteEntityRecords({ entity, ids })),
     restore: async (entity, ids) => void unwrap(await A.restoreEntityRecords({ entity, ids })),
+    setVisibility: async (entity, ids, isPrivate) =>
+      unwrap(await A.setEntityVisibility({ entity, ids, isPrivate })),
     lookups: {
       records: async (entity, q) => unwrap(await A.lookupRecords({ entity, q })),
       users: async (q) => unwrap(await A.lookupUsersAction({ q })),

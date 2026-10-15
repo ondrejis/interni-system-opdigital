@@ -1,6 +1,7 @@
 import { defineEntity, type Choice } from "@rebar/core/entities";
 import { todayIso } from "@rebar/core/time";
 import { note, task, taskAttendee, taskType } from "./schema";
+import { noteEntity } from "./notes/entity";
 import { taskHooks, typeHooks } from "./tasks/hooks";
 import { ownTaskScope } from "./tasks/scope";
 import { OPEN_STATUSES, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "./tasks/constants";
@@ -253,106 +254,6 @@ export const taskEntity = defineEntity({
   url: (id) => `/ukoly/vse/${id}`,
 });
 
-/**
- * Poznámka s formátovaným textem. Bez položky v navigaci (R-23): otevírá se z karty, paletou a z Můj prostor → Soukromé.
- * Rozsah „jen moje“: vlastní poznámky.
- */
-export const noteEntity = defineEntity({
-  key: "note",
-  listPath: "/poznamky",
-  module: "ukoly",
-  label: { one: "Poznámka", many: "Poznámky" },
-  table: note,
-  titleKey: "title",
-  permissions: {
-    read: "ukoly.read",
-    write: "ukoly.write",
-    create: "ukoly.create",
-    delete: "ukoly.delete",
-  },
-  ownerColumns: [note.createdBy],
-  visibility: {
-    parents: [
-      { entityType: "deal", column: "dealId" },
-      { entityType: "job", column: "jobId" },
-    ],
-    ownLock: true,
-  },
-  quickFilters: [
-    {
-      key: "pinned",
-      label: "Připnuté",
-      filter: { op: "and", conditions: [{ attr: "pinned", op: "is_true" }] },
-    },
-  ],
-  attributes: [
-    {
-      key: "title",
-      label: "Název",
-      type: "text",
-      field: "title",
-      width: 280,
-      defaultVisible: true,
-    },
-    {
-      key: "pinned",
-      label: "Připnuto",
-      type: "checkbox",
-      field: "pinned",
-      width: 100,
-      defaultVisible: true,
-    },
-    {
-      key: "deal",
-      label: "Obchod",
-      type: "record",
-      field: "dealId",
-      record: { entityType: "deal" },
-      width: 200,
-      defaultVisible: true,
-    },
-    {
-      key: "company",
-      label: "Organizace",
-      type: "record",
-      field: "companyId",
-      record: { entityType: "company" },
-      width: 200,
-      defaultVisible: true,
-    },
-    {
-      key: "person",
-      label: "Kontakt",
-      type: "record",
-      field: "personId",
-      record: { entityType: "person" },
-      width: 200,
-    },
-    {
-      key: "job",
-      label: "Zakázka",
-      type: "record",
-      field: "jobId",
-      record: { entityType: "job" },
-      width: 200,
-    },
-    {
-      key: "tags",
-      label: "Štítky",
-      type: "multiselect",
-      field: "tags",
-      lookup: "tag",
-      lookupScope: "note",
-      width: 200,
-    },
-  ],
-  search: (r) => ({
-    title: String(r.title || "Poznámka"),
-    extra: String(r.bodyText ?? "").slice(0, 2000),
-  }),
-  url: (id) => `/poznamky/${id}`,
-});
-
 /** Typ úkolu (Úkol, Hovor, Schůzka, E-mail, Termín…); správa v Nastavení přes `ukoly.types`, systémové typy se nemažou. */
 export const taskTypeEntity = defineEntity({
   key: "task_type",
@@ -426,4 +327,4 @@ export const taskTypeEntity = defineEntity({
 });
 
 export const entities = [taskEntity, noteEntity, taskTypeEntity];
-export { task, note, taskType };
+export { task, note, taskType, noteEntity };

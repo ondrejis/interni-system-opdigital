@@ -33,6 +33,7 @@ import {
   stripBlockedReason,
   stripStages,
   sumPrice,
+  templateChoice,
   taskMovePatch,
   toApiRows,
   toRetainerSetup,
@@ -486,6 +487,14 @@ describe("dialog „Založit zakázky z obchodu“", () => {
     const [intro] = toApiRows([row]);
     expect(intro).not.toHaveProperty("retainer");
     expect(intro).toMatchObject({ billingModel: "intro_then_retainer" });
+  });
+});
+
+describe("výběr šablony", () => {
+  it("výchozí, prázdná a konkrétní", () => {
+    expect(templateChoice("__default")).toEqual({});
+    expect(templateChoice("__none")).toEqual({ withoutTemplate: true });
+    expect(templateChoice("abc")).toEqual({ templateId: "abc" });
   });
 });
 

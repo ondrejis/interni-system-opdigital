@@ -1,7 +1,15 @@
 export { PermissionError, NotFoundError, UserError } from "./errors";
 export type { Scope, Actor, ActorKind, Ctx, Restriction } from "./types";
 export { SELF_SERVICE_PERMISSIONS } from "./types";
-export { scopeOf, can, canSeePrivate, assertCan, requireScope, scopedWhere } from "./permissions";
+export {
+  scopeOf,
+  can,
+  canSeePrivate,
+  assertCan,
+  assertCanAny,
+  requireScope,
+  scopedWhere,
+} from "./permissions";
 export type { OwnedRecord } from "./permissions";
 export { createCtx, systemCtx, sourceCtx, inTx, SYSTEM_ACTOR } from "./context";
 export { loadActor } from "./actor";

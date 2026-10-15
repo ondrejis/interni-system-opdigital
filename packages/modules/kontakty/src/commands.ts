@@ -89,7 +89,7 @@ export const aresCommand = defineCommand({
  */
 export const aresTestCommand = defineCommand({
   name: "kontakty.ares.test",
-  permission: "settings.integrations",
+  permission: "kontakty.ares",
   input: aresTestInput,
   handler: async (ctx): Promise<AresTestResult> => {
     const started = Date.now();
@@ -99,8 +99,7 @@ export const aresTestCommand = defineCommand({
       fresh: true,
     });
     const ms = Date.now() - started;
-    if (!res.ok)
-      return { ok: false, ms, withinBudget: false, message: res.message };
+    if (!res.ok) return { ok: false, ms, withinBudget: false, message: res.message };
     return {
       ok: true,
       ms,
@@ -237,7 +236,8 @@ export const mergeApplyCommand = defineCommand({
   permission: "kontakty.merge",
   input: mergeApplyInput,
   handler: async (ctx, i) => {
-    if (i.sourceId === i.targetId) throw new UserError("Vyberte jiný záznam, než který se slučuje.");
+    if (i.sourceId === i.targetId)
+      throw new UserError("Vyberte jiný záznam, než který se slučuje.");
     return mergeContacts(ctx, i.entity, i.sourceId, i.targetId);
   },
 });

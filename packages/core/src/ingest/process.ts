@@ -96,7 +96,10 @@ export async function processIngest(req: IngestRequest): Promise<IngestResponse>
   if (!secrets.length)
     return {
       status: 503,
-      body: { error: "ingest_not_configured", message: "Tajemství příchozích požadavků není nastavené." },
+      body: {
+        error: "ingest_not_configured",
+        message: "Tajemství příchozích požadavků není nastavené.",
+      },
     };
 
   const check = verifySignature({
@@ -129,7 +132,14 @@ export async function processIngest(req: IngestRequest): Promise<IngestResponse>
   try {
     json = JSON.parse(req.rawBody);
   } catch {
-    await upsertInvalid(db, source, `invalid:${digest}`, { raw: req.rawBody.slice(0, 2000) }, "Tělo není platný JSON.", now);
+    await upsertInvalid(
+      db,
+      source,
+      `invalid:${digest}`,
+      { raw: req.rawBody.slice(0, 2000) },
+      "Tělo není platný JSON.",
+      now,
+    );
     return { status: 400, body: { error: "invalid_json" } };
   }
   const parsed = def.schema.safeParse(json);
@@ -143,8 +153,18 @@ export async function processIngest(req: IngestRequest): Promise<IngestResponse>
     externalId = String(def.externalId(parsed.data)).trim().slice(0, 200);
     if (!externalId) throw new Error("prázdné ID");
   } catch {
-    await upsertInvalid(db, source, `invalid:${digest}`, json, "Z požadavku nejde určit jednoznačné ID.", now);
-    return { status: 422, body: { error: "invalid_payload", message: "Chybí jednoznačné ID události." } };
+    await upsertInvalid(
+      db,
+      source,
+      `invalid:${digest}`,
+      json,
+      "Z požadavku nejde určit jednoznačné ID.",
+      now,
+    );
+    return {
+      status: 422,
+      body: { error: "invalid_payload", message: "Chybí jednoznačné ID události." },
+    };
   }
 
   const claimed = await claim(db, source, externalId, json, now);
@@ -208,7 +228,9 @@ async function claim(
   const [existing] = await db
     .select({ id: schema.inboundEvent.id, status: schema.inboundEvent.status })
     .from(schema.inboundEvent)
-    .where(and(eq(schema.inboundEvent.source, source), eq(schema.inboundEvent.externalId, externalId)));
+    .where(
+      and(eq(schema.inboundEvent.source, source), eq(schema.inboundEvent.externalId, externalId)),
+    );
   if (!existing) return { kind: "run", id: (await claim(db, source, externalId, payload, now)).id };
   if (existing.status === "processed") return { kind: "duplicate", id: existing.id };
 
@@ -280,7 +302,10 @@ export async function reprocessInbound(
   id: string,
   now = new Date(),
 ): Promise<IngestResponse> {
-  const [row] = await deps.db.select().from(schema.inboundEvent).where(eq(schema.inboundEvent.id, id));
+  const [row] = await deps.db
+    .select()
+    .from(schema.inboundEvent)
+    .where(eq(schema.inboundEvent.id, id));
   if (!row) return { status: 404, body: { error: "not_found" } };
   if (row.status === "processed") return { status: 200, body: { ok: true, duplicate: true, id } };
   const def = deps.ingests.find((i) => i.source === row.source);
@@ -300,5 +325,11 @@ export async function reprocessInbound(
     .where(and(eq(schema.inboundEvent.id, id), eq(schema.inboundEvent.status, "failed")))
     .returning({ id: schema.inboundEvent.id });
   if (!taken) return { status: 200, body: { ok: true, duplicate: true, id } };
-  return run({ db: deps.db, deps: deps.deps, ip: null, source: row.source }, def, id, parsed.data, now);
+  return run(
+    { db: deps.db, deps: deps.deps, ip: null, source: row.source },
+    def,
+    id,
+    parsed.data,
+    now,
+  );
 }

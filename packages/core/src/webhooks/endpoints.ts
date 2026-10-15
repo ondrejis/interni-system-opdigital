@@ -7,12 +7,7 @@ import { inTx } from "../rbac/context";
 import { assertCan, can } from "../rbac/permissions";
 import type { Ctx } from "../rbac/types";
 import { randomToken, type Cipher } from "../security/crypto";
-import {
-  attemptDelivery,
-  claimDelivery,
-  type DeliverDeps,
-  type DeliverResult,
-} from "./deliver";
+import { attemptDelivery, claimDelivery, type DeliverDeps, type DeliverResult } from "./deliver";
 import { isValidEventPattern } from "./events";
 import { WEBHOOK_NOTIFY_CHANNEL, webhookEnvelope } from "./outbox";
 import { parseWebhookUrl } from "./url";
@@ -175,10 +170,12 @@ export async function createEndpoint(
       entityId: id,
       summary: `Webhook „${v.name}“ přidán`,
       entityTitle: v.name,
-      changes: diffRecords(
-        null,
-        { name: v.name, url: v.url, events: v.events, includePrivate: v.includePrivate },
-      ),
+      changes: diffRecords(null, {
+        name: v.name,
+        url: v.url,
+        events: v.events,
+        includePrivate: v.includePrivate,
+      }),
     });
     return { id, secret };
   });
@@ -273,7 +270,10 @@ export async function deleteEndpoint(ctx: Ctx, id: string): Promise<void> {
       .update(schema.webhookDelivery)
       .set({ status: "failed", lastError: `${new Date().toISOString()} · Endpoint byl smazán.` })
       .where(
-        and(eq(schema.webhookDelivery.endpointId, id), eq(schema.webhookDelivery.status, "pending")),
+        and(
+          eq(schema.webhookDelivery.endpointId, id),
+          eq(schema.webhookDelivery.status, "pending"),
+        ),
       );
     await recordAudit(c, {
       action: "delete",
@@ -292,7 +292,11 @@ export type AttemptReport = {
   error: string | null;
 };
 
-async function reportOf(ctx: Ctx, deliveryId: string, outcome: AttemptReport["outcome"]): Promise<AttemptReport> {
+async function reportOf(
+  ctx: Ctx,
+  deliveryId: string,
+  outcome: AttemptReport["outcome"],
+): Promise<AttemptReport> {
   const [row] = await ctx.db
     .select({ lastError: schema.webhookDelivery.lastError })
     .from(schema.webhookDelivery)
@@ -356,7 +360,10 @@ export type DeliveryFilter = {
 };
 
 /** Doručení (nejnovější první) bez těla zprávy; doručení soukromých událostí vidí jen ten, kdo smí soukromé. */
-export async function listDeliveries(ctx: Ctx, filter: DeliveryFilter = {}): Promise<DeliveryRow[]> {
+export async function listDeliveries(
+  ctx: Ctx,
+  filter: DeliveryFilter = {},
+): Promise<DeliveryRow[]> {
   assertCan(ctx, PERMISSION);
   const rows = await ctx.db
     .select({
@@ -374,7 +381,10 @@ export async function listDeliveries(ctx: Ctx, filter: DeliveryFilter = {}): Pro
       isPrivate: sql<boolean>`coalesce((${schema.webhookDelivery.payload} -> 'entity' ->> 'isPrivate')::boolean, false)`,
     })
     .from(schema.webhookDelivery)
-    .innerJoin(schema.webhookEndpoint, eq(schema.webhookDelivery.endpointId, schema.webhookEndpoint.id))
+    .innerJoin(
+      schema.webhookEndpoint,
+      eq(schema.webhookDelivery.endpointId, schema.webhookEndpoint.id),
+    )
     .where(
       and(
         filter.endpointId ? eq(schema.webhookDelivery.endpointId, filter.endpointId) : undefined,
@@ -426,7 +436,8 @@ export async function retryDelivery(
       .from(schema.webhookDelivery)
       .where(and(eq(schema.webhookDelivery.id, id), visibleDeliveries(c)));
     if (!row) throw new NotFoundError("Doručení nenalezeno.");
-    if (row.status !== "failed") throw new UserError("Znovu jde odeslat jen doručení, které selhalo.");
+    if (row.status !== "failed")
+      throw new UserError("Znovu jde odeslat jen doručení, které selhalo.");
     await c.db
       .update(schema.webhookDelivery)
       .set({ status: "pending", attempts: 0, nextAttemptAt: new Date() })

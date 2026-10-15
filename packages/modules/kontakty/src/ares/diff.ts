@@ -27,7 +27,10 @@ export function aresValues(ares: AresCompany): AresTarget {
  * Stejné hodnoty a údaje, které ARES nemá, se vynechají. Název (`name`) se přepisuje jen tam, kde je prázdný nebo
  * zrcadlí oficiální název; vlastní zkrácený název („Novák Stavby“) se nepřepisuje, jen se nabídne (nezaškrtnutý).
  */
-export function buildAresDiff(current: Partial<AresTarget> | null, ares: AresCompany): AresChange[] {
+export function buildAresDiff(
+  current: Partial<AresTarget> | null,
+  ares: AresCompany,
+): AresChange[] {
   const incoming = aresValues(ares);
   const now = (f: AresField) => clean(current?.[f]);
   const out: AresChange[] = [];

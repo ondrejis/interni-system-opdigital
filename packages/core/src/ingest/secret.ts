@@ -77,7 +77,10 @@ export async function rotateIngestSecret(
     await c.db
       .insert(schema.setting)
       .values({ key: KEY, value, updatedBy: c.actor.userId })
-      .onConflictDoUpdate({ target: schema.setting.key, set: { value, updatedBy: c.actor.userId } });
+      .onConflictDoUpdate({
+        target: schema.setting.key,
+        set: { value, updatedBy: c.actor.userId },
+      });
     await recordAudit(c, {
       action: before.secret ? "update" : "create",
       entityType: "setting",

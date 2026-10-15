@@ -44,7 +44,8 @@ const GROUPS: Record<string, { label: string; description?: string }> = {
   payment: { label: "Platby" },
   drive: {
     label: "Google Disk (složky)",
-    description: "Pro workflow v n8n, které zakládá složky. Ostatní webhooky tyto události nedostávají.",
+    description:
+      "Pro workflow v n8n, které zakládá složky. Ostatní webhooky tyto události nedostávají.",
   },
 };
 

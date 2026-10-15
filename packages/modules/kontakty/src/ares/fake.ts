@@ -51,8 +51,7 @@ export function createFakeAres(
     async lookup(ico): Promise<AresFetchResult> {
       calls.push(ico);
       if (opts.latencyMs) await new Promise((r) => setTimeout(r, opts.latencyMs));
-      if (down)
-        return { ok: false, reason: "unavailable", message: "ARES teď neodpovídá (fake)." };
+      if (down) return { ok: false, reason: "unavailable", message: "ARES teď neodpovídá (fake)." };
       const c = known.get(ico);
       return c
         ? { ok: true, company: c }

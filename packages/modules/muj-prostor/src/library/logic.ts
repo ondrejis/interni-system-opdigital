@@ -100,7 +100,11 @@ export type ComposeLinks = {
 };
 
 /** Adresa pro napsání nové zprávy v Gmailu (adresát, předmět, text jsou zakódované). */
-export function gmailComposeUrl(msg: { to?: string | null; subject: string; body: string }): string {
+export function gmailComposeUrl(msg: {
+  to?: string | null;
+  subject: string;
+  body: string;
+}): string {
   const q = new URLSearchParams({ view: "cm", fs: "1" });
   if (msg.to) q.set("to", msg.to);
   if (msg.subject) q.set("su", msg.subject);
@@ -110,7 +114,11 @@ export function gmailComposeUrl(msg: { to?: string | null; subject: string; body
 }
 
 /** Odkaz `mailto:` s předmětem a textem (konce řádků jako CRLF podle RFC 6068). */
-export function mailtoComposeUrl(msg: { to?: string | null; subject: string; body: string }): string {
+export function mailtoComposeUrl(msg: {
+  to?: string | null;
+  subject: string;
+  body: string;
+}): string {
   const parts: string[] = [];
   if (msg.subject) parts.push(`subject=${encodeURIComponent(msg.subject)}`);
   if (msg.body) parts.push(`body=${encodeURIComponent(msg.body.replace(/\n/g, "\r\n"))}`);

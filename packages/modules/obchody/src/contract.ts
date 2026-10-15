@@ -62,6 +62,7 @@ export const jobFromDealRow = z.object({
   split: z.array(splitRuleInput).optional(),
   retainer: retainerSetup.optional(),
 });
+/** Řádek dialogu „Založit zakázky“ (vstup). */
 export type JobFromDealRowInput = z.input<typeof jobFromDealRow>;
 
 /* ---------- pole obchodu (vstupy zápisu) ---------- */
@@ -99,6 +100,7 @@ export const createInput = z.object({
   participantIds: z.array(id).max(20).default([]),
   isPrivate: z.boolean().optional(),
 });
+/** Vstup založení obchodu (před doplněním výchozích hodnot). */
 export type CreateDealInput = z.input<typeof createInput>;
 
 /** Úprava polí obchodu (ne fáze a ne výsledek: tam `moveStage`, `win`, `lose`, `reopen`). Aspoň jedno pole. */
@@ -111,6 +113,7 @@ export const updateInput = z.object({
   /** Čas poslední úpravy, ze kterého uživatel vycházel (kolize úprav). */
   expectedUpdatedAt,
 });
+/** Vstup úpravy polí obchodu. */
 export type UpdateDealInput = z.input<typeof updateInput>;
 
 /** Přesun do jiné fáze (tažení na boardu, klik na pás fází, „Přesunout do fáze“). Jen otevřený obchod. */
@@ -127,6 +130,7 @@ export const winInput = z.object({
   jobs: z.array(jobFromDealRow).max(10).default([]),
   expectedUpdatedAt,
 });
+/** Vstup výhry obchodu. */
 export type WinDealInput = z.input<typeof winInput>;
 
 /** Prohra (OBCH-12): důvod z číselníku `deal.lost_reason` je povinný, poznámka volitelná. */
@@ -136,6 +140,7 @@ export const loseInput = z.object({
   note: text(2000).nullish(),
   expectedUpdatedAt,
 });
+/** Vstup prohry obchodu. */
 export type LoseDealInput = z.input<typeof loseInput>;
 
 /** Znovuotevření vyhraného nebo prohraného obchodu (zpět do fáze, ve které byl). */
@@ -176,6 +181,7 @@ export const quickAddInput = z.object({
   sourceDetail: text(200).nullish(),
   stageId: id.optional(),
 });
+/** Vstup rychlého založení firmy, kontaktu a obchodu. */
 export type QuickAddInput = z.input<typeof quickAddInput>;
 
 /* ---------- účastníci ---------- */
@@ -199,6 +205,7 @@ export const boardInput = z.object({
   /** Hledaný text (název, firma). */
   search: text(100).optional(),
 });
+/** Vstup boardu obchodů. */
 export type BoardInput = z.input<typeof boardInput>;
 
 /* ---------- správa pipeline (Nastavení → Stavy; oprávnění `obchody.pipelines`) ---------- */

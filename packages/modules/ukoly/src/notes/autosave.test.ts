@@ -19,7 +19,8 @@ function makeServer(opts: { latency?: number } = {}) {
   ): Promise<SaveOutcome<{ version: number; text: string }>> => {
     server.inflight++;
     server.maxInflight = Math.max(server.maxInflight, server.inflight);
-    await new Promise((r) => setTimeout(r, opts.latency ?? 0));
+    if (opts.latency) await new Promise((r) => setTimeout(r, opts.latency));
+    else await Promise.resolve();
     server.inflight--;
     if (server.failNext > 0) {
       server.failNext--;

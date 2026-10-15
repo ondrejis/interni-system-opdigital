@@ -1,3 +1,4 @@
+export { VisibilityLock } from "./record-lock";
 export { EntityApiProvider, useEntityApi } from "./context";
 export { ApiError } from "./api";
 export type {

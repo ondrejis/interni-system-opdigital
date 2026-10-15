@@ -37,11 +37,7 @@ import {
 } from "./logic";
 
 /** Porovnání bez ohledu na velikost písmen a diakritiku (hledání na boardu). */
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase();
+const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 const iso = (d: Date | null) => d?.toISOString() ?? null;
 
@@ -74,9 +70,7 @@ export async function board(
   const rows = await ctx.db
     .select()
     .from(deal)
-    .where(
-      and(scope.where, eq(deal.result, "open"), owner ? eq(deal.ownerId, owner) : undefined),
-    )
+    .where(and(scope.where, eq(deal.result, "open"), owner ? eq(deal.ownerId, owner) : undefined))
     .orderBy(desc(deal.createdAt));
   const companies = await recordTitles(
     ctx,
@@ -135,9 +129,7 @@ export async function board(
   }
   for (const col of columns) {
     col.cards.sort(
-      (a, b) =>
-        Number(b.highlight.unopenedLead) - Number(a.highlight.unopenedLead) ||
-        0, // zbytek zůstává v pořadí od nejnovějšího
+      (a, b) => Number(b.highlight.unopenedLead) - Number(a.highlight.unopenedLead) || 0, // zbytek zůstává v pořadí od nejnovějšího
     );
     const sum = columnSummary(
       col.cards.map((c) => ({
@@ -200,7 +192,11 @@ export async function listParticipants(
     "person",
     rows.map((r) => r.personId),
   );
-  return rows.map((r) => ({ id: r.id, personId: r.personId, personName: names[r.personId] ?? null }));
+  return rows.map((r) => ({
+    id: r.id,
+    personId: r.personId,
+    personName: names[r.personId] ?? null,
+  }));
 }
 
 /**
@@ -309,7 +305,9 @@ export async function winPreview(ctx: Ctx, dealId: string): Promise<WinPreview> 
     const [c] = await ctx.db
       .select({ name: company.name, status: company.clientStatus })
       .from(company)
-      .where(and(eq(company.id, r.companyId), isNull(company.deletedAt), privateScope(ctx, company)));
+      .where(
+        and(eq(company.id, r.companyId), isNull(company.deletedAt), privateScope(ctx, company)),
+      );
     companyName = c?.name ?? null;
     clientStatus = c?.status ?? null;
   }

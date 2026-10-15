@@ -50,9 +50,10 @@ describe("podpis webhooku (HMAC-SHA256 z „t.tělo“)", () => {
     const old = signatureHeader(SECRET, BODY, NOW - 3_600_000);
     const sig = old.split(",v1=")[1]!;
     const forged = `t=${Math.floor(NOW / 1000)},v1=${sig}`;
-    expect(verifySignature({ secrets: [SECRET], header: forged, body: BODY, nowMs: NOW })).toEqual(
-      { ok: false, reason: "mismatch" },
-    );
+    expect(verifySignature({ secrets: [SECRET], header: forged, body: BODY, nowMs: NOW })).toEqual({
+      ok: false,
+      reason: "mismatch",
+    });
   });
 
   it("chybějící a poškozená hlavička se rozliší", () => {
@@ -75,9 +76,9 @@ describe("podpis webhooku (HMAC-SHA256 z „t.tělo“)", () => {
   it("rotace: stačí, když podpis odpovídá kterémukoli z platných tajemství, nebo kterémukoli v1", () => {
     const t = Math.floor(NOW / 1000);
     const header = signatureHeader("stare", BODY, NOW);
-    expect(
-      verifySignature({ secrets: [SECRET, "stare"], header, body: BODY, nowMs: NOW }).ok,
-    ).toBe(true);
+    expect(verifySignature({ secrets: [SECRET, "stare"], header, body: BODY, nowMs: NOW }).ok).toBe(
+      true,
+    );
     const both = `t=${t},v1=${computeSignature("x".repeat(8), t, BODY)},v1=${computeSignature(SECRET, t, BODY)}`;
     expect(verifySignature({ secrets: [SECRET], header: both, body: BODY, nowMs: NOW }).ok).toBe(
       true,

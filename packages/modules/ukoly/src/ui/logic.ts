@@ -97,7 +97,8 @@ export function groupTasks(
   mode: GroupMode,
   now: Date = new Date(),
 ): TaskGroup[] {
-  if (mode === "none") return rows.length ? [{ key: "all", title: "", tone: "normal", rows: [...rows] }] : [];
+  if (mode === "none")
+    return rows.length ? [{ key: "all", title: "", tone: "normal", rows: [...rows] }] : [];
   const today = todayIso("Europe/Prague", now);
   const groups = new Map<string, TaskGroup & { order: number; sort: string }>();
   const add = (
@@ -166,7 +167,12 @@ export function groupTasks(
 /* ---------- board podle stavu ---------- */
 
 /** Sloupce boardu úkolů (UKO-04, SPOL-07). */
-export const BOARD_COLUMNS = ["todo", "in_progress", "done", "canceled"] as const satisfies readonly TaskStatus[];
+export const BOARD_COLUMNS = [
+  "todo",
+  "in_progress",
+  "done",
+  "canceled",
+] as const satisfies readonly TaskStatus[];
 
 /** Rozdělí řádky do sloupců podle stavu (sloupce bez řádků zůstávají prázdné). */
 export function boardColumns(rows: readonly TaskDto[]): Record<TaskStatus, TaskDto[]> {
@@ -182,7 +188,9 @@ export const isOpen = (status: TaskStatus): boolean =>
 /* ---------- přesun termínu ---------- */
 
 /** Rychlé volby přesunu termínu: dnes, zítra, nejbližší pondělí, za týden. */
-export function datePresets(now: Date = new Date()): { key: string; label: string; date: string }[] {
+export function datePresets(
+  now: Date = new Date(),
+): { key: string; label: string; date: string }[] {
   const today = todayIso("Europe/Prague", now);
   const monday = addDaysIso(today, daysToNextMonday(now));
   return [
@@ -314,16 +322,26 @@ export function fromSavedConfig(cfg: SavedConfig): ListState {
     const st = find("status", "is_any_of")?.value;
     if (Array.isArray(st) && st.length === 1 && st[0] === "done") view = "done";
   }
-  const group = (Object.keys(GROUP_ATTR) as GroupMode[]).find((k) => GROUP_ATTR[k] === (cfg.group ?? null));
+  const group = (Object.keys(GROUP_ATTR) as GroupMode[]).find(
+    (k) => GROUP_ATTR[k] === (cfg.group ?? null),
+  );
   const pr = find("priority", "is_any_of")?.value;
   return {
     view,
     scope: find("assignee", "is_me") || view === "delegated" ? "mine" : "all",
     group: group ?? defaultGroupFor(view),
     layout: cfg.viewType === "kanban" ? "board" : "list",
-    typeKey: typeof find("type", "equals")?.value === "string" ? String(find("type", "equals")!.value) : "",
-    priority: Array.isArray(pr) ? (pr.filter((p) => (TASK_PRIORITIES as readonly unknown[]).includes(p)) as TaskPriority[]) : [],
-    q: typeof find("title", "contains")?.value === "string" ? String(find("title", "contains")!.value) : "",
+    typeKey:
+      typeof find("type", "equals")?.value === "string"
+        ? String(find("type", "equals")!.value)
+        : "",
+    priority: Array.isArray(pr)
+      ? (pr.filter((p) => (TASK_PRIORITIES as readonly unknown[]).includes(p)) as TaskPriority[])
+      : [],
+    q:
+      typeof find("title", "contains")?.value === "string"
+        ? String(find("title", "contains")!.value)
+        : "",
   };
 }
 
@@ -339,7 +357,10 @@ export type QuickOverride = {
 
 /** Platné hodnoty po opravách: rozpoznané přepsané tím, co uživatel opravil. Čas bez data se zahodí. */
 export function effectiveQuick(
-  parse: Pick<QuickTaskParse, "typeKey" | "dueDate" | "dueTime" | "priority" | "title" | "durationMin">,
+  parse: Pick<
+    QuickTaskParse,
+    "typeKey" | "dueDate" | "dueTime" | "priority" | "title" | "durationMin"
+  >,
   o: QuickOverride,
 ) {
   const dueDate = o.dueDate !== undefined ? o.dueDate : parse.dueDate;
@@ -432,3 +453,64 @@ export function parseEstimate(text: string): number | null | undefined {
   if (m) return Number(m[1]);
   return undefined;
 }
+
+/* ---------- typy aktivit ---------- */
+
+/** Klíč nového typu z názvu: malá písmena bez diakritiky, podtržítka, začíná písmenem („Návštěva u klienta“ → `navsteva_u_klienta`). */
+export function slugKey(name: string): string {
+  const base = name
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+  if (!base) return "";
+  return /^[a-z]/.test(base) ? base.padEnd(2, "_") : `t_${base}`.slice(0, 40);
+}
+
+/** Ikony nabízené u typu aktivity (jen ty, které UI zná). */
+export const TYPE_ICONS = [
+  "check-square",
+  "phone",
+  "users",
+  "mail",
+  "flag",
+  "calendar-clock",
+  "video",
+  "message-square",
+  "map-pin",
+  "car",
+  "wrench",
+  "camera",
+  "file-text",
+  "star",
+  "target",
+  "handshake",
+  "briefcase",
+  "banknote",
+  "megaphone",
+  "send",
+  "clipboard-check",
+  "alarm-clock",
+  "house",
+  "truck",
+  "key",
+  "globe",
+  "flame",
+  "trophy",
+] as const;
+
+/** Barvy typu aktivity (štítky systému). */
+export const TYPE_COLORS = [
+  "gray",
+  "blue",
+  "teal",
+  "green",
+  "yellow",
+  "orange",
+  "red",
+  "pink",
+  "purple",
+  "indigo",
+] as const;

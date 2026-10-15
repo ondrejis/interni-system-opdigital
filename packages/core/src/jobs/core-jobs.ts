@@ -7,6 +7,9 @@ import { exportJobs, type ExportJobDeps } from "../export/jobs";
 import { sendMailJob, type MailDeps } from "../mail/service";
 import { cleanupNotifications, dispatchDue, type EmailMessage } from "../notifications";
 import type { PushSender } from "../push/push";
+import { getActiveRegistry } from "../entities/active-registry";
+import { systemCtx } from "../rbac/context";
+import { purgeExpiredTrash } from "../trash/trash";
 import { defineJob, type JobDef } from "./jobs";
 
 export type CoreJobDeps = MailDeps &
@@ -79,6 +82,18 @@ export const dispatchJob = defineJob<z.ZodObject<Record<string, never>>, CoreJob
   },
 });
 
+/** Denně v noci: trvale smaže záznamy, které jsou v koši déle než 30 dní (nejdřív podřízené). */
+export const trashPurgeJob = defineJob<z.ZodObject<Record<string, never>>, CoreJobDeps>({
+  name: "core.trash.purge",
+  schema: z.object({}),
+  cron: "40 3 * * *",
+  retryLimit: 2,
+  keepCompletedSeconds: 600,
+  async handler(deps) {
+    await purgeExpiredTrash(systemCtx(deps.db), getActiveRegistry());
+  },
+});
+
 /** Denně v noci: smaže stará upozornění a jejich protokol doručení. */
 export const notificationCleanupJob = defineJob<z.ZodObject<Record<string, never>>, CoreJobDeps>({
   name: "notification.cleanup",
@@ -99,5 +114,6 @@ export const coreJobs: readonly JobDef<z.ZodType, CoreJobDeps>[] = [
   heartbeatJob,
   dispatchJob,
   notificationCleanupJob,
+  trashPurgeJob,
   ...(exportJobs as readonly JobDef<z.ZodType, CoreJobDeps>[]),
 ];

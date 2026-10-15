@@ -37,72 +37,61 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 
 ## Účel
 
-<!-- Co modul řeší, pro koho, proč existuje a co do něj naopak nepatří. Tři až šest vět. -->
-
-TODO: doplnit vyprávění
+Hodiny ukazují, kolik času zakázka stála a jaká z ní vyšla hodinovka každému z dvojice. Zapisuje se zpětně, bez stopek: do týdenní mřížky, z úkolu nebo ze zakázky. Modul neschvaluje výkazy, nepočítá náklady práce ani docházku (píchačka, absence a uzávěrka z původního jádra odpadly). Hodiny nejsou podklad pro fakturaci, jen pro přehled a sazbu.
 
 ## Kdo to používá (role)
 
-<!-- Které výchozí role modul používají, co v něm každá dělá a jaký mají rozsah (vše / moje). Matice oprávnění je v souhrnu výše. -->
-
-TODO: doplnit vyprávění
+Owner (Ondřej) i Partner (Patrik) mají `hodiny.read`, `hodiny.write` a `hodiny.delete` v rozsahu „vše“: každý zapisuje jen své hodiny, ale v přehledech vidí hodiny obou. Při rozsahu „jen moje“ (například externí spolupracovník, kterému majitel oprávnění přidělí) vidí a zapisuje jen vlastní. Hodiny soukromých zakázek vidí jen owner.
 
 ## Hlavní toky krok za krokem
 
-<!-- Každý tok zvlášť: spouštěč, očíslované kroky z pohledu uživatele i systému (co se zapíše, spočítá, odešle), výsledek a co se stane při chybě. -->
-
-TODO: doplnit vyprávění
+1. **Týdenní výkaz** (`/hodiny`): řádek je zakázka, sloupec den, buňka textové pole. Čas se píše `1,5`, `1.5`, `1:30`, `90m`, `1h30`; Enter nebo opuštění pole uloží (`hodiny.cell.save`), prázdné pole nebo `0` buňku vymaže. Zakázku do výkazu přidá výběr pod mřížkou (nebo tlačítko se zakázkou z posledních čtyř týdnů). Tlačítko 1:30 / 1,5 přepíná jen zobrazení a pamatuje si ho prohlížeč.
+2. **Zapsat čas** (dialog): z paletového příkazu „Zapsat hodiny“ (`/hodiny?zapsat=1`), z hlavičky zakázky, ze záložky Hodiny zakázky a z dialogu úkolu (slot `task.dialog.extras`). Vybere se den, čas a poznámka; u úkolu se zakázka vezme z úkolu. Dialog tvoří vždy nový záznam; existující záznam se upraví kliknutím na řádek (v týdnu, u úkolu).
+3. **Přehledy** (`/hodiny/prehled`): moje hodiny za týden nebo měsíc podle zakázky či osoby; s rozsahem „vše“ i hodiny všech s rozpadem (zakázka → osoby, osoba → zakázky).
+4. **Záložka Hodiny u zakázky**: odpracováno, odhad úkolů, zbývá nebo přečerpáno, tabulka „Kdo kolik“ s podílem na příjmech a efektivní sazbou a posledních 10 záznamů.
 
 ## Stavy a přechody
 
-<!-- Stavové automaty (pipeline, fáze, stavy dokladů): z čeho kam se smí, za jakých podmínek, co přechod automaticky udělá. Hodí se tabulka nebo diagram Mermaid. -->
-
-TODO: doplnit vyprávění
+Záznam nemá stav (žádné schvalování, uzávěrka ani koncepty). Je buď živý, nebo smazaný (měkce, jde obnovit z Koše).
 
 ## Pravidla a výpočty
 
-<!-- Vzorce, zaokrouhlování, sazby, meze, priority pravidel a příklad s čísly. U každého pravidla odkaz na funkci, která ho provádí. -->
-
-TODO: doplnit vyprávění
+- **Formáty času:** `src/logic/parse-time.ts#parseDuration`. Číslo bez jednotky jsou hodiny; `h:mm` hodiny a minuty; jednotky `h`, `hod`, `m`, `min`. Desetinné hodiny se zaokrouhlí na minuty. Nula je platná jen v buňce (smazání), záznam musí mít > 0 minut. Nejvýš 24 hodin na záznam i na člověka a den (`src/logic/grid.ts#dayLimitError`).
+- **Buňka mřížky** upravuje jen čas „bez úkolu“ (`src/logic/grid.ts#planCellSave`): žádný záznam + čas = nový; čas 0 = smazání; víc záznamů bez úkolu v buňce se sloučí do nejstaršího (poznámky se spojí, aby se text neztratil). Čas zapsaný u úkolů je v buňce vidět jako „+ 0:30“ a počítá se do součtů, ale buňka ho nemění.
+- **Odpracováno vs. odhad** (`src/logic/effort.ts#computeJobEffort`): odhad = součet `estimateMin` nezrušených úkolů zakázky; zbývá = max(0, odhad − odpracováno), přečerpáno = max(0, odpracováno − odhad), procento = odpracováno / odhad.
+- **Efektivní hodinová sazba** každého = jeho podíl na příjmech zakázky ÷ jeho hodiny, v haléřích zaokrouhleno na celé; kdo nemá hodiny, má sazbu „–“. Podíly dává služba `finance.allocatedByUser`.
 
 ## Oprávnění
 
-<!-- Jak se oprávnění projevují v chování: kdo co vidí a smí, co je skryté (například peníze), jak funguje rozsah „jen moje“. Seznam oprávnění je v souhrnu. -->
+`hodiny.read` (rozsah vše / jen moje), `hodiny.write` (zápis a úprava vlastních záznamů včetně vymazání buňky), `hodiny.delete` (příkaz `hodiny.delete` na konkrétní záznam). Upravovat ani mazat cizí záznamy příkazy nejde (tváří se jako neexistující); správce je může upravit v seznamu `/hodiny/zaznamy`. Peníze (příjmy, sazby) vidí jen ten, kdo má `finance.read` a u hodin rozsah „vše“.
 
-TODO: doplnit vyprávění
+**Soukromí:** `time_entry` nemá vlastní zámek, dědí ho od zakázky a úkolu (D §5.1). Příkazy při zápisu nastaví `is_private` podle rodiče a udržují `private_record`; všechna čtení (týden, přehledy, metriky, souhrn zakázky) jdou přes `src/access.ts#visibleEntries` a `privateScope`. Partner tedy hodiny soukromé zakázky nikde nevidí ani nezapíše (zakázka je pro něj `NotFound`).
 
 ## Nastavení
 
-<!-- Co se nastavuje v administraci a v konfiguraci klienta, co která volba mění a jaké jsou výchozí hodnoty. -->
-
-TODO: doplnit vyprávění
+Žádné. Ukládá se jen předvolba zobrazení času (1:30 / 1,5) v prohlížeči.
 
 ## Události a upozornění
 
-<!-- Kdy a komu přijde upozornění, jaké události modul oznamuje rozšířením klienta, které plánované úlohy běží a co dělají. -->
-
-TODO: doplnit vyprávění
+Žádné: modul nevysílá doménové události, nic neupozorňuje ani nepřipomíná.
 
 ## Exporty
 
-<!-- Co a jak se exportuje (XLSX, CSV, PDF, ISDOC, kalendářový kanál), kdo to smí a co je v souboru. -->
-
-TODO: doplnit vyprávění
+Seznam `/hodiny/zaznamy` (entita `time_entry`) se exportuje obecným exportem entit s příslušným oprávněním; modul nemá vlastní export.
 
 ## Integrace s jinými moduly
 
-<!-- Závislosti, poskytovatelé dat, sloty, události; kdo od modulu data bere a komu je modul dává; co se stane po vypnutí modulu. -->
-
-TODO: doplnit vyprávění
+Závisí na `zakazky` (výběr a viditelnost zakázek přes registr entit). Volitelně: modul Úkoly (zápis k úkolu, odhad úkolů; příspěvek `slots["task.dialog.extras"]`) a modul Finance (`finance.allocatedByUser`, sazby). Bez nich: čas jde zapsat k zakázce, odhad a sazby se nezobrazí. Metriky nástěnek `hodiny.week` („Hodiny tento týden“) a `hodiny.by_job` (podle zakázky nebo osoby). Do UI zakázky přispívá záložka „Hodiny“ a akce „Zapsat čas“, do palety příkaz „Zapsat hodiny“.
 
 ## Hrany a známá omezení
 
-<!-- Co funguje jinak, než by uživatel čekal, co zatím chybí, a odkazy na otevřené otázky. -->
-
-TODO: doplnit vyprávění
+- Odhad úkolů se čte přes registr entit (`aggregateRecords`), protože `ServiceMap.tasks` zatím nemá `estimateByJob` (žádost v `docs/opsys/ZADOSTI.md`). Jakmile ji služba nabídne, použije se přednostně.
+- Dokud `finance.allocatedByUser` není implementováno (vyhazuje `NotImplementedError`), je u zakázky efektivní sazba „–“.
+- Zápis jen za sebe; cizí hodiny jen čtení.
+- Budoucí dny se zapsat smějí (plánování); strop je jen 24 hodin za den.
 
 ## Odkazy na kód a testy
 
-<!-- Hlavní místa v kódu a testy, které chování zajišťují, ve tvaru `cesta/soubor.ts#symbol`. -->
-
-TODO: doplnit vyprávění
+- `packages/modules/hodiny/src/logic/parse-time.ts#parseDuration`, `packages/modules/hodiny/src/logic/grid.ts#planCellSave`, `packages/modules/hodiny/src/logic/effort.ts#computeJobEffort`, `packages/modules/hodiny/src/logic/report.ts#groupHours`
+- `packages/modules/hodiny/src/data/write.ts#saveCell`, `packages/modules/hodiny/src/data/read.ts#jobSummary`, `packages/modules/hodiny/src/metrics.ts#hodinyMetrics`
+- Testy: `packages/modules/hodiny/src/logic/*.test.ts`, `tests/hodiny.int.test.ts`, `apps/web/e2e/hodiny.spec.ts`

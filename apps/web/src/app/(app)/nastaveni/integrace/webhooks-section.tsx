@@ -292,7 +292,8 @@ export function WebhooksSection({
     const r = await runAction(testEndpointAction({ id: e.id }));
     setTesting(null);
     if (r) {
-      if (r.data.outcome === "delivered") successToast(`Test doručen: „${e.name}“ odpověděl úspěšně.`);
+      if (r.data.outcome === "delivered")
+        successToast(`Test doručen: „${e.name}“ odpověděl úspěšně.`);
       else errorToast(`Test se nepovedl. ${r.data.error ?? ""}`.trim());
       router.refresh();
     }
@@ -340,7 +341,11 @@ export function WebhooksSection({
             {
               key: "url",
               header: "Adresa",
-              cell: (e) => <span className="block max-w-72 truncate text-muted" title={e.url}>{e.url}</span>,
+              cell: (e) => (
+                <span className="block max-w-72 truncate text-muted" title={e.url}>
+                  {e.url}
+                </span>
+              ),
             },
             {
               key: "events",
@@ -357,7 +362,9 @@ export function WebhooksSection({
               cell: (e) => (
                 <span className="tabular text-muted">
                   {e.counts.delivered} ok · {e.counts.pending} čeká
-                  {e.counts.failed > 0 && <span className="text-danger"> · {e.counts.failed} chyb</span>}
+                  {e.counts.failed > 0 && (
+                    <span className="text-danger"> · {e.counts.failed} chyb</span>
+                  )}
                   {e.lastDeliveredAt && (
                     <span className="block text-xs text-faint">
                       naposledy {formatDateTime(e.lastDeliveredAt)}
@@ -410,7 +417,9 @@ export function WebhooksSection({
           description={secret ? `Webhook „${secret.name}“ je připravený.` : undefined}
         >
           <div className="space-y-3 px-5 py-4">
-            {secret && <SecretReveal secret={secret.secret} label="Tajemství pro ověření podpisu" />}
+            {secret && (
+              <SecretReveal secret={secret.secret} label="Tajemství pro ověření podpisu" />
+            )}
             <Notice tone="warning">
               Každý požadavek nese hlavičku X-Opsys-Signature. Postup ověření je níže v části „Jak
               to propojit s n8n“.
@@ -438,9 +447,9 @@ export function WebhooksSection({
         }}
       >
         <p>
-          Dosavadní tajemství webhooku „
-          <strong className="text-fg">{rotating?.name}</strong>“ přestane platit hned. Nové
-          tajemství musíte vložit do n8n, jinak workflow bude požadavky odmítat.
+          Dosavadní tajemství webhooku „<strong className="text-fg">{rotating?.name}</strong>“
+          přestane platit hned. Nové tajemství musíte vložit do n8n, jinak workflow bude požadavky
+          odmítat.
         </p>
       </ConfirmDialog>
 
@@ -458,8 +467,8 @@ export function WebhooksSection({
         }}
       >
         <p>
-          Webhook „<strong className="text-fg">{removing?.name}</strong>“ se přestane volat. Čekající
-          doručení skončí jako chybná.
+          Webhook „<strong className="text-fg">{removing?.name}</strong>“ se přestane volat.
+          Čekající doručení skončí jako chybná.
         </p>
       </ConfirmDialog>
     </FormSection>

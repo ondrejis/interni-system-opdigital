@@ -1,6 +1,5 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { BillingModel, JobStatus, MarketingStage, ServiceType } from "@rebar/core/contracts";
-import type { Executor } from "@rebar/core/db";
 import type { Ctx } from "@rebar/core/rbac";
 import { job } from "@rebar/zakazky/schema";
 import { privateScope } from "./private";
@@ -44,23 +43,13 @@ export async function loadJob(ctx: Ctx, jobId: string): Promise<JobInfo | null> 
 }
 
 /** Zakázky podle id (neviditelné a neexistující se vynechají). */
-export async function loadJobs(
-  ctx: Ctx | { db: Executor; isSystem: true },
-  ids: readonly string[],
-  scopeCtx?: Ctx,
-): Promise<Map<string, JobInfo>> {
+export async function loadJobs(ctx: Ctx, ids: readonly string[]): Promise<Map<string, JobInfo>> {
   const out = new Map<string, JobInfo>();
   if (!ids.length) return out;
   const rows = await ctx.db
     .select(columns)
     .from(job)
-    .where(
-      and(
-        inArray(job.id, [...ids]),
-        isNull(job.deletedAt),
-        scopeCtx ? privateScope(scopeCtx, job) : "actor" in ctx ? privateScope(ctx, job) : undefined,
-      ),
-    );
+    .where(and(inArray(job.id, [...ids]), isNull(job.deletedAt), privateScope(ctx, job)));
   for (const r of rows) out.set(r.id, r as JobInfo);
   return out;
 }

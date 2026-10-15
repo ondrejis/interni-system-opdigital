@@ -8,7 +8,7 @@ import { CUSTOM_FIELD_TYPES } from "../db/schema/config";
 import { normalizeValue } from "./validate";
 import { inTx } from "../rbac/context";
 import { NotFoundError, UserError } from "../rbac/errors";
-import { assertCan } from "../rbac/permissions";
+import { assertCanAny } from "../rbac/permissions";
 import type { Ctx } from "../rbac/types";
 
 const optionsSchema = z.object({
@@ -44,6 +44,8 @@ export const fieldInput = z.object({
   options: optionsSchema.default({}),
   required: z.boolean().default(false),
   showInTable: z.boolean().default(true),
+  /** Pole je i v krátkém formuláři „Nový…“ (SPOL-13/17). */
+  showInForm: z.boolean().default(false),
 });
 
 /** Zkontroluje možnosti pole a vrátí je s normalizovanou výchozí hodnotou. */
@@ -92,7 +94,7 @@ export async function listFieldDefs(db: Executor, entityType: string) {
 }
 
 export async function createFieldDef(ctx: Ctx, raw: z.input<typeof fieldInput>) {
-  assertCan(ctx, "settings.manage");
+  assertCanAny(ctx, "settings.manage", "settings.custom_fields");
   const parsed = fieldInput.parse(raw);
   const d = { ...parsed, options: checkOptions(parsed.type, parsed.options) };
   return inTx(ctx, async (c) => {
@@ -132,10 +134,11 @@ export async function updateFieldDef(
     options?: z.input<typeof optionsSchema>;
     required?: boolean;
     showInTable?: boolean;
+    showInForm?: boolean;
     position?: number;
   },
 ) {
-  assertCan(ctx, "settings.manage");
+  assertCanAny(ctx, "settings.manage", "settings.custom_fields");
   await inTx(ctx, async (c) => {
     const [before] = await c.db
       .select()
@@ -151,13 +154,16 @@ export async function updateFieldDef(
       options,
       required: patch.required ?? before.required,
       showInTable: patch.showInTable ?? before.showInTable,
+      showInForm: patch.showInForm ?? before.showInForm,
       position: patch.position ?? before.position,
     };
     await c.db
       .update(schema.customFieldDef)
       .set({ ...after, updatedBy: c.actor.userId })
       .where(eq(schema.customFieldDef.id, id));
-    const changes: AuditChange[] = (["label", "required", "showInTable", "position"] as const)
+    const changes: AuditChange[] = (
+      ["label", "required", "showInTable", "showInForm", "position"] as const
+    )
       .filter((f) => after[f] !== before[f])
       .map((f) => ({ field: f, old: before[f], new: after[f] }));
     if (JSON.stringify(after.options) !== JSON.stringify(before.options))
@@ -174,7 +180,7 @@ export async function updateFieldDef(
 
 /** Smaže (měkce) definici; hodnoty v záznamech zůstanou, jen se přestanou zobrazovat. */
 export async function deleteFieldDef(ctx: Ctx, id: string) {
-  assertCan(ctx, "settings.manage");
+  assertCanAny(ctx, "settings.manage", "settings.custom_fields");
   await inTx(ctx, async (c) => {
     const [row] = await c.db
       .update(schema.customFieldDef)
@@ -197,7 +203,7 @@ export async function reorderFieldDefs(
   entityType: string,
   orderedIds: readonly string[],
 ) {
-  assertCan(ctx, "settings.manage");
+  assertCanAny(ctx, "settings.manage", "settings.custom_fields");
   await inTx(ctx, async (c) => {
     const current = await listFieldDefs(c.db, entityType);
     const same =
@@ -222,7 +228,7 @@ export async function reorderFieldDefs(
 
 /** Vrátí smazané pole, pokud mezitím nevzniklo jiné se stejným klíčem (zpět po omylu; hodnoty v záznamech zůstaly). */
 export async function restoreFieldDef(ctx: Ctx, id: string) {
-  assertCan(ctx, "settings.manage");
+  assertCanAny(ctx, "settings.manage", "settings.custom_fields");
   await inTx(ctx, async (c) => {
     const [row] = await c.db
       .select()

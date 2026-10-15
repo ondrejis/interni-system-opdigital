@@ -1,4 +1,6 @@
+import { eq } from "drizzle-orm";
 import { defineEntity } from "@rebar/core/entities";
+import { textToDoc } from "./logic";
 import { EMAIL_LANGUAGES, emailTemplate } from "./schema";
 
 /** Popisky jazyků šablon. */
@@ -9,8 +11,10 @@ export const EMAIL_LANGUAGE_LABELS: Record<(typeof EMAIL_LANGUAGES)[number], str
 };
 
 /**
- * Šablona e-mailu s proměnnými z příspěvků modulů (`emailVars`). Rozsah „jen moje“: vlastní šablony.
- * Soukromé šablony vidí jen vlastník (zámek); knihovna vlastníka je v Můj prostor.
+ * Šablona e-mailu s proměnnými z příspěvků modulů (`emailVars`). Šablony jsou sdílené (vidí je každý s oprávněním
+ * `sablony-emailu.read`); autor je může zamknout jako soukromé (vidí je jen vlastník). Soukromá knihovna textů vlastníka
+ * je v Můj prostor. Text e-mailu je atribut `bodyText` (prostý text, ve kterém se hledá a který jde do Gmailu); tělo jako
+ * dokument Tiptap (`body_json`) se z něj odvozuje v háčcích níže, aby se nerozešly.
  */
 export const emailTemplateEntity = defineEntity({
   key: "email_template",
@@ -27,6 +31,15 @@ export const emailTemplateEntity = defineEntity({
   },
   ownerColumns: [emailTemplate.createdBy],
   visibility: { ownLock: true },
+  beforeUpdate: async (_ctx, _before, changes) => {
+    if (typeof changes.bodyText === "string") return { bodyJson: textToDoc(changes.bodyText) };
+  },
+  afterCreate: async (ctx, created) => {
+    await ctx.db
+      .update(emailTemplate)
+      .set({ bodyJson: textToDoc(String(created.bodyText ?? "")) })
+      .where(eq(emailTemplate.id, String(created.id)));
+  },
   attributes: [
     {
       key: "name",
@@ -62,6 +75,13 @@ export const emailTemplateEntity = defineEntity({
       field: "subject",
       width: 280,
       defaultVisible: true,
+    },
+    {
+      key: "bodyText",
+      label: "Text e-mailu",
+      type: "longtext",
+      field: "bodyText",
+      default: "",
     },
     {
       key: "usageCount",

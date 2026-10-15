@@ -8,8 +8,13 @@ import { ARES_FIELDS } from "./ares/types";
 */
 
 export { ARES_FIELDS } from "./ares/types";
-export type { AresChange, AresCompany, AresField } from "./ares/types";
-export type { CompanyHit, PersonHit } from "./search";
+import type { AresChange, AresCompany, AresField } from "./ares/types";
+import type { PersonDuplicate } from "./duplicates";
+export type { AresChange, AresCompany, AresField };
+import type { CompanyHit, PersonHit } from "./search";
+export type { CompanyHit, PersonHit };
+/** Výsledek `kontakty.search`. */
+export type SearchResult = { companies: CompanyHit[]; persons: PersonHit[] };
 export type { CompanyDuplicate, CompanyDuplicateCheck, PersonDuplicate } from "./duplicates";
 export type { CompanyContact, PersonCompanies } from "./persons";
 export type { PointKind, PointLabel, PointRow } from "./points";
@@ -34,7 +39,10 @@ export const pointInputSchema = z.object({
 export const searchInput = z.object({
   q: text(100).optional(),
   limit: z.number().int().min(1).max(25).optional(),
-  kinds: z.array(z.enum(["company", "person"])).max(2).optional(),
+  kinds: z
+    .array(z.enum(["company", "person"]))
+    .max(2)
+    .optional(),
 });
 
 /**
@@ -114,32 +122,43 @@ export const mergeApplyInput = mergeInput.extend({
   confirm: z.literal(true, { error: "Sloučení je nevratné, potvrďte ho." }),
 });
 
+/** Vstup `kontakty.search`. */
 export type SearchInput = z.infer<typeof searchInput>;
+/** Vstup `kontakty.ares`. */
 export type AresInput = z.infer<typeof aresInput>;
+/** Jeden kontaktní údaj osoby při úpravě. */
 export type PointInputT = z.infer<typeof pointInputSchema>;
+/** Vstup `kontakty.person.quickCreate`. */
 export type PersonQuickCreateInput = z.infer<typeof personQuickCreateInput>;
+/** Vstup `kontakty.person.setPoints`. */
 export type SetPointsInput = z.infer<typeof setPointsInput>;
+/** Vstup `kontakty.person.setCompanies`. */
 export type SetCompaniesInput = z.infer<typeof setCompaniesInput>;
+/** Vstup `kontakty.merge.preview`. */
 export type MergeInput = z.infer<typeof mergeInput>;
 
 /** Výsledek `kontakty.ares`: náhled změn, zápis, nebo věta o nedostupnosti. */
 export type AresCommandResult =
   | {
       ok: true;
-      company: import("./ares/types").AresCompany;
+      company: AresCompany;
       cached: boolean;
       stale: boolean;
       fetchedAt: string;
       /** Co ARES změní u organizace (u nové organizace vše doplní). */
-      changes: import("./ares/types").AresChange[];
+      changes: AresChange[];
       /** Organizace s tímto IČO už existuje (jiná než upravovaná): ukládání s tímto IČO nejde (ORG-05). */
       duplicate: { id: string; name: string; visible: boolean } | null;
       /** Zapsaná pole, jen u `apply: true`. */
-      applied?: import("./ares/types").AresField[];
+      applied?: AresField[];
       /** Čas synchronizace zapsaný do organizace, jen u `apply: true`. */
       syncedAt?: string;
     }
-  | { ok: false; reason: "invalid" | "not_found" | "unavailable" | "rate_limited"; message: string };
+  | {
+      ok: false;
+      reason: "invalid" | "not_found" | "unavailable" | "rate_limited";
+      message: string;
+    };
 
 /** Výsledek `kontakty.ares.test`. */
 export type AresTestResult = {
@@ -156,7 +175,7 @@ export type AresTestResult = {
 /** Výsledek `kontakty.person.quickCreate`. */
 export type QuickCreateResult =
   | { created: true; personId: string; name: string }
-  | { created: false; duplicates: import("./duplicates").PersonDuplicate[] };
+  | { created: false; duplicates: PersonDuplicate[] };
 
 /** Náhled sloučení: co se přepojí, doplní a před čím je třeba varovat. */
 export type MergePreview = {

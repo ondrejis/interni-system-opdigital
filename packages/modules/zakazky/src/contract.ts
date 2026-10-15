@@ -148,7 +148,9 @@ export const templatePayload = z
         message: "Každou zvláštní roli smí mít nejvýš jedna fáze.",
       });
   });
+/** Obsah šablony tak, jak ho smí zadat volající (před doplněním výchozích hodnot). */
 export type TemplatePayloadInput = z.input<typeof templatePayload>;
+/** Obsah šablony po kontrole a doplnění výchozích hodnot. */
 export type TemplatePayloadData = z.output<typeof templatePayload>;
 
 /* ---------- vznik zakázky ---------- */
@@ -183,6 +185,7 @@ const jobCore = {
  * konkrétní (neaarchivovaná) šablona stejného typu, `withoutTemplate` = prázdná zakázka bez fází, úkolů a plateb.
  */
 export const createInput = z.object({ ...jobCore, templateId: id.nullish() });
+/** Vstup založení zakázky (před doplněním výchozích hodnot). */
 export type CreateJobInput = z.input<typeof createInput>;
 
 /** Založení z konkrétní šablony (`templateId` je povinné). */
@@ -191,8 +194,10 @@ export const createFromTemplateInput = z.object({ ...jobCore, templateId: id });
 /** Jeden řádek dialogu „Založit zakázky“ po výhře obchodu. */
 export const jobFromDealRow = z.object({
   type: serviceType,
+  /** Šablona řádku; `null` = výchozí šablona typu. */
   templateId: id.nullable(),
-  title: name,
+  /** Prázdný název se nahradí „{klient} – {typ}“. */
+  title: z.string().trim().max(160),
   startDate: isoDate,
   ownerId: id,
   memberIds: z.array(id).max(20),
@@ -201,6 +206,7 @@ export const jobFromDealRow = z.object({
   split: z.array(splitRuleInput).optional(),
   retainer: retainerSetup.optional(),
 });
+/** Řádek dialogu „Založit zakázky“ po výhře obchodu (před doplněním výchozích hodnot). */
 export type JobFromDealRow = z.input<typeof jobFromDealRow>;
 
 /** Vstup `createJobsFromWonDeal` (API) i případného příkazu obchodů, který ho volá. */

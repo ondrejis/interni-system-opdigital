@@ -83,7 +83,7 @@ async function applyPhaseChange(
   let completedTasks = 0;
   if (o.completeOpenTasks && o.completing.length && o.deps) {
     const tasks = tasksOf(o.deps);
-    if (tasks?.completeOpenInPhases)
+    if (tasks)
       completedTasks = (
         await tasks.completeOpenInPhases(c, {
           jobId: j.id,
@@ -266,7 +266,7 @@ export async function previewPhaseChangeImpl(
   const byId = new Map(phases.map((p) => [p.id, p]));
   const tasks = tasksOf(deps);
   let perPhase: Record<string, number> | null = null;
-  if (tasks?.openCountsByPhase && plan.completing.length)
+  if (tasks && plan.completing.length)
     perPhase = await tasks.openCountsByPhase(ctx, {
       jobId: j.id,
       phaseIds: plan.completing.map((p) => p.id),

@@ -2,7 +2,6 @@
 
 import { formatInstant } from "@rebar/core/time";
 import {
-  formatDate,
   type AttributeDescriptor,
   type EntityDescriptor,
   type Labels,
@@ -11,7 +10,6 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpRight,
-  CheckSquare,
   Download,
   ExternalLink,
   MoreHorizontal,
@@ -21,13 +19,12 @@ import {
   X,
 } from "lucide-react";
 import { useMemo, useRef, useState, type ReactNode } from "react";
-import { Avatar, Chip, EmptyState, Skeleton } from "../components/badges";
+import { Avatar, EmptyState, Skeleton } from "../components/badges";
 import { Button, IconButton } from "../components/button";
 import { ScrollTabsList } from "../components/scroll-tabs";
 import { Combobox } from "../components/combobox";
+import { ConfirmDialog } from "../components/confirm-dialog";
 import { Card, CardBody, CardHeader, FieldList, FieldRow } from "../components/surface";
-import { DatePicker } from "../components/date-picker";
-import { Input } from "../components/input";
 import {
   Checkbox,
   Dialog,
@@ -53,6 +50,7 @@ import { CellValue } from "./cell";
 import { useEntityApi } from "./context";
 import { CellEditor } from "./editors";
 import { keys, useInvalidateEntity, useUpdateAttribute } from "./hooks";
+import { VisibilityLock } from "./record-lock";
 import { TYPE_ICONS } from "./type-icons";
 
 type Props = {
@@ -100,6 +98,10 @@ export function RecordView({
   const [editing, setEditing] = useState<string | null>(null);
   const [showEmpty, setShowEmpty] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [publishAssign, setPublishAssign] = useState<{
+    attr: AttributeDescriptor;
+    value: unknown;
+  } | null>(null);
 
   const row = q.data?.row;
   const labels = q.data?.labels ?? {};
@@ -114,7 +116,10 @@ export function RecordView({
     try {
       await update.mutateAsync({ id, attr: attr.key, value, updatedAt: row.updatedAt });
     } catch (e) {
-      setError((e as Error).message);
+      // soukromý záznam nejde přiřadit uživateli, který soukromé nevidí: nabídne se „Zveřejnit a přiřadit“ (VID-06)
+      if ((e as { code?: string }).code === "private_assign" && entity.visibility?.lockable)
+        setPublishAssign({ attr, value });
+      else setError((e as Error).message);
     }
   }
 
@@ -154,9 +159,8 @@ export function RecordView({
       { id: "soubory", label: "Soubory", icon: "paperclip", order: 820, tabs: [] },
     ].filter(
       (t) =>
-        !ext.hiddenCore.has(
-          (t.id === "aktivita" ? "activity" : "files") as never,
-        ) || t.id === "prehled",
+        !ext.hiddenCore.has((t.id === "aktivita" ? "activity" : "files") as never) ||
+        t.id === "prehled",
     );
     return [...core, ...ext.topTabs(row)]
       .filter((t) => !dlg?.tabs || dlg.tabs.includes(t.id))
@@ -261,7 +265,9 @@ export function RecordView({
     </div>
   );
 
-  const attrs = entity.attributes.filter((a) => a.key !== entity.titleKey);
+  const attrs = entity.attributes.filter(
+    (a) => a.key !== entity.titleKey && a.key !== "isPrivate" && a.key !== "visibilitySource",
+  );
   const filled = attrs.filter((a) => !isEmpty(row[a.key]));
   const empty = attrs.filter((a) => isEmpty(row[a.key]));
   const shown = showEmpty ? attrs : filled;
@@ -425,6 +431,7 @@ export function RecordView({
             )}
           </div>
           <div className="scrollbar-thin flex min-w-0 max-w-full shrink-0 items-center gap-2 overflow-x-auto lg:flex-wrap lg:overflow-visible [&>*]:shrink-0">
+            <VisibilityLock entity={entity} id={id} row={row} />
             {ext.actions
               .filter((a) => !a.visible || a.visible(row))
               .map((a) => (
@@ -628,6 +635,32 @@ export function RecordView({
             })}
         </div>
       </Tabs>
+      <ConfirmDialog
+        open={!!publishAssign}
+        onOpenChange={(o) => !o && setPublishAssign(null)}
+        title="Zveřejnit a přiřadit?"
+        confirmLabel="Zveřejnit a přiřadit"
+        onConfirm={async () => {
+          if (!publishAssign || !row) return;
+          try {
+            await api.setVisibility(entity.key, [id], false);
+            await update.mutateAsync({
+              id,
+              attr: publishAssign.attr.key,
+              value: publishAssign.value,
+              updatedAt: (await api.get(entity.key, id)).row.updatedAt,
+            });
+          } catch (e) {
+            setError((e as Error).message);
+          }
+          void invalidate();
+        }}
+      >
+        <p>
+          Záznam je soukromý, takže ho vybraný uživatel nevidí. Zveřejněním ho uvidí všichni a
+          přiřazení se uloží.
+        </p>
+      </ConfirmDialog>
       {ext.actions.map(
         (a) =>
           a.dialog && (

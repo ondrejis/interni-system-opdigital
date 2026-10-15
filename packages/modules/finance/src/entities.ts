@@ -59,6 +59,7 @@ export const paymentEntity = defineEntity({
   module: "finance",
   label: { one: "Platba", many: "Platby" },
   table: payment,
+  noCreate: "Platba se zakládá v zakázce (záložka Finance) nebo na stránce Platby a rozdělení.",
   titleKey: "description",
   permissions: {
     read: "finance.read",
@@ -68,7 +69,11 @@ export const paymentEntity = defineEntity({
     export: "finance.export",
   },
   ownerColumns: [payment.issuerId],
-  visibility: { parents: [{ entityType: "job", column: "jobId" }], ownLock: true },
+  visibility: {
+    parents: [{ entityType: "job", column: "jobId" }],
+    ownLock: true,
+    privateWithoutParent: true,
+  },
   children: [{ entityType: "payment_allocation", column: "paymentId", table: paymentAllocation }],
   quickFilters: [
     {
@@ -97,6 +102,7 @@ export const paymentEntity = defineEntity({
     },
     {
       key: "job",
+      readonly: true,
       label: "Zakázka",
       type: "record",
       field: "jobId",
@@ -106,6 +112,7 @@ export const paymentEntity = defineEntity({
     },
     {
       key: "company",
+      readonly: true,
       label: "Klient",
       type: "record",
       field: "companyId",
@@ -115,6 +122,7 @@ export const paymentEntity = defineEntity({
     },
     {
       key: "amount",
+      readonly: true,
       label: "Částka",
       type: "currency",
       field: "amountMinor",
@@ -126,6 +134,7 @@ export const paymentEntity = defineEntity({
     },
     {
       key: "kind",
+      readonly: true,
       label: "Druh",
       type: "select",
       field: "kind",
@@ -136,6 +145,7 @@ export const paymentEntity = defineEntity({
     },
     {
       key: "status",
+      readonly: true,
       label: "Stav",
       type: "select",
       field: "status",
@@ -151,6 +161,7 @@ export const paymentEntity = defineEntity({
     },
     {
       key: "issuer",
+      readonly: true,
       label: "Fakturuje",
       type: "user",
       field: "issuerId",
@@ -159,30 +170,60 @@ export const paymentEntity = defineEntity({
     },
     {
       key: "dueOn",
+      readonly: true,
       label: "Splatnost",
       type: "date",
       field: "dueOn",
       width: 120,
       defaultVisible: true,
     },
-    { key: "periodMonth", label: "Měsíc", type: "text", field: "periodMonth", width: 100 },
+    {
+      key: "periodMonth",
+      readonly: true,
+      label: "Měsíc",
+      type: "text",
+      field: "periodMonth",
+      width: 100,
+    },
     {
       key: "invoiceNumber",
+      readonly: true,
       label: "Číslo faktury",
       type: "text",
       field: "invoiceNumber",
       width: 140,
     },
-    { key: "invoiceUrl", label: "Odkaz na fakturu", type: "url", field: "invoiceUrl", width: 200 },
-    { key: "issuedOn", label: "Vystaveno", type: "date", field: "issuedOn", width: 120 },
-    { key: "paidOn", label: "Zaplaceno", type: "date", field: "paidOn", width: 120 },
+    {
+      key: "invoiceUrl",
+      readonly: true,
+      label: "Odkaz na fakturu",
+      type: "url",
+      field: "invoiceUrl",
+      width: 200,
+    },
+    {
+      key: "issuedOn",
+      readonly: true,
+      label: "Vystaveno",
+      type: "date",
+      field: "issuedOn",
+      width: 120,
+    },
+    {
+      key: "paidOn",
+      readonly: true,
+      label: "Zaplaceno",
+      type: "date",
+      field: "paidOn",
+      width: 120,
+    },
     {
       key: "source",
+      readonly: true,
       label: "Zdroj",
       type: "select",
       field: "source",
       choices: choices(PAYMENT_SOURCE_LABELS),
-      readonly: true,
       default: "manual",
       width: 130,
     },
@@ -203,6 +244,7 @@ export const settlementEntity = defineEntity({
   module: "finance",
   label: { one: "Vyrovnání", many: "Vyrovnání" },
   table: settlement,
+  noCreate: "Vyrovnání se zapisuje na stránce Vyrovnání („Zapsat vyrovnání“).",
   titleKey: "settledOn",
   permissions: {
     read: "finance.read",
@@ -214,6 +256,7 @@ export const settlementEntity = defineEntity({
   attributes: [
     {
       key: "settledOn",
+      readonly: true,
       label: "Datum",
       type: "date",
       field: "settledOn",
@@ -223,6 +266,7 @@ export const settlementEntity = defineEntity({
     },
     {
       key: "from",
+      readonly: true,
       label: "Od",
       type: "user",
       field: "fromUserId",
@@ -232,6 +276,7 @@ export const settlementEntity = defineEntity({
     },
     {
       key: "to",
+      readonly: true,
       label: "Komu",
       type: "user",
       field: "toUserId",
@@ -241,6 +286,7 @@ export const settlementEntity = defineEntity({
     },
     {
       key: "amount",
+      readonly: true,
       label: "Částka",
       type: "currency",
       field: "amountMinor",
@@ -252,6 +298,7 @@ export const settlementEntity = defineEntity({
     },
     {
       key: "method",
+      readonly: true,
       label: "Způsob",
       type: "select",
       field: "method",
@@ -265,10 +312,10 @@ export const settlementEntity = defineEntity({
     { key: "note", label: "Poznámka", type: "longtext", field: "note", width: 260 },
     {
       key: "canceledAt",
+      readonly: true,
       label: "Stornováno",
       type: "date",
       field: "canceledAt",
-      readonly: true,
       width: 130,
     },
   ],

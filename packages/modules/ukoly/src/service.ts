@@ -1,17 +1,12 @@
-import { and, eq, isNotNull, sql } from "drizzle-orm";
-import { recordAudit } from "@rebar/core/audit";
+import { and, asc, eq, inArray, isNotNull, isNull, ne, notExists, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import type { ServiceMap } from "@rebar/core/contracts";
-import {
-  canSeePrivate,
-  indexRecord,
-  syncPrivateRecord,
-  visibilityForInsert,
-} from "@rebar/core/entities";
+import { resolveEntity, updateRecord } from "@rebar/core/entities";
 import type { ModuleDeps } from "@rebar/core/module-server";
-import { inTx, PermissionError, type Ctx } from "@rebar/core/rbac";
+import { inTx, type Ctx } from "@rebar/core/rbac";
 import { localParts } from "@rebar/core/time";
-import { newId } from "@rebar/core/db";
-import { note, task } from "./schema";
+import { task } from "./schema";
+import { createPrivateNote } from "./notes/service";
 import { overdueCond } from "./tasks/queries";
 import { visibleTasks } from "./tasks/scope";
 import { createTaskId } from "./tasks/write";
@@ -142,39 +137,108 @@ export function createTasksService(deps: ModuleDeps): ServiceMap["tasks"] {
       return { taskId: id };
     },
 
-    async createPrivateNote(ctx, input) {
-      if (!canSeePrivate(ctx))
-        throw new PermissionError("Soukromou poznámku smí vytvořit jen vlastník.");
-      return inTx(ctx, async (c) => {
-        const id = newId();
-        const vis = await visibilityForInsert(c, deps.registry, "note", { id }, true);
-        const [row] = await c.db
-          .insert(note)
-          .values({
-            id,
-            title: input.title,
-            bodyJson: (input.bodyJson ?? null) as Record<string, unknown> | null,
-            bodyText: plainText(input.bodyJson),
-            isPrivate: vis.isPrivate,
-            visibilitySource: vis.visibilitySource,
-            createdBy: c.actor.userId,
-            updatedBy: c.actor.userId,
-          })
-          .returning();
-        await syncPrivateRecord(c.db, "note", id, vis.isPrivate);
-        await recordAudit(c, {
-          action: "create",
-          entityType: "note",
-          entityId: id,
-          summary: input.title,
-          entityTitle: input.title,
-          isPrivate: vis.isPrivate,
-          changes: [{ field: "Název", old: null, new: input.title }],
-        });
-        const def = deps.registry.get("note");
-        if (def && row) await indexRecord(c.db, { def }, row as Record<string, unknown>);
-        return { id };
+    async estimateByJob(ctx, jobId) {
+      const child = alias(task, "child");
+      const [r] = await ctx.db
+        .select({
+          estimateMin: sql<number>`coalesce(sum(${task.estimateMin}), 0)::int`,
+          tasks: sql<number>`count(*)::int`,
+        })
+        .from(task)
+        .where(
+          and(
+            visibleTasks(ctx, { lenient: true }),
+            eq(task.jobId, jobId),
+            ne(task.status, "canceled"),
+            sql`${task.estimateMin} is not null`,
+            // nadřazený úkol, jehož podúkol má odhad, se nepočítá (počítá se podúkol)
+            notExists(
+              ctx.db
+                .select({ one: sql`1` })
+                .from(child)
+                .where(
+                  and(
+                    eq(child.parentId, task.id),
+                    isNull(child.deletedAt),
+                    ne(child.status, "canceled"),
+                    sql`${child.estimateMin} is not null`,
+                  ),
+                ),
+            ),
+          ),
+        );
+      return { estimateMin: r?.estimateMin ?? 0, tasks: r?.tasks ?? 0 };
+    },
+
+    async openCountsByPhase(ctx, input) {
+      const rows = input.phaseIds.length
+        ? await ctx.db
+            .select({ phaseId: task.jobPhaseId, n: sql<number>`count(*)::int` })
+            .from(task)
+            .where(
+              and(
+                visibleTasks(ctx, { lenient: true }),
+                eq(task.jobId, input.jobId),
+                inArray(task.jobPhaseId, input.phaseIds),
+                inArray(task.status, [...OPEN_STATUSES]),
+              ),
+            )
+            .groupBy(task.jobPhaseId)
+        : [];
+      const counts = Object.fromEntries(input.phaseIds.map((id) => [id, 0]));
+      for (const r of rows) if (r.phaseId) counts[r.phaseId] = r.n;
+      return counts;
+    },
+
+    async completeOpenInPhases(ctx, input) {
+      if (!input.phaseIds.length) return { completed: 0 };
+      const ec = elevate(ctx);
+      return inTx(ec, async (c) => {
+        const rows = await c.db
+          .select({ id: task.id })
+          .from(task)
+          .where(
+            and(
+              isNull(task.deletedAt),
+              eq(task.jobId, input.jobId),
+              inArray(task.jobPhaseId, input.phaseIds),
+              inArray(task.status, [...OPEN_STATUSES]),
+            ),
+          );
+        const def = deps.registry.get("task");
+        if (!def || !rows.length) return { completed: 0 };
+        const resolved = await resolveEntity(c.db, def);
+        for (const r of rows)
+          await updateRecord(c, deps.registry, resolved, r.id, { status: "done" });
+        return { completed: rows.length };
       });
     },
+
+    async listForTemplate(ctx, input) {
+      const rows = await ctx.db
+        .select()
+        .from(task)
+        .where(
+          and(
+            visibleTasks(ctx, { lenient: true }),
+            eq(task.jobId, input.jobId),
+            isNull(task.parentId),
+            inArray(task.status, [...OPEN_STATUSES]),
+          ),
+        )
+        .orderBy(sql`${task.dueDate} asc nulls last`, asc(task.createdAt));
+      return rows.map((r) => ({
+        phaseId: r.jobPhaseId,
+        title: r.title,
+        typeKey: r.typeKey,
+        priority: r.priority,
+        assigneeId: r.assigneeId,
+        dueDate: r.dueDate,
+        estimateMin: r.estimateMin,
+        description: r.description,
+      }));
+    },
+
+    createPrivateNote: (ctx, input) => createPrivateNote(ctx, deps, input),
   };
 }

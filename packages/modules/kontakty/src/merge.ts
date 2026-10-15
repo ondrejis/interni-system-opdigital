@@ -227,13 +227,7 @@ const COMPANY_FILL = [
   "industry",
   "ownerId",
 ] as const;
-const PERSON_FILL = [
-  "firstName",
-  "position",
-  "linkedin",
-  "primaryCompanyId",
-  "ownerId",
-] as const;
+const PERSON_FILL = ["firstName", "position", "linkedin", "primaryCompanyId", "ownerId"] as const;
 
 const FIELD_LABELS: Record<string, string> = {
   officialName: "Oficiální název",
@@ -535,7 +529,6 @@ async function repoint(
   }
 }
 
-
 /**
  * Kontaktní údaje mizející osoby přejdou k hlavní osobě: stejný údaj (druh + normalizovaná hodnota) se nezdvojí,
  * hlavní údaje hlavní osoby zůstanou, ostatní se stanou dalšími. Hlavní e-mail a telefon na osobě se přepíšou podle
@@ -576,7 +569,11 @@ async function mergePoints(c: Ctx, sourceId: string, targetId: string) {
       .where(eq(personContactPoint.id, p.id));
   }
   // hlavní osoba bez hlavního údaje daného druhu: první dostupný se povýší
-  const all = await c.db.select().from(personContactPoint).where(alive(targetId)).orderBy(asc(personContactPoint.position));
+  const all = await c.db
+    .select()
+    .from(personContactPoint)
+    .where(alive(targetId))
+    .orderBy(asc(personContactPoint.position));
   for (const kind of ["email", "phone"] as const) {
     const ofKind = all.filter((p) => p.kind === kind);
     if (ofKind.length && !ofKind.some((p) => p.isPrimary))
@@ -586,7 +583,8 @@ async function mergePoints(c: Ctx, sourceId: string, targetId: string) {
         .where(eq(personContactPoint.id, ofKind[0]!.id));
   }
   const final = await c.db.select().from(personContactPoint).where(alive(targetId));
-  const main = (kind: "email" | "phone") => final.find((p) => p.kind === kind && p.isPrimary)?.value ?? null;
+  const main = (kind: "email" | "phone") =>
+    final.find((p) => p.kind === kind && p.isPrimary)?.value ?? null;
   await c.db
     .update(person)
     .set({ primaryEmail: main("email"), primaryPhone: main("phone") })

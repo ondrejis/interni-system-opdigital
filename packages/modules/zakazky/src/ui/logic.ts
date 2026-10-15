@@ -513,8 +513,8 @@ export function defaultTitle(clientName: string | null | undefined, type: Servic
 export type DealRow = {
   key: string;
   type: ServiceType;
-  /** `null` = prázdná zakázka bez šablony, `undefined` = výchozí šablona typu. */
-  templateId: string | null | undefined;
+  /** `null` = výchozí šablona typu. */
+  templateId: string | null;
   title: string;
   startDate: string;
   ownerId: string | null;
@@ -545,7 +545,7 @@ export function blankRow(
   return {
     key: newRowKey(),
     type,
-    templateId: undefined,
+    templateId: null,
     title: defaultTitle(o.clientName, type),
     startDate: o.startDate ?? todayPrague(o.now),
     ownerId: o.ownerId ?? null,
@@ -585,7 +585,7 @@ export function rowsFromPrefill(
   return prefill.map((p) => ({
     key: newRowKey(),
     type: p.type,
-    templateId: p.templateId ?? undefined,
+    templateId: p.templateId,
     title: p.title,
     startDate: p.startDate,
     ownerId: p.ownerId ?? o.ownerId ?? null,
@@ -616,7 +616,7 @@ export function toApiRows(rows: readonly DealRow[]): JobFromDealRow[] {
       r.type === "marketing" && r.billingModel === "retainer" ? toRetainerSetup(r.retainer) : null;
     return {
       type: r.type,
-      templateId: r.templateId ?? null,
+      templateId: r.templateId,
       title: r.title.trim(),
       startDate: r.startDate,
       ownerId: r.ownerId!,
@@ -629,11 +629,13 @@ export function toApiRows(rows: readonly DealRow[]): JobFromDealRow[] {
 }
 
 /**
- * Šablona, kterou má řádek použít: konkrétní volba, `null` = žádná, `undefined` = výchozí šablona typu. Vrací
- * hodnotu pro `templateId` příkazu `zakazky.create` (vynechané = výchozí).
+ * Výběr šablony v dialogu „Nová zakázka“: `"__default"` = výchozí šablona typu, `"__none"` = prázdná zakázka, jinak id.
+ * Vrací část vstupu `zakazky.create`.
  */
-export function templateChoice(value: string | null | undefined): { templateId?: string | null } {
-  return value === undefined ? {} : { templateId: value };
+export function templateChoice(value: string): { templateId?: string; withoutTemplate?: true } {
+  if (value === "__default") return {};
+  if (value === "__none") return { withoutTemplate: true };
+  return { templateId: value };
 }
 
 /** Popisek volby šablony v seznamu („Výchozí: Web – standard“). */

@@ -33,6 +33,11 @@ export function canSeePrivate(ctx: Ctx): boolean {
   return scopeOf(ctx, "private.read") !== null;
 }
 
+/** Aktér musí mít kterékoli z oprávnění (`PermissionError`, když žádné). */
+export function assertCanAny(ctx: Ctx, ...keys: string[]): void {
+  if (!keys.some((k) => can(ctx, k))) throw new PermissionError();
+}
+
 export function assertCan(ctx: Ctx, key: string, record?: OwnedRecord): void {
   if (!can(ctx, key, record)) throw new PermissionError();
 }

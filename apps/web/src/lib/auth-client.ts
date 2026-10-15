@@ -26,6 +26,10 @@ export function authErrorMessage(
       return "Odkaz je neplatný nebo vypršel. Požádejte o nový.";
     case "TWO_FACTOR_REQUIRED_FOR_ROLE":
       return "Pro vaši roli je dvoufázové ověření povinné, nejde vypnout.";
+    case "TOO_MANY_LOGIN_ATTEMPTS":
+      return "Příliš mnoho neúspěšných pokusů o přihlášení. Zkuste to znovu za 15 minut.";
+    case "PASSWORD_NOT_ACCEPTABLE":
+      return error.message ?? "Toto heslo nelze použít. Zvolte jiné.";
     case "INVALID_PASSWORD":
       return "Nesprávné heslo.";
     case "INVALID_EMAIL_OR_PASSWORD":

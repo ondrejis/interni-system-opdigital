@@ -15,7 +15,8 @@ const minutes = z.number().int().min(0).max(MAX_DAY_MINUTES);
 /** `hodiny.parse`: náhled rozpoznání zadaného času. */
 export const parseInput = z.object({ text: z.string().max(40) });
 /** Výstup `hodiny.parse`. */
-export type ParseOutput = { ok: true; minutes: number; hm: string; decimal: string } | { ok: false; error: string };
+export type ParseOutput =
+  { ok: true; minutes: number; hm: string; decimal: string } | { ok: false; error: string };
 
 /** `hodiny.save`: nový záznam, nebo úprava (`id`). K úkolu stačí `taskId` (zakázka se vezme z úkolu). */
 export const saveInput = z

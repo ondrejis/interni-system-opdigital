@@ -1,5 +1,6 @@
-import { listUsers, lookupRoles } from "@rebar/core/admin";
-import { listInvitations } from "@rebar/core/auth";
+import { schema } from "@rebar/core/db";
+import { isNull } from "drizzle-orm";
+import { listInvitations, listManagedUsers } from "@rebar/core/auth";
 import { requireCan } from "@/server/request";
 import { UsersAdmin } from "./users-admin";
 
@@ -8,9 +9,18 @@ export const metadata = { title: "Uživatelé" };
 export default async function UsersPage() {
   const ctx = await requireCan("users.manage");
   const [users, invitations, roles] = await Promise.all([
-    listUsers(ctx),
+    listManagedUsers(ctx),
     listInvitations(ctx),
-    lookupRoles(ctx),
+    ctx.db
+      .select({
+        id: schema.role.id,
+        name: schema.role.name,
+        key: schema.role.key,
+        isSystem: schema.role.isSystem,
+      })
+      .from(schema.role)
+      .where(isNull(schema.role.deletedAt))
+      .orderBy(schema.role.name),
   ]);
   const now = Date.now();
   return (

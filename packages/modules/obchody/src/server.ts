@@ -8,3 +8,6 @@ export const server = mergeServers(defineModuleServer({ entities, commands }), d
 
 export { dealEntity, entities, DEAL_PIPELINE, LOST_REASON_LOOKUP } from "./entities";
 export { deal, dealParticipant, dealStageHistory } from "./schema";
+export { board, detail } from "./deals/queries";
+export { createDealFromLead } from "./deals/lead";
+export { dealHooks } from "./deals/hooks";

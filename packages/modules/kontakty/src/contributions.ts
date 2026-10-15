@@ -151,4 +151,3 @@ export const privatePaths: readonly PrivatePathDef[] = [
     },
   },
 ];
-

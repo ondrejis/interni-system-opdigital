@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { WEBHOOK_EVENTS } from "../contracts/events";
-import {
-  isValidEventPattern,
-  matchesEvent,
-  webhookEventGroups,
-  webhookEventLabel,
-} from "./events";
+import { isValidEventPattern, matchesEvent, webhookEventGroups, webhookEventLabel } from "./events";
 
 describe("výběr událostí endpointu", () => {
   it("přesný název a skupina s hvězdičkou", () => {

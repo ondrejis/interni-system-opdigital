@@ -29,7 +29,10 @@ export type PersonInput = {
  * je výchozí aktér. Zapíše historii a zaindexuje. Oprávnění k vytvoření ověřuje volající (příkaz). Duplicity
  * nehlídá (to je na volajícím: `findPersonDuplicates`, protože o nich rozhoduje člověk).
  */
-export async function createPerson(ctx: Ctx, input: PersonInput): Promise<{ id: string; name: string }> {
+export async function createPerson(
+  ctx: Ctx,
+  input: PersonInput,
+): Promise<{ id: string; name: string }> {
   const lastName = input.lastName.trim();
   if (!lastName) throw new UserError("Příjmení je povinné.");
   return inTx(ctx, async (c) => {
@@ -56,7 +59,9 @@ export async function createPerson(ctx: Ctx, input: PersonInput): Promise<{ id: 
       .returning();
     const id = row!.id;
     const name = row!.fullName ?? lastName;
-    const points = input.points?.length ? await setPersonPoints(c, id, input.points, { audit: false }) : [];
+    const points = input.points?.length
+      ? await setPersonPoints(c, id, input.points, { audit: false })
+      : [];
     const main = primaryOf(points);
     await recordAudit(c, {
       action: "create",
@@ -69,7 +74,8 @@ export async function createPerson(ctx: Ctx, input: PersonInput): Promise<{ id: 
         ...(main.phone ? [{ field: "Telefon", old: null, new: main.phone }] : []),
       ],
     });
-    if (!points.length) await indexRecord(c.db, personIndex, row as unknown as Record<string, unknown>);
+    if (!points.length)
+      await indexRecord(c.db, personIndex, row as unknown as Record<string, unknown>);
     return { id, name };
   });
 }
@@ -201,7 +207,13 @@ export async function countCompanyContacts(ctx: Ctx, companyId: string): Promise
 /** Organizace osoby: hlavní a další s rolí. */
 export type PersonCompanies = {
   primary: { companyId: string; name: string; position: string | null } | null;
-  others: { id: string; companyId: string; name: string; role: string | null; position: string | null }[];
+  others: {
+    id: string;
+    companyId: string;
+    name: string;
+    role: string | null;
+    position: string | null;
+  }[];
 };
 
 /** Organizace osoby (hlavní a další s rolí); smazané organizace se vynechají. */
@@ -344,4 +356,3 @@ export async function personBriefs(
     .where(and(inArray(person.id, [...ids]), isNull(person.deletedAt), privateScope(ctx, person)));
   return rows.map((r) => ({ ...r, name: r.name ?? "" }));
 }
-

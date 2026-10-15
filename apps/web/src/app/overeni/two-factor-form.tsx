@@ -1,6 +1,6 @@
 "use client";
 
-import { AUTH_SUBMIT, Button, Notice, OtpInput, TextField } from "@rebar/ui";
+import { AUTH_SUBMIT, Button, Checkbox, Notice, OtpInput, TextField } from "@rebar/ui";
 import { KeyRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -10,6 +10,7 @@ export function TwoFactorForm() {
   const router = useRouter();
   const [code, setCode] = useState("");
   const [backup, setBackup] = useState(false);
+  const [trust, setTrust] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -18,14 +19,14 @@ export function TwoFactorForm() {
     setBusy(true);
     setError("");
     const { error } = backup
-      ? await authClient.twoFactor.verifyBackupCode({ code: code.trim() })
-      : await authClient.twoFactor.verifyTotp({ code: code.trim() });
+      ? await authClient.twoFactor.verifyBackupCode({ code: code.trim(), trustDevice: trust })
+      : await authClient.twoFactor.verifyTotp({ code: code.trim(), trustDevice: trust });
     if (error) {
       setBusy(false);
       if (!backup) setCode("");
       return setError(authErrorMessage(error));
     }
-    router.replace("/");
+    router.replace("/start");
     router.refresh();
   }
 
@@ -58,6 +59,21 @@ export function TwoFactorForm() {
           onChange={setCode}
         />
       )}
+      <label className="flex cursor-pointer items-start gap-2.5 text-base">
+        <Checkbox
+          checked={trust}
+          onCheckedChange={(v) => setTrust(v === true)}
+          className="mt-0.5"
+          aria-label="Důvěřovat tomuto zařízení 30 dní"
+          data-testid="trust-device"
+        />
+        <span>
+          Důvěřovat tomuto zařízení 30 dní
+          <span className="block text-sm text-muted">
+            Kód se tu pak nebude vyžadovat. Nepoužívejte na cizím nebo sdíleném počítači.
+          </span>
+        </span>
+      </label>
       <Button
         type="submit"
         variant="primary"

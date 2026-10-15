@@ -27,7 +27,9 @@ export type CredentialInfo = {
 };
 
 const userCond = (userId: string | null) =>
-  userId ? eq(schema.integrationCredential.userId, userId) : isNull(schema.integrationCredential.userId);
+  userId
+    ? eq(schema.integrationCredential.userId, userId)
+    : isNull(schema.integrationCredential.userId);
 
 /** Kdo smí s přístupem nakládat: společný jen `settings.integrations`, osobní jeho vlastník nebo správce integrací. */
 function assertAccess(ctx: Ctx, userId: string | null): void {
@@ -127,14 +129,15 @@ export function createCredentialStore(cipher: Cipher) {
       userId: string | null,
       status: CredentialInfo["status"],
     ): Promise<void> {
-      await db
-        .update(schema.integrationCredential)
-        .set({ status })
-        .where(live(provider, userId));
+      await db.update(schema.integrationCredential).set({ status }).where(live(provider, userId));
     },
 
     /** Smaže přístup (odpojení integrace). */
-    async remove(ctx: Ctx, provider: IntegrationProvider, userId: string | null = null): Promise<boolean> {
+    async remove(
+      ctx: Ctx,
+      provider: IntegrationProvider,
+      userId: string | null = null,
+    ): Promise<boolean> {
       assertAccess(ctx, userId);
       return inTx(ctx, async (c) => {
         const rows = await c.db

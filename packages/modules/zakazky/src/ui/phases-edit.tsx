@@ -132,10 +132,23 @@ export function PhasesEditDialog({
                   </option>
                 ))}
               </select>
-              <DatePicker value={r.plannedStart} onChange={(v) => set(i, { plannedStart: v })} placeholder="Začátek" />
-              <DatePicker value={r.plannedEnd} onChange={(v) => set(i, { plannedEnd: v })} placeholder="Konec" />
+              <DatePicker
+                value={r.plannedStart}
+                onChange={(v) => set(i, { plannedStart: v })}
+                placeholder="Začátek"
+              />
+              <DatePicker
+                value={r.plannedEnd}
+                onChange={(v) => set(i, { plannedEnd: v })}
+                placeholder="Konec"
+              />
               <div className="flex justify-end">
-                <IconButton label={`Posunout fázi ${r.name || i + 1} nahoru`} size="sm" disabled={i === 0} onClick={() => move(i, -1)}>
+                <IconButton
+                  label={`Posunout fázi ${r.name || i + 1} nahoru`}
+                  size="sm"
+                  disabled={i === 0}
+                  onClick={() => move(i, -1)}
+                >
                   <ArrowUp />
                 </IconButton>
                 <IconButton
@@ -183,7 +196,12 @@ export function PhasesEditDialog({
           <Button variant="ghost" disabled={save.isPending} onClick={() => onOpenChange(false)}>
             Zrušit
           </Button>
-          <Button variant="primary" loading={save.isPending} disabled={invalid} onClick={() => void submit()}>
+          <Button
+            variant="primary"
+            loading={save.isPending}
+            disabled={invalid}
+            onClick={() => void submit()}
+          >
             Uložit fáze
           </Button>
         </div>

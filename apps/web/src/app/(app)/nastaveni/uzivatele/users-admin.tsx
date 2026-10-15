@@ -2,7 +2,6 @@
 
 import { formatInstant } from "@rebar/core/time";
 import {
-  Avatar,
   Button,
   Chip,
   Combobox,
@@ -29,6 +28,7 @@ import {
   Copy,
   History,
   KeyRound,
+  Pencil,
   LogOut,
   Mail,
   MailPlus,
@@ -40,16 +40,19 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { UserAvatar } from "@/components/user-avatar";
 import { runAction } from "@/lib/run-action";
 import {
-  inviteUser,
-  loginEventsAction,
+  inviteUserAction,
   revokeInvitationAction,
-  revokeSessionsAction,
+  revokeUserSessionAction,
+  revokeUserSessionsAction,
   sendPasswordResetAction,
   setUserActiveAction,
   setUserRoleAction,
-} from "@/server/admin-actions";
+  updateUserFieldsAction,
+  userSecurityAction,
+} from "@/server/user-actions";
 
 type User = {
   id: string;
@@ -60,22 +63,25 @@ type User = {
   active: boolean;
   twoFactorEnabled: boolean;
   lastLoginAt: string | null;
+  shortName: string | null;
+  avatarColor: string | null;
+  ico: string | null;
+  billingTool: string | null;
+  sessionCount: number;
 };
-type Role = { id: string; name: string; isSystem: boolean };
+type Role = { id: string; name: string; key: string; isSystem: boolean };
 type Invitation = { id: string; email: string; roleName: string; expiresAt: string };
-type LoginEvent = {
-  outcome: string;
-  ipAddress: string | null;
-  userAgent: string | null;
-  createdAt: string;
+type SecurityEvent = {
+  id: string;
+  label: string;
+  summary: string | null;
+  ip: string | null;
+  actorName: string | null;
+  occurredAt: string;
 };
+type DeviceRow = { id: string; label: string; ip: string | null; lastActiveAt: string };
 
 const when = (iso: string | null) => (iso ? formatInstant(iso, { year: true }) : "nikdy");
-
-const OUTCOME: Record<string, { label: string; color: string }> = {
-  success: { label: "Úspěšné", color: "green" },
-  failed: { label: "Neúspěšné", color: "red" },
-};
 
 /** Sloupce tabulky (od šířky `xl`); užší obrazovky skládají řádek do karty. */
 const COLS = "@4xl:grid-cols-[minmax(0,1fr)_11rem_6.5rem_9rem_6rem_2rem]";
@@ -85,6 +91,10 @@ type Pending =
   | { kind: "deactivate"; user: User }
   | { kind: "logout"; user: User }
   | null;
+
+/** Role `external` (Externista) se zatím nepoužívá, takže se v UI nenabízí; stávajícímu uživateli zůstane. */
+const selectableRoles = (roles: Role[], current?: string) =>
+  roles.filter((r) => r.key !== "external" || r.id === current);
 
 /** Jednorázový odkaz pro nové heslo, když nejsou nastavené e-maily; ukáže se správci jednou. */
 type ResetLink = { user: User; url: string; expiresAt: string };
@@ -103,10 +113,20 @@ export function UsersAdmin({
 }) {
   const router = useRouter();
   const [invite, setInvite] = useState(false);
-  const [events, setEvents] = useState<{ user: User; list: LoginEvent[] } | null>(null);
+  const [security, setSecurity] = useState<{
+    user: User;
+    events: SecurityEvent[];
+    sessions: DeviceRow[];
+  } | null>(null);
+  const [editing, setEditing] = useState<User | null>(null);
   const [pending, setPending] = useState<Pending>(null);
   const [resetLink, setResetLink] = useState<ResetLink | null>(null);
   const refresh = () => router.refresh();
+
+  async function openSecurity(u: User) {
+    const r = await runAction(userSecurityAction({ userId: u.id }));
+    if (r) setSecurity({ user: u, events: r.data.events, sessions: r.data.sessions });
+  }
 
   async function sendReset(u: User) {
     const res = await runAction(sendPasswordResetAction({ userId: u.id }));
@@ -169,7 +189,12 @@ export function UsersAdmin({
                     !u.active && "opacity-60",
                   )}
                 >
-                  <Avatar name={u.name} size={32} />
+                  <UserAvatar
+                    name={u.name}
+                    shortName={u.shortName}
+                    color={u.avatarColor}
+                    size={32}
+                  />
                   <div className="min-w-0">
                     <div className="truncate font-medium">
                       {u.name}
@@ -177,13 +202,24 @@ export function UsersAdmin({
                         <span className="ml-1.5 text-sm font-normal text-muted">(vy)</span>
                       )}
                     </div>
-                    <div className="truncate text-sm text-muted">{u.email}</div>
+                    <div className="truncate text-sm text-muted">
+                      {u.email}
+                      {(u.ico || u.billingTool) && (
+                        <>
+                          {" · "}
+                          {[u.ico && `IČO ${u.ico}`, u.billingTool].filter(Boolean).join(" · ")}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div role="cell" className="order-3 w-full @md:w-52 @4xl:order-none @4xl:w-auto">
                   <Combobox
                     aria-label={`Role: ${u.name}`}
-                    options={roles.map((r) => ({ value: r.id, label: r.name }))}
+                    options={selectableRoles(roles, u.roleId).map((r) => ({
+                      value: r.id,
+                      label: r.name,
+                    }))}
                     value={u.roleId}
                     onChange={(v) => {
                       if (v && v !== u.roleId)
@@ -225,19 +261,17 @@ export function UsersAdmin({
                       </IconButton>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
+                      <DropdownMenuItem onSelect={() => setEditing(u)}>
+                        <Pencil /> Upravit zkratku, IČO a nástroj
+                      </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => void sendReset(u)}>
                         <KeyRound /> Poslat odkaz pro nové heslo
                       </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setPending({ kind: "logout", user: u })}>
                         <LogOut /> Odhlásit všude
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onSelect={async () => {
-                          const r = await runAction(loginEventsAction({ userId: u.id }));
-                          if (r) setEvents({ user: u, list: r.data });
-                        }}
-                      >
-                        <History /> Historie přihlášení
+                      <DropdownMenuItem onSelect={() => void openSecurity(u)}>
+                        <History /> Zařízení a přihlášení
                       </DropdownMenuItem>
                       {u.id !== me && (
                         <>
@@ -272,7 +306,7 @@ export function UsersAdmin({
       <FormSection
         title="Čekající pozvánky"
         badge={<Chip>{invitations.length}</Chip>}
-        description="Pozvánka platí 7 dní. Po přijetí se uživatel objeví mezi účty."
+        description="Pozvánka platí 48 hodin. Po přijetí se uživatel objeví mezi účty; účty bez pozvánky vzniknout nemohou."
         flush
       >
         {invitations.length === 0 ? (
@@ -312,7 +346,13 @@ export function UsersAdmin({
         )}
       </FormSection>
 
-      <InviteDialog open={invite} onOpenChange={setInvite} roles={roles} onDone={refresh} />
+      <InviteDialog
+        open={invite}
+        onOpenChange={setInvite}
+        roles={selectableRoles(roles)}
+        onDone={refresh}
+      />
+      <FieldsDialog user={editing} onClose={() => setEditing(null)} onDone={refresh} />
 
       <ConfirmDialog
         open={pending?.kind === "role"}
@@ -369,7 +409,7 @@ export function UsersAdmin({
         onConfirm={async () => {
           if (pending?.kind !== "logout") return;
           const ok = await runAction(
-            revokeSessionsAction({ userId: pending.user.id }),
+            revokeUserSessionsAction({ userId: pending.user.id }),
             "Uživatel odhlášen ze všech zařízení.",
           );
           if (ok) refresh();
@@ -378,7 +418,8 @@ export function UsersAdmin({
       >
         {pending?.kind === "logout" && (
           <p>
-            <strong className="text-fg">{pending.user.name}</strong> bude odhlášen ze všech zařízení
+            <strong className="text-fg">{pending.user.name}</strong> bude odhlášen ze všech
+            zařízení, přestane se mu věřit zařízení (kód se vyžádá znovu)
             {pending.user.id === me ? " (včetně tohoto)" : ""} a při příští návštěvě se musí znovu
             přihlásit.
           </p>
@@ -387,43 +428,93 @@ export function UsersAdmin({
 
       <ResetLinkDialog link={resetLink} onClose={() => setResetLink(null)} />
 
-      <Dialog open={!!events} onOpenChange={(o) => !o && setEvents(null)}>
+      <Dialog open={!!security} onOpenChange={(o) => !o && setSecurity(null)}>
         <DialogContent
-          title={`Historie přihlášení: ${events?.user.name ?? ""}`}
-          className="w-[min(40rem,calc(100vw-2rem))]"
+          title={`Zařízení a přihlášení: ${security?.user.name ?? ""}`}
+          className="w-[min(44rem,calc(100vw-2rem))]"
         >
-          <div className="p-4">
-            {events && events.list.length === 0 ? (
-              <EmptyState title="Zatím žádná přihlášení" />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="text-muted">
-                    <tr>
-                      <th className="px-2 py-1.5 font-medium">Kdy</th>
-                      <th className="px-2 py-1.5 font-medium">Výsledek</th>
-                      <th className="px-2 py-1.5 font-medium">Adresa</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line">
-                    {events?.list.map((e, i) => {
-                      const o = OUTCOME[e.outcome];
-                      return (
-                        <tr key={i}>
+          <div className="space-y-4 p-4" data-testid="user-security">
+            <section>
+              <h4 className="mb-1 font-semibold">Přihlášená zařízení</h4>
+              {security && security.sessions.length === 0 ? (
+                <p className="text-sm text-muted">Žádné aktivní přihlášení.</p>
+              ) : (
+                <ul className="divide-y divide-line rounded-lg border border-line">
+                  {security?.sessions.map((d) => (
+                    <li
+                      key={d.id}
+                      className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2"
+                    >
+                      <span className="min-w-0 flex-1 basis-40">
+                        <span className="font-medium">{d.label}</span>
+                        <span className="block text-sm text-muted">
+                          {d.ip ? `${d.ip} · ` : ""}naposledy {when(d.lastActiveAt)}
+                        </span>
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={async () => {
+                          if (!security) return;
+                          const ok = await runAction(
+                            revokeUserSessionAction({
+                              userId: security.user.id,
+                              sessionId: d.id,
+                            }),
+                            "Zařízení odhlášeno.",
+                          );
+                          if (ok) {
+                            setSecurity({
+                              ...security,
+                              sessions: security.sessions.filter((x) => x.id !== d.id),
+                            });
+                            refresh();
+                          }
+                        }}
+                      >
+                        Odhlásit
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+            <section>
+              <h4 className="mb-1 font-semibold">Bezpečnostní události</h4>
+              {security && security.events.length === 0 ? (
+                <EmptyState title="Zatím žádné události" />
+              ) : (
+                <div className="max-h-72 overflow-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="text-muted">
+                      <tr>
+                        <th className="px-2 py-1.5 font-medium">Kdy</th>
+                        <th className="px-2 py-1.5 font-medium">Událost</th>
+                        <th className="px-2 py-1.5 font-medium">Adresa</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                      {security?.events.map((e) => (
+                        <tr key={e.id}>
                           <td className="whitespace-nowrap px-2 py-2 tabular">
-                            {when(e.createdAt)}
+                            {when(e.occurredAt)}
                           </td>
                           <td className="px-2 py-2">
-                            <Chip color={o?.color ?? "gray"}>{o?.label ?? e.outcome}</Chip>
+                            <Chip color={/Neúspěšn|zablokov|Chybn/.test(e.label) ? "red" : "gray"}>
+                              {e.label}
+                            </Chip>
+                            {e.actorName && (
+                              <span className="ml-1.5 text-muted">provedl {e.actorName}</span>
+                            )}
                           </td>
-                          <td className="px-2 py-2 text-muted">{e.ipAddress ?? "—"}</td>
+                          <td className="px-2 py-2 text-muted">{e.ip ?? "—"}</td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           </div>
         </DialogContent>
       </Dialog>
@@ -453,7 +544,7 @@ function InviteDialog({
       ));
     setBusy(true);
     const res = await runAction(
-      inviteUser({ email, roleId }),
+      inviteUserAction({ email, roleId }),
       `Pozvánka odeslána na ${email.trim()}.`,
     );
     setBusy(false);
@@ -466,7 +557,10 @@ function InviteDialog({
   }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="Pozvat uživatele" description="Pozvánka platí 7 dní a přijde e-mailem.">
+      <DialogContent
+        title="Pozvat uživatele"
+        description="Pozvánka platí 48 hodin a přijde e-mailem. Uživatel si nastaví heslo a povinné dvoufázové ověření."
+      >
         <form onSubmit={submit} className="px-5 py-4">
           <Field label="E-mail" htmlFor="inv-email">
             <Input
@@ -545,5 +639,93 @@ function ResetLinkDialog({ link, onClose }: { link: ResetLink | null; onClose: (
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Zkratka, IČO a fakturační nástroj uživatele (jen majitel). */
+function FieldsDialog({
+  user,
+  onClose,
+  onDone,
+}: {
+  user: User | null;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  return (
+    <Dialog open={!!user} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent
+        title={`Údaje uživatele: ${user?.name ?? ""}`}
+        description="Zkratka se ukazuje v rozpisech plateb a u avatarů. IČO a nástroj se používají při vyrovnání mezi fakturujícími."
+      >
+        {user && <FieldsForm key={user.id} user={user} onClose={onClose} onDone={onDone} />}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FieldsForm({
+  user,
+  onClose,
+  onDone,
+}: {
+  user: User;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [shortName, setShortName] = useState(user.shortName ?? "");
+  const [ico, setIco] = useState(user.ico ?? "");
+  const [tool, setTool] = useState(user.billingTool ?? "");
+  const [busy, setBusy] = useState(false);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const res = await runAction(
+      updateUserFieldsAction({ userId: user.id, shortName, ico, billingTool: tool }),
+      "Údaje uloženy.",
+    );
+    setBusy(false);
+    if (res) {
+      onDone();
+      onClose();
+    }
+  }
+  return (
+    <form onSubmit={submit} className="px-5 py-4">
+      <Field label="Zkratka (2 až 4 znaky)" htmlFor="uf-short">
+        <Input
+          id="uf-short"
+          maxLength={4}
+          value={shortName}
+          onChange={(e) => setShortName(e.target.value)}
+        />
+      </Field>
+      <Field label="IČO (na které fakturuje)" htmlFor="uf-ico">
+        <Input
+          id="uf-ico"
+          inputMode="numeric"
+          maxLength={12}
+          value={ico}
+          onChange={(e) => setIco(e.target.value)}
+        />
+      </Field>
+      <Field label="Fakturační nástroj (volný text)" htmlFor="uf-tool">
+        <Input
+          id="uf-tool"
+          maxLength={80}
+          placeholder="Fakturoid, iDoklad, Excel…"
+          value={tool}
+          onChange={(e) => setTool(e.target.value)}
+        />
+      </Field>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="ghost" onClick={onClose}>
+          Zrušit
+        </Button>
+        <Button type="submit" variant="primary" loading={busy}>
+          Uložit
+        </Button>
+      </div>
+    </form>
   );
 }
