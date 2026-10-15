@@ -33,7 +33,13 @@ import {
   PRIVATE_AMOUNT_MINOR,
   SHARED_AMOUNT_MINOR,
 } from "./support/canary";
-import { BUILDABLE, buildPrivateFixture, type PrivateFixture } from "./support/fixture";
+import {
+  addPayment,
+  BUILDABLE,
+  buildPrivateFixture,
+  fullDeps,
+  type PrivateFixture,
+} from "./support/fixture";
 import { buildFixture, isolatedDb, type Fixture } from "./support/security-fixture";
 
 /*
@@ -303,18 +309,28 @@ describe("soukromé záznamy: vytvoření", () => {
   });
 
   it("platba bez zakázky je vždy soukromá a nejde zveřejnit (R-12)", async () => {
+    // zakládá ji služba financí (platba z Fakturoidu); platba bez zakázky se nezakládá přes engine
     const e = await E("payment");
-    const p = await createRecord(owner, f.registry, e, {
-      description: canary("fakturoid"),
-      amount: 5_000_00,
-    });
+    const company = (await createRecord(owner, f.registry, await E("company"), { name: "Fakt" }))
+      .row;
+    const created = await fullDeps(f)
+      .services.get("finance")
+      .createStandalonePayment(owner, {
+        companyId: company.id,
+        description: canary("fakturoid"),
+        amountMinor: 5_000_00,
+        invoiceNumber: "F-2026-1",
+        invoiceUrl: "https://example.test/f/1",
+        issuedOn: "2026-10-01",
+      });
+    const p = await getRecord(owner, f.registry, e, created.id);
     expect(p.row.isPrivate).toBe(true);
     expect(p.row.visibilitySource).toBe("inherited");
-    await expect(setVisibility(owner, f.registry, "payment", p.row.id, false)).rejects.toThrow(
+    await expect(setVisibility(owner, f.registry, "payment", created.id, false)).rejects.toThrow(
       UserError,
     );
     const page = await queryRecords(partner, f.registry, e, { limit: 200 });
-    expect(page.rows.map((r) => r.id)).not.toContain(p.row.id);
+    expect(page.rows.map((r) => r.id)).not.toContain(created.id);
   });
 });
 
@@ -343,13 +359,11 @@ describe("soukromé záznamy: změna viditelnosti a kaskáda", () => {
         minutes: 30,
       })
     ).row.id;
-    const pay = (
-      await createRecord(owner, f.registry, await E("payment"), {
-        description: "Strom platba",
-        amount: 100_00,
-        job,
-      })
-    ).row.id;
+    const pay = await addPayment(f, owner, {
+      description: "Strom platba",
+      amountMinor: 100_00,
+      jobId: job,
+    });
     return { job, task, note, time, pay };
   }
   const priv = async (key: string, id: string) =>

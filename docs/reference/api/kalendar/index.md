@@ -18,5 +18,5 @@ const · `packages/modules/kalendar/src/index.ts`
 _Bez popisu._
 
 ```ts
-const manifest: { readonly id: "kalendar"; readonly name: "Kalendář"; readonly description: "Události s účastníky, opakováním a připomenutím, zdroje (zasedačky, vybavení) s kontrolou kolizí, vrstvy z ostatních modulů, odběr kalendáře v Google, Apple a Out…
+const manifest: { readonly id: "kalendar"; readonly name: "Kalendář"; readonly description: "Kalendář propojený s Google Kalendářem každého uživatele (obousměrná synchronizace do minuty): pohledy Den, Týden, Měsíc a Agenda, schůzky a hovory z úkolů zapsan…
 ```

@@ -39,14 +39,14 @@ export function renderMail(
   switch (template) {
     case "invitation": {
       const url = need(vars, "url");
-      const days = vars.expiresInDays ?? "7";
+      const validity = vars.expiresIn ?? `${vars.expiresInDays ?? "7"} dní`;
       return {
         subject: `Pozvánka do systému ${brand}`,
         ...wrap(
           brand,
           [
             `Dobrý den, byli jste pozváni do systému ${brand}.`,
-            `Přihlášení si nastavíte na odkazu níže. Odkaz platí ${days} dní.`,
+            `Přihlášení si nastavíte na odkazu níže. Odkaz platí ${validity}.`,
           ],
           { label: "Nastavit přístup", url },
         ),

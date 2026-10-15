@@ -33,7 +33,7 @@ function · `packages/core/src/admin/roles.ts`
 _Bez popisu._
 
 ```ts
-async function createRole(ctx: Ctx, raw: z.input<typeof roleInput>): Promise<{ name: string; key: string; id: string; description: string | null; isSystem: boolean; require2fa: boolean; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; }>
+async function createRole(ctx: Ctx, raw: z.input<typeof roleInput>): Promise<{ name: string; key: string; id: string; description: string | null; isSystem: boolean; require2fa: boolean; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; deletedBy: s…
 ```
 
 ### deleteRole
@@ -63,7 +63,7 @@ function · `packages/core/src/admin/roles.ts`
 Role s oprávněními a počtem uživatelů (pro matici oprávnění v administraci).
 
 ```ts
-async function listRoles(ctx: Ctx): Promise<{ permissions: Record<string, Scope>; userCount: number; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; id: string; key: string; name: string; description: string | nul…
+async function listRoles(ctx: Ctx): Promise<{ permissions: Record<string, Scope>; userCount: number; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; deletedBy: string | null; deletedBatch: string | null; id: strin…
 ```
 
 ### listUsers

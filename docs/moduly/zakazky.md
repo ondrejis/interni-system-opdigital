@@ -19,10 +19,10 @@ Jak psát (podrobně v docs/DOCS-PROCES.md):
 
 _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprávění píš pod ním._
 
-- **Popis z manifestu:** Zakázky: fáze, termíny, tým, šablony, komentáře a úkoly (kostra, model se přepracovává).
+- **Popis z manifestu:** Zakázky typu web, marketing a systémy: fáze, tým, šablony s úkoly a platbami, stav a termíny; zakládají se z vyhraných obchodů nebo ručně.
 - **Závisí na:** [`kontakty`](kontakty.md)
-- **Entity:** [`job`](../reference/entity/zakazky.md#job)
-- **Příkazy:** [11 příkazů](../reference/prikazy/zakazky.md)
+- **Entity:** [`job`](../reference/entity/zakazky.md#job), [`job_template`](../reference/entity/zakazky.md#job_template)
+- **Příkazy:** [25 příkazů](../reference/prikazy/zakazky.md)
 - **Referenční stránky:** [modul](../reference/moduly/zakazky.md), [entity](../reference/entity/zakazky.md), [příkazy](../reference/prikazy/zakazky.md), [databáze](../reference/databaze/zakazky.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**

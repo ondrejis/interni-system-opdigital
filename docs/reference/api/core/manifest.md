@@ -162,7 +162,7 @@ type NotificationEventDef<
   P extends string = string,
   A extends string = string,
 > = {
-  /** Stabilní klíč, např. `task.assigned`, `stroje.deadline`. Na klíč se odkazují nastavení klienta i předvolby uživatelů. */
+  /** Stabilní klíč, např. `comment.mention`, `stroje.deadline`. Na klíč se odkazují nastavení klienta i předvolby uživatelů. */
   key: K;
   /** Krátký název do nastavení: „Přidělen úkol“. */
   label: string;

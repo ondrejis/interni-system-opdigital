@@ -21,9 +21,9 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 
 - **Popis z manifestu:** Zápis odpracovaného času k zakázkám a úkolům: týdenní mřížka, formáty 1,5 a 1:30, souhrny podle zakázky.
 - **Závisí na:** [`zakazky`](zakazky.md)
-- **Entity:** žádné
-- **Příkazy:** žádné
-- **Referenční stránky:** [modul](../reference/moduly/hodiny.md), [databáze](../reference/databaze/hodiny.md)
+- **Entity:** [`time_entry`](../reference/entity/hodiny.md#time_entry)
+- **Příkazy:** [9 příkazů](../reference/prikazy/hodiny.md)
+- **Referenční stránky:** [modul](../reference/moduly/hodiny.md), [entity](../reference/entity/hodiny.md), [příkazy](../reference/prikazy/hodiny.md), [databáze](../reference/databaze/hodiny.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 

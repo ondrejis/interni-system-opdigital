@@ -21,9 +21,10 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 
 - **Popis z manifestu:** Reklamní účty Meta, kampaně a denní výkon, příchozí leady z formulářů (přes n8n) a jejich převod na obchody.
 - **Závisí na:** [`kontakty`](kontakty.md), [`obchody`](obchody.md)
-- **Entity:** žádné
-- **Příkazy:** žádné
-- **Referenční stránky:** [modul](../reference/moduly/reklama.md), [databáze](../reference/databaze/reklama.md)
+- **Entity:** [`ad_account`](../reference/entity/reklama.md#ad_account), [`ad_campaign`](../reference/entity/reklama.md#ad_campaign)
+- **Příkazy:** [18 příkazů](../reference/prikazy/reklama.md)
+- **Úlohy na pozadí:** `reklama.sync.daily` (`0 6 * * *`)
+- **Referenční stránky:** [modul](../reference/moduly/reklama.md), [entity](../reference/entity/reklama.md), [příkazy](../reference/prikazy/reklama.md), [databáze](../reference/databaze/reklama.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 

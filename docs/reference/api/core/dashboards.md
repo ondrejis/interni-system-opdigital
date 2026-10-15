@@ -5,10 +5,11 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core/dashboards` (soubor `packages/core/src/dashboards/index.ts`). Exportů: 116, z toho s popisem 62.
+Vstupní bod `@rebar/core/dashboards` (soubor `packages/core/src/dashboards/index.ts`). Exportů: 130, z toho s popisem 76.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
+| [`availablePresets`](#availablepresets) | function | Katalog hotových widgetů, které aktér smí přidat (widget zapnutého modulu bez oprávnění se nenabízí). |  |
 | [`bucketLabel`](#bucketlabel) | function | Popisek koše pro osu grafu: „říjen 2026“, „T41 2026“, „9. 10.“, „Q4 2026“, „2026“. |  |
 | [`bucketStart`](#bucketstart) | function | Začátek koše, do kterého datum spadá (týden začíná pondělím). |  |
 | [`bucketTruncSql`](#buckettruncsql) | function | SQL výraz začátku koše pro datumový sloupec; koš je jen z whitelistu, SQL se nikdy nesestavuje z řetězce (týden začíná pondělím). |  |
@@ -30,6 +31,7 @@ Vstupní bod `@rebar/core/dashboards` (soubor `packages/core/src/dashboards/inde
 | [`describeFilters`](#describefilters) | function | Popis filtrů nástěnky pro hlavičku PDF. |  |
 | [`describeMetric`](#describemetric) | function |  |  |
 | [`emptyDefinition`](#emptydefinition) | function | Prázdná nástěnka. |  |
+| [`ensurePersonalBoards`](#ensurepersonalboards) | function | První otevření Přehledu (PRE-03): uživatel, který ještě nikdy žádný přehled nezaložil, dostane osobní kopie výchozích sad své role (např. „Den“ a „Finance“) a může si je libovolně upravit. Platí jen jednou: i když všechny smaže, nové se neobjeví (rozhoduje, zda mu kdy nějaký přehled patřil, i smazaný). Sada role sama zůstává vzorem v Nastavení → Nástěnky. Souběžné první načtení dvěma okny hlídá advisory zámek. |  |
 | [`ensureSeedDashboards`](#ensureseeddashboards) | function | Založí chybějící výchozí nástěnky z konfigurace klienta. Idempotentní: nástěnka, kterou správce upravil nebo smazal, se znovu nevytváří ani nepřepisuje (klíč zůstává u smazaného řádku). Role, která v systému není, se přeskočí. |  |
 | [`entityHref`](#entityhref) | function | Odkaz na detail cizí entity (zákazník…), jen když aktér čte všechny její záznamy; při rozsahu „jen moje“ by odkaz mohl vést na záznam, který aktér nevidí. |  |
 | [`evaluateWidget`](#evaluatewidget) | function | Vyhodnotí jeden widget pro aktéra. Vždy přes datovou vrstvu s oprávněními aktéra (rozsah „jen moje“, skryté atributy, oprávnění metrik): definice widgetu nemůže odhalit nic, co by aktér neviděl v seznamu. Chyba se nevyhazuje, vrací se jako výsledek, takže jeden rozbitý widget nerozbije nástěnku. Výsledky se krátce (30 s) pamatují na uživatele. |  |
@@ -43,6 +45,7 @@ Vstupní bod `@rebar/core/dashboards` (soubor `packages/core/src/dashboards/inde
 | [`isoWeek`](#isoweek) | function | ISO číslo týdne a rok, ke kterému týden patří (čtvrtek rozhoduje). |  |
 | [`listAllBoards`](#listallboards) | function | Správce: všechny nástěnky v systému (Nastavení → Nástěnky). |  |
 | [`listBoards`](#listboards) | function | Nástěnky, které aktér vidí, v pořadí přepínače: nejdřív podle jeho vlastního řazení, pak výchozí pro roli, moje a sdílené (podle názvu). |  |
+| [`listViewChoices`](#listviewchoices) | function | Uložené pohledy, které aktér smí použít (moje a sdílené nad čitelnou entitou), pro „Číslo“, „Seznam z pohledu“, odkazy. |  |
 | [`metricAvailable`](#metricavailable) | function | Metrika je pro aktéra dostupná, jen když má všechna její oprávnění. |  |
 | [`migrateDefinition`](#migratedefinition) | function | Přečte definici z databáze (nebo z konfigurace): doplní chybějící verzi, převede starší verze krok za krokem na aktuální a ověří. Novější verzi, než umí tento systém, odmítne srozumitelnou větou (nástěnka vznikla v novější verzi). |  |
 | [`numberChoiceParam`](#numberchoiceparam) | function | Číselný parametr omezený na výčet povolených hodnot (`days` = 7, 14, 30…). |  |
@@ -50,6 +53,7 @@ Vstupní bod `@rebar/core/dashboards` (soubor `packages/core/src/dashboards/inde
 | [`parseWidget`](#parsewidget) | function |  |  |
 | [`pct1`](#pct1) | function | Podíl `num / den` v procentech na jedno desetinné místo; při nulovém jmenovateli `null`. |  |
 | [`periodOf`](#periodof) | function | Období filtrů nástěnky. |  |
+| [`presetAvailable`](#presetavailable) | function | Je widget z katalogu pro aktéra dostupný (zapnutý modul a všechna oprávnění)? |  |
 | [`recordDashboardExport`](#recorddashboardexport) | function | Stopa exportu z nástěnky (widget nebo celá nástěnka): záznam v „historii exportů“ a v auditu. Data samotná se do záznamu neukládají, jen kdo, co, kolik řádků a s jakými filtry. |  |
 | [`renderDashboardPdf`](#renderdashboardpdf) | function | Snímek nástěnky do PDF pro poradu: hlavička klienta, použité filtry a widgety v pořadí nástěnky. KPI se řadí do řad, grafy mají podobu tabulky s pruhy (bez rastrových obrázků a těžkých závislostí). Widget, který se nenačetl, má místo obsahu důvod. |  |
 | [`reorderBoards`](#reorderboards) | function | Moje pořadí nástěnek v přepínači (ostatní se řadí za ně). |  |
@@ -78,10 +82,13 @@ Vstupní bod `@rebar/core/dashboards` (soubor `packages/core/src/dashboards/inde
 | [`DEFINITION_MIGRATIONS`](#definition_migrations) | const | Dnes existuje jediná verze; sem přijdou převody, až se tvar definice změní (a test, který je projde všechny). |  |
 | [`DEFINITION_VERSION`](#definition_version) | const |  |  |
 | [`MAX_BOARDS_PER_USER`](#max_boards_per_user) | const | Nejvíc nástěnek, které si uživatel může založit. |  |
+| [`MAX_DASHBOARD_WIDGETS`](#max_dashboard_widgets) | const | Nejvíc widgetů na jednom přehledu (každý je dotaz). |  |
 | [`MAX_WIDGETS`](#max_widgets) | const | Nejvíc widgetů na nástěnce (každý je dotaz; nástěnka se musí načíst do pár sekund). |  |
 | [`MAX_WIDGET_HEIGHT`](#max_widget_height) | const |  |  |
+| [`NO_VIEW_ID`](#no_view_id) | const | Nulové UUID: „pohled ještě není vybrán“ (nově přidaný widget Číslo / Seznam z pohledu; editor ho nenechá uložit). |  |
 | [`PERIOD_LABELS`](#period_labels) | const |  |  |
 | [`PERIOD_PRESETS`](#period_presets) | const |  |  |
+| [`SAFE_HREF`](#safe_href) | const | Odkaz uvnitř aplikace (`/obchody`) nebo `https://…`; nic jiného (ne `javascript:`, ne `//host`). |  |
 | [`VALUE_FORMATS`](#value_formats) | const | Jak se hodnota ukazuje: peníze jsou v haléřích, `minutes` v minutách (7:30 h), `hours` v desetinných hodinách. |  |
 | [`WIDGET_TYPES`](#widget_types) | const |  |  |
 | [`WIDGET_WIDTHS`](#widget_widths) | const |  |  |
@@ -92,6 +99,7 @@ Vstupní bod `@rebar/core/dashboards` (soubor `packages/core/src/dashboards/inde
 | [`BoardDetail`](#boarddetail) | type |  |  |
 | [`Bucket`](#bucket) | type |  |  |
 | [`BuiltinKind`](#builtinkind) | type |  |  |
+| [`BuiltinParams`](#builtinparams) | type | Nastavení vestavěného bloku: `tileIds` (jen vybrané dlaždice modulů), `includeDelegated` (Moje úkoly + delegované). |  |
 | [`BuiltinSource`](#builtinsource) | type |  |  |
 | [`ChartCategory`](#chartcategory) | type |  |  |
 | [`ChartKind`](#chartkind) | type |  |  |
@@ -109,6 +117,8 @@ Vstupní bod `@rebar/core/dashboards` (soubor `packages/core/src/dashboards/inde
 | [`DateRange`](#daterange) | type |  |  |
 | [`DefinitionMigrations`](#definitionmigrations) | type | Oprava dřívějších verzí definice na aktuální. Každý krok převádí verzi `n` na `n + 1`. |  |
 | [`EntitySource`](#entitysource) | type | Zdroj dat z entity: filtr → agregace → seskupení (hodnota nebo období) → řazení a limit. Žádné ruční SQL. |  |
+| [`LinksSource`](#linkssource) | type | Rychlé odkazy: vlastní odkazy (jen adresy uvnitř aplikace) a uložené pohledy. |  |
+| [`ListItem`](#listitem) | type | Položka seznamu (widget „list“, metrika s tvarem „list“). |  |
 | [`MetricInfo`](#metricinfo) | type |  |  |
 | [`MetricSource`](#metricsource) | type | Pojmenovaná metrika, kterou dodává modul (`dashboardMetrics`). |  |
 | [`PeriodPreset`](#periodpreset) | type |  |  |
@@ -119,12 +129,26 @@ Vstupní bod `@rebar/core/dashboards` (soubor `packages/core/src/dashboards/inde
 | [`SeedWidget`](#seedwidget) | type |  |  |
 | [`TableColumn`](#tablecolumn) | type |  |  |
 | [`ValueFormat`](#valueformat) | type |  |  |
+| [`ViewChoice`](#viewchoice) | type | Uložený pohled nabízený ve widgetech „Číslo“, „Seznam z pohledu“ a „Rychlé odkazy“. |  |
+| [`ViewSource`](#viewsource) | type | Uložený pohled (`saved_view`) jako zdroj: **Číslo z pohledu** (`kpi`: počet nebo součet pole nad filtrem pohledu) a **Seznam z pohledu** (`table`: prvních `limit` řádků se sloupci a řazením pohledu). Filtr pohledu jde stejnou datovou vrstvou jako seznamy (rozsah „jen moje“, soukromé záznamy), takže sdílený pohled nic neprozradí. |  |
 | [`WidgetMeta`](#widgetmeta) | type |  |  |
 | [`WidgetOptions`](#widgetoptions) | type |  |  |
 | [`WidgetOutcome`](#widgetoutcome) | type | Výsledek jednoho widgetu při načtení: chyba jednoho widgetu nerozbije nástěnku. |  |
+| [`WidgetPresetDef`](#widgetpresetdef) | type | Hotový widget z katalogu („Přidat widget“): definice bez id a podmínky, za kterých se uživateli nabízí. |  |
+| [`WidgetPresetInfo`](#widgetpresetinfo) | type | Widget z katalogu v podobě, kterou dostane prohlížeč (bez podmínek dostupnosti). |  |
 | [`WidgetResult`](#widgetresult) | type |  |  |
 | [`WidgetSource`](#widgetsource) | type |  |  |
 | [`WidgetType`](#widgettype) | type |  |  |
+
+### availablePresets
+
+function · `packages/core/src/dashboards/evaluate.ts`
+
+Katalog hotových widgetů, které aktér smí přidat (widget zapnutého modulu bez oprávnění se nenabízí).
+
+```ts
+function availablePresets(ctx: Ctx, env: DashboardEnv): WidgetPresetInfo[]
+```
 
 ### bucketLabel
 
@@ -339,6 +363,19 @@ Prázdná nástěnka.
 function emptyDefinition(): DashboardDefinition
 ```
 
+### ensurePersonalBoards
+
+function · `packages/core/src/dashboards/service.ts`
+
+První otevření Přehledu (PRE-03): uživatel, který ještě nikdy žádný přehled nezaložil, dostane osobní kopie výchozích
+sad své role (např. „Den“ a „Finance“) a může si je libovolně upravit. Platí jen jednou: i když všechny smaže, nové se
+neobjeví (rozhoduje, zda mu kdy nějaký přehled patřil, i smazaný). Sada role sama zůstává vzorem v Nastavení → Nástěnky.
+Souběžné první načtení dvěma okny hlídá advisory zámek.
+
+```ts
+async function ensurePersonalBoards(ctx: Ctx): Promise<{ created: number }>
+```
+
 ### ensureSeedDashboards
 
 function · `packages/core/src/dashboards/service.ts`
@@ -474,6 +511,16 @@ moje a sdílené (podle názvu).
 async function listBoards(ctx: Ctx): Promise<DashboardSummary[]>
 ```
 
+### listViewChoices
+
+function · `packages/core/src/dashboards/evaluate.ts`
+
+Uložené pohledy, které aktér smí použít (moje a sdílené nad čitelnou entitou), pro „Číslo“, „Seznam z pohledu“, odkazy.
+
+```ts
+async function listViewChoices(ctx: Ctx, env: DashboardEnv): Promise<ViewChoice[]>
+```
+
 ### metricAvailable
 
 function · `packages/core/src/dashboards/evaluate.ts`
@@ -543,6 +590,16 @@ Období filtrů nástěnky.
 
 ```ts
 function periodOf(f: DashboardFilters, today: string): DateRange | null
+```
+
+### presetAvailable
+
+function · `packages/core/src/dashboards/evaluate.ts`
+
+Je widget z katalogu pro aktéra dostupný (zapnutý modul a všechna oprávnění)?
+
+```ts
+function presetAvailable(ctx: Ctx, env: DashboardEnv, p: WidgetPresetDef): boolean
 ```
 
 ### recordDashboardExport
@@ -831,6 +888,16 @@ Nejvíc nástěnek, které si uživatel může založit.
 const MAX_BOARDS_PER_USER: 25
 ```
 
+### MAX_DASHBOARD_WIDGETS
+
+const · `packages/core/src/dashboards/types.ts`
+
+Nejvíc widgetů na jednom přehledu (každý je dotaz).
+
+```ts
+const MAX_DASHBOARD_WIDGETS: 24
+```
+
 ### MAX_WIDGETS
 
 const · `packages/core/src/dashboards/definition.ts`
@@ -851,6 +918,16 @@ _Bez popisu._
 const MAX_WIDGET_HEIGHT: 6
 ```
 
+### NO_VIEW_ID
+
+const · `packages/core/src/dashboards/types.ts`
+
+Nulové UUID: „pohled ještě není vybrán“ (nově přidaný widget Číslo / Seznam z pohledu; editor ho nenechá uložit).
+
+```ts
+const NO_VIEW_ID: "00000000-0000-4000-8000-000000000000"
+```
+
 ### PERIOD_LABELS
 
 const · `packages/core/src/dashboards/types.ts`
@@ -869,6 +946,16 @@ _Bez popisu._
 
 ```ts
 const PERIOD_PRESETS: readonly ["all", "today", "this_week", "last_week", "this_month", "last_month", "this_quarter", "last_quarter", "this_year", "last_year", "last_7_days", "last_30_days", "last_90_days", "custom"]
+```
+
+### SAFE_HREF
+
+const · `packages/core/src/dashboards/definition.ts`
+
+Odkaz uvnitř aplikace (`/obchody`) nebo `https://…`; nic jiného (ne `javascript:`, ne `//host`).
+
+```ts
+const SAFE_HREF: RegExp
 ```
 
 ### VALUE_FORMATS
@@ -971,6 +1058,20 @@ _Bez popisu._
 type BuiltinKind = (typeof BUILTINS)[number];
 ```
 
+### BuiltinParams
+
+type · `packages/core/src/dashboards/types.ts`
+
+Nastavení vestavěného bloku: `tileIds` (jen vybrané dlaždice modulů), `includeDelegated` (Moje úkoly + delegované).
+
+```ts
+type BuiltinParams = {
+  tileIds?: string[] | undefined;
+  includeDelegated?: boolean | undefined;
+  limit?: number | undefined;
+};
+```
+
 ### BuiltinSource
 
 type · `packages/core/src/dashboards/types.ts`
@@ -978,7 +1079,11 @@ type · `packages/core/src/dashboards/types.ts`
 _Bez popisu._
 
 ```ts
-type BuiltinSource = { kind: "builtin"; builtin: BuiltinKind };
+type BuiltinSource = {
+  kind: "builtin";
+  builtin: BuiltinKind;
+  params?: BuiltinParams | undefined;
+};
 ```
 
 ### ChartCategory
@@ -1055,7 +1160,26 @@ type DashboardEnv = {
   builtins?: {
     attention?: (ctx: Ctx) => Promise<AttentionItem[]>;
     tiles?: (ctx: Ctx) => Promise<WidgetData[]>;
+    /**
+     * Moje úkoly na dnes a po termínu (modul `ukoly`; jádro vlastní úkoly nemá). Bez poskytovatele je seznam prázdný.
+     * `includeDelegated` přidá úkoly, které jsem zadal já a řeší je jiný; `done` je odškrtnutý úkol (zůstane do obnovy).
+     */
+    myTasks?: (
+      ctx: Ctx,
+      opts: { includeDelegated: boolean; limit: number },
+    ) => Promise<
+      {
+        id: string;
+        title: string;
+        dueDate: string | null;
+        subtitle?: string | undefined;
+        href?: string | undefined;
+        delegated?: boolean | undefined;
+      }[]
+    >;
   };
+  /** Hotové widgety pro „Přidat widget“ (dodává modul `prehled`); nabídnou se jen ty, které aktér smí. */
+  presets?: readonly WidgetPresetDef[];
   /** Doba platnosti mezipaměti na uživatele (ms); 0 = vypnuto. Výchozí 30 s. */
   cacheTtlMs?: number;
   /** Nejdelší doba jednoho dotazu (ms). Výchozí 8 s. */
@@ -1167,6 +1291,8 @@ type DashboardSummary = {
   ownerName: string | null;
   defaultForRole: string | null;
   isHome: boolean;
+  /** Výchozí sada role (vzor pro osobní přehledy nových uživatelů), ne přehled k přepínání. */
+  template: boolean;
   shared: { roles: string[]; users: string[] };
   widgetCount: number;
   position: number;
@@ -1240,6 +1366,40 @@ type EntitySource = {
 };
 ```
 
+### LinksSource
+
+type · `packages/core/src/dashboards/types.ts`
+
+Rychlé odkazy: vlastní odkazy (jen adresy uvnitř aplikace) a uložené pohledy.
+
+```ts
+type LinksSource = {
+  kind: "links";
+  links: { title: string; href: string }[];
+  viewIds: string[];
+};
+```
+
+### ListItem
+
+type · `packages/core/src/dashboards/types.ts`
+
+Položka seznamu (widget „list“, metrika s tvarem „list“).
+
+```ts
+type ListItem = {
+  id: string;
+  title: string;
+  subtitle?: string | undefined;
+  badge?: string | undefined;
+  tone?: "default" | "warning" | "danger" | "success" | undefined;
+  href?: string | undefined;
+  date?: string | undefined;
+  /** Položka je úkol, který jde odškrtnout přímo ve widgetu (příkaz `ukoly.complete`). */
+  completeId?: string | undefined;
+};
+```
+
 ### MetricInfo
 
 type · `packages/core/src/dashboards/types.ts`
@@ -1252,7 +1412,7 @@ type MetricInfo = {
   label: string;
   description?: string | undefined;
   format: ValueFormat;
-  shape: "scalar" | "series";
+  shape: "scalar" | "series" | "list";
   supports: { period: boolean; job: boolean; person: boolean; bucket: boolean };
   params: {
     key: string;
@@ -1400,6 +1560,43 @@ _Bez popisu._
 type ValueFormat = (typeof VALUE_FORMATS)[number];
 ```
 
+### ViewChoice
+
+type · `packages/core/src/dashboards/types.ts`
+
+Uložený pohled nabízený ve widgetech „Číslo“, „Seznam z pohledu“ a „Rychlé odkazy“.
+
+```ts
+type ViewChoice = {
+  id: string;
+  name: string;
+  entity: string;
+  entityLabel: string;
+  href: string;
+  shared: boolean;
+  /** Sloupce a pole, podle kterých jde sčítat (pro editor čísla). */
+  numericAttrs: { key: string; label: string }[];
+};
+```
+
+### ViewSource
+
+type · `packages/core/src/dashboards/types.ts`
+
+Uložený pohled (`saved_view`) jako zdroj: **Číslo z pohledu** (`kpi`: počet nebo součet pole nad filtrem pohledu)
+a **Seznam z pohledu** (`table`: prvních `limit` řádků se sloupci a řazením pohledu). Filtr pohledu jde stejnou
+datovou vrstvou jako seznamy (rozsah „jen moje“, soukromé záznamy), takže sdílený pohled nic neprozradí.
+
+```ts
+type ViewSource = {
+  kind: "view";
+  viewId: string;
+  /** Jen u čísla: výchozí je počet. */
+  agg?: { fn: AggFn; attr?: string | undefined } | undefined;
+  limit?: number | undefined;
+};
+```
+
 ### WidgetMeta
 
 type · `packages/core/src/dashboards/types.ts`
@@ -1441,6 +1638,50 @@ Výsledek jednoho widgetu při načtení: chyba jednoho widgetu nerozbije nást�
 ```ts
 type WidgetOutcome =
   { ok: true; result: WidgetResult } | { ok: false; error: string; code: string };
+```
+
+### WidgetPresetDef
+
+type · `packages/core/src/dashboards/types.ts`
+
+Hotový widget z katalogu („Přidat widget“): definice bez id a podmínky, za kterých se uživateli nabízí.
+
+```ts
+type WidgetPresetDef = {
+  key: string;
+  title: string;
+  description: string;
+  /** Skupina v katalogu (podle modulu / tématu). */
+  group: string;
+  phase: "mvp" | "v2";
+  widget: Omit<DashboardWidget, "id">;
+  /** Katalogová položka přidá víc widgetů najednou (např. Příjmy: zaplaceno, vystaveno, plánováno); první je `widget`. */
+  widgets?: Omit<DashboardWidget, "id">[];
+  /** Nabízí se jen, když platí všechno: metriky existují (modul je zapnutý) a aktér na ně má oprávnění, entity jsou
+   * čitelné, aktér má všechna oprávnění. */
+  requires?: {
+    metrics?: string[] | undefined;
+    entities?: string[] | undefined;
+    permissions?: string[] | undefined;
+    /** Vestavěný poskytovatel („my_tasks“ potřebuje modul úkolů). */
+    builtins?: BuiltinKind[] | undefined;
+  };
+  /** Widget se po přidání nastavuje (pohled, odkazy): otevře se editor místo okamžitého přidání. */
+  configure?: boolean | undefined;
+};
+```
+
+### WidgetPresetInfo
+
+type · `packages/core/src/dashboards/types.ts`
+
+Widget z katalogu v podobě, kterou dostane prohlížeč (bez podmínek dostupnosti).
+
+```ts
+type WidgetPresetInfo = Pick<
+  WidgetPresetDef,
+  "key" | "title" | "description" | "group" | "phase" | "widget" | "widgets" | "configure"
+>;
 ```
 
 ### WidgetResult
@@ -1486,10 +1727,10 @@ type WidgetResult = (
     }
   | {
       kind: "list";
-      items: {
-        id: string;
-        title: string;
-        subtitle?: string | undefined;
+      items: ListItem[];
+      /** Věta, když je seznam prázdný (výchozí „Nic k zobrazení.“). */
+      emptyText?: string | undefined;
+    }
 // … (zkráceno, celá deklarace je ve zdroji)
 ```
 
@@ -1500,7 +1741,8 @@ type · `packages/core/src/dashboards/types.ts`
 _Bez popisu._
 
 ```ts
-type WidgetSource = EntitySource | RecordsSource | MetricSource | BuiltinSource;
+type WidgetSource =
+  EntitySource | RecordsSource | MetricSource | BuiltinSource | ViewSource | LinksSource;
 ```
 
 ### WidgetType

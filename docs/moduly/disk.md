@@ -22,8 +22,10 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 - **Popis z manifestu:** Složky klientů a zakázek na sdíleném Google Disku: požadavky na založení přes n8n, stav složek a strom složek v Nastavení.
 - **Závisí na:** žádném modulu
 - **Entity:** žádné
-- **Příkazy:** žádné
-- **Referenční stránky:** [modul](../reference/moduly/disk.md), [databáze](../reference/databaze/disk.md)
+- **Příkazy:** [8 příkazů](../reference/prikazy/disk.md)
+- **Úlohy na pozadí:** `disk.timeout` (`* * * * *`)
+- **Nastavení v administraci:** `drive.enabled`, `drive.structure`
+- **Referenční stránky:** [modul](../reference/moduly/disk.md), [příkazy](../reference/prikazy/disk.md), [databáze](../reference/databaze/disk.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 
@@ -85,8 +87,20 @@ Webhook (HMAC, hlavičky `X-Opsys-Event`, `X-Opsys-Delivery`, `X-Opsys-Signature
 ```json
 {
   "requestId": "uuid",
-  "client": { "id": "uuid", "name": "Novák s.r.o.", "ico": "12345678", "folderId": "ID složky klienta nebo null" },
-  "project": { "id": "uuid", "code": "Z-2026-004", "name": "Nový web", "type": "web|marketing|systemy", "startDate": "2026-10-14", "folderId": null },
+  "client": {
+    "id": "uuid",
+    "name": "Novák s.r.o.",
+    "ico": "12345678",
+    "folderId": "ID složky klienta nebo null"
+  },
+  "project": {
+    "id": "uuid",
+    "code": "Z-2026-004",
+    "name": "Nový web",
+    "type": "web|marketing|systemy",
+    "startDate": "2026-10-14",
+    "folderId": null
+  },
   "structure": { "…": "podle události, viz níže" },
   "callbackUrl": "https://…/api/ingest/drive"
 }
@@ -94,21 +108,29 @@ Webhook (HMAC, hlavičky `X-Opsys-Event`, `X-Opsys-Delivery`, `X-Opsys-Signature
 
 `project` je jen u `drive.project.create`. `structure` vždy obsahuje `version`, `kind` (název události), `clientsRoot` (`Klienti`), `archiveRoot` (`Archiv`) a `known` (`clientFolderId`, `serviceFolderIds`, `archived`). Dále:
 
-| Událost | Co má n8n udělat | `structure` navíc |
-|---|---|---|
-| `drive.client.create` | pod `clientsRoot` založit `clientFolder.name` a všechny `children` (rekurzivně; `service` u složky služby) | `clientFolder: {name, children: [{name, service?, children}]}` |
-| `drive.client.add_service` | v klientské složce (`client.folderId`) založit složky služeb | `clientFolder`, `services: [{service, name, children}]` |
-| `drive.client.rename` | složku `client.folderId` přejmenovat na `clientFolder.name` | `clientFolder: {name}` |
-| `drive.client.archive` | složku `client.folderId` přesunout do `archiveRoot` | `clientFolder` |
-| `drive.client.restore` | složku `client.folderId` přesunout z `archiveRoot` do `clientsRoot` | `clientFolder` |
-| `drive.project.create` | ve složce služby (`serviceFolder.folderId`, jinak ji najít/založit podle `serviceFolder.name` v klientské složce) založit `jobFolder.name` s `children` | `clientFolder`, `serviceFolder: {service, name, folderId}`, `jobFolder: {name, children}` |
+| Událost                    | Co má n8n udělat                                                                                                                                        | `structure` navíc                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `drive.client.create`      | pod `clientsRoot` založit `clientFolder.name` a všechny `children` (rekurzivně; `service` u složky služby)                                              | `clientFolder: {name, children: [{name, service?, children}]}`                            |
+| `drive.client.add_service` | v klientské složce (`client.folderId`) založit složky služeb                                                                                            | `clientFolder`, `services: [{service, name, children}]`                                   |
+| `drive.client.rename`      | složku `client.folderId` přejmenovat na `clientFolder.name`                                                                                             | `clientFolder: {name}`                                                                    |
+| `drive.client.archive`     | složku `client.folderId` přesunout do `archiveRoot`                                                                                                     | `clientFolder`                                                                            |
+| `drive.client.restore`     | složku `client.folderId` přesunout z `archiveRoot` do `clientsRoot`                                                                                     | `clientFolder`                                                                            |
+| `drive.project.create`     | ve složce služby (`serviceFolder.folderId`, jinak ji najít/založit podle `serviceFolder.name` v klientské složce) založit `jobFolder.name` s `children` | `clientFolder`, `serviceFolder: {service, name, folderId}`, `jobFolder: {name, children}` |
 
 Událost pro tentýž klient nikdy nepřijde souběžně s jinou (fronta po klientovi), takže „najít, nebo založit“ je bezpečné. **Callback:** `POST callbackUrl` podepsaný stejně (`INGEST_SECRET`), tělo
 
 ```json
-{ "eventId": "data.requestId (nebo id obálky)", "status": "ok|error",
-  "folders": { "root": "ID složky klienta", "services": { "web": "…", "marketing": "…", "systemy": "…" }, "project": "ID složky zakázky", "archive": "ID přesunuté složky" },
-  "error": "text chyby (u status error)" }
+{
+  "eventId": "data.requestId (nebo id obálky)",
+  "status": "ok|error",
+  "folders": {
+    "root": "ID složky klienta",
+    "services": { "web": "…", "marketing": "…", "systemy": "…" },
+    "project": "ID složky zakázky",
+    "archive": "ID přesunuté složky"
+  },
+  "error": "text chyby (u status error)"
+}
 ```
 
 Povinné u `ok`: `root` u `client.create`, `project` u `project.create`; u `archive` stačí vynechat `folders` (použije se známá složka). ID jsou jen znaky `A-Z a-z 0-9 _ -`. Duplicitní stejná odpověď se ignoruje; po chybě smí n8n poslat opravnou odpověď `ok` (a stejně tak pozdní po vypršení 10 minut).

@@ -15,3 +15,4 @@ export { InstallHint } from "./install-hint";
 export { shouldOpenStartSearch, installState, START_SEARCH_KEY } from "./start";
 export type { InstallState } from "./start";
 export { useVisualViewportVar } from "./viewport";
+export { DesktopOnly } from "./desktop-only";

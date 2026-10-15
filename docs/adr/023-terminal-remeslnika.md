@@ -1,6 +1,6 @@
 # ADR 023: Mobilní terminál řemeslníka
 
-- Stav: nahrazeno (2026-10-14): terminál řemeslníka byl při rozběhu OPSYS odstraněn (viz docs/opsys/E-rozbehovy-log.md); původně přijato 2026-10-10
+- Stav: nahrazeno ADR 028 (terminál řemeslníka odstraněn); původně nahrazeno (2026-10-14): terminál řemeslníka byl při rozběhu OPSYS odstraněn (viz docs/opsys/E-rozbehovy-log.md); původně přijato 2026-10-10
 - Kontext: [ADR 006](006-vrstvy-balicku.md) (moduly se neznají), [ADR 007](007-opravneni-v-datove-vrstve.md) (oprávnění v datové vrstvě),
   [ADR 012](012-moduly-prikazy-a-poskytovatele.md) (příkazy a poskytovatelé), [ADR 013](013-push-a-pwa.md) (PWA, fotky z terénu),
   [ADR 019](019-konfigurace-v-administraci.md) (konfigurace v administraci), [ADR 021](021-kontrola-roli-mobilu-a-pristupnosti.md) (role a mobil).

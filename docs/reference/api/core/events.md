@@ -9,7 +9,7 @@ Vstupní bod `@rebar/core/events` (soubor `packages/core/src/events/index.ts`). 
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
-| [`emitDomain`](#emitdomain) | function | Vyšle doménovou událost (D §2.1). Volat v transakci změny (`inTx`), aby handlery a (po C2) webhooky vznikly atomicky se změnou. V S0 zavolá `eventHandlers` zapnutých modulů v pořadí modulů; chyba handleru propadne a vrátí transakci. Doplní C2 (řádky `webhook_delivery`) a C3 (`pg_notify` pro realtime). `meta.entity.isPrivate` rozhoduje o webhookách a realtime; `meta.actor` přebije aktéra z `ctx` (n8n, Google, Meta). |  |
+| [`emitDomain`](#emitdomain) | function | Vyšle doménovou událost (D §2.1). Volat v transakci změny (`inTx`), aby handlery a webhooky vznikly atomicky se změnou: (1) zavolá `eventHandlers` zapnutých modulů v pořadí modulů (chyba handleru propadne a vrátí transakci), (2) je-li událost ve `WEBHOOK_EVENTS`, zapíše řádky `webhook_delivery` endpointům, které ji odebírají (soukromé záznamy jen endpointům `include_private`), (3) doplní C3 (`pg_notify` pro realtime). `meta.entity.isPrivate` rozhoduje o webhookách a realtime; `meta.actor` přebije aktéra z `ctx` (n8n, Google, Meta). |  |
 | [`setDomainEvents`](#setdomainevents) | function | Zaregistruje obsluhy událostí zapnutých modulů a továrnu na `ModuleDeps` (aplikace a worker při startu, testy podle potřeby). Bez registrace `emitDomain` jen vytvoří událost a nikomu ji nepředá. |  |
 | [`WEBHOOK_EVENTS`](contracts.md#webhook_events) | const | Události, které odcházejí i jako webhooky (ostatní jsou jen interní mezi moduly). `drive.*` jen endpointům `drive.*`. | v `@rebar/core/contracts` |
 | [`DomainEvent`](contracts.md#domainevent) | type | Událost tak, jak ji dostane `eventHandlers` modulu (a jak se serializuje do webhooku). | v `@rebar/core/contracts` |
@@ -22,9 +22,10 @@ Vstupní bod `@rebar/core/events` (soubor `packages/core/src/events/index.ts`). 
 
 function · `packages/core/src/events/index.ts`
 
-Vyšle doménovou událost (D §2.1). Volat v transakci změny (`inTx`), aby handlery a (po C2) webhooky vznikly
-atomicky se změnou. V S0 zavolá `eventHandlers` zapnutých modulů v pořadí modulů; chyba handleru propadne a vrátí
-transakci. Doplní C2 (řádky `webhook_delivery`) a C3 (`pg_notify` pro realtime).
+Vyšle doménovou událost (D §2.1). Volat v transakci změny (`inTx`), aby handlery a webhooky vznikly atomicky se
+změnou: (1) zavolá `eventHandlers` zapnutých modulů v pořadí modulů (chyba handleru propadne a vrátí transakci),
+(2) je-li událost ve `WEBHOOK_EVENTS`, zapíše řádky `webhook_delivery` endpointům, které ji odebírají (soukromé záznamy
+jen endpointům `include_private`), (3) doplní C3 (`pg_notify` pro realtime).
 `meta.entity.isPrivate` rozhoduje o webhookách a realtime; `meta.actor` přebije aktéra z `ctx` (n8n, Google, Meta).
 
 ```ts

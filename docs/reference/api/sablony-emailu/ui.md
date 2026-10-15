@@ -9,14 +9,16 @@ Vstupní bod `@rebar/sablony-emailu/ui` (soubor `packages/modules/sablony-emailu
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
-| [`ui`](#ui) | const | UI modulu „sablony-emailu“. Zástupné stránky nahradí skutečné UI. |  |
+| [`ui`](#ui) | const | UI modulu „sablony-emailu“: editor šablony s proměnnými a živým náhledem (záložka na detailu šablony), akce „E-mail ze šablony“ u kontaktu, organizace (klienta), obchodu a zakázky a položka v paletě. Seznam šablon dodává generická trasa entity `email_template`. |  |
 
 ### ui
 
 const · `packages/modules/sablony-emailu/src/ui.tsx`
 
-UI modulu „sablony-emailu“. Zástupné stránky nahradí skutečné UI.
+UI modulu „sablony-emailu“: editor šablony s proměnnými a živým náhledem (záložka na detailu šablony), akce „E-mail ze
+šablony“ u kontaktu, organizace (klienta), obchodu a zakázky a položka v paletě. Seznam šablon dodává generická trasa
+entity `email_template`.
 
 ```ts
-const ui: { readonly pages: readonly [{ readonly path: "/sablony-emailu"; readonly render: () => import("react").JSX.Element; }]; }
+const ui: { readonly recordTabs: { readonly email_template: readonly [{ readonly id: "text"; readonly label: "Text e-mailu"; readonly icon: "mail-template"; readonly order: 5; readonly permission: "sablony-emailu.read"; readonly render: ({ id, row }…
 ```

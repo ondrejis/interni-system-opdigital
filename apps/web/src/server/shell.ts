@@ -91,7 +91,9 @@ export async function loadShell(ctx: Ctx): Promise<ShellData> {
     sections,
     entityPaths: Object.fromEntries(registry.all().map((e) => [e.key, e.listPath])),
     creatable: entities
-      .filter((e) => scopeOf(ctx, e.permissions.create ?? e.permissions.write) !== null)
+      .filter(
+        (e) => !e.noCreate && scopeOf(ctx, e.permissions.create ?? e.permissions.write) !== null,
+      )
       .map((e) => ({ key: e.key, label: e.label.one, listPath: e.listPath })),
   };
 }

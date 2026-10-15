@@ -5,6 +5,7 @@ import { defineModuleUi, mergeModuleUi, type RecordAction } from "@rebar/ui";
 import { AresUpdateDialogBody } from "./ui/ares";
 import { AresIntegrationPanel } from "./ui/ares-panel";
 import { CompanyContacts, CompanyDuplicatesCard, PersonCompaniesCard } from "./ui/cards";
+import { mobileUi } from "./mobile/ui";
 import { MergeForm } from "./ui/merge-dialog";
 import { PointsCard } from "./ui/points-card";
 import { NewContactPage } from "./ui/quick-contact";
@@ -136,7 +137,7 @@ export const ui = mergeModuleUi(
             render: ({ id, close }) => <AresUpdateDialogBody companyId={id} close={close} />,
           },
         },
-        ...callActions(),
+        // „Zavolat“ a „Napsat e-mail“ u organizace dodávají hlavička klienta (KLI-04) a modul e-mailových šablon
         mergeAction("company"),
       ],
       person: [...callActions(), mergeAction("person")],
@@ -165,4 +166,5 @@ export const ui = mergeModuleUi(
       },
     ],
   }),
+  mobileUi,
 );

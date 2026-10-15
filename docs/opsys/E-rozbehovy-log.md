@@ -179,3 +179,57 @@ Na čistém clusteru 5434: `pnpm db:reset`, `pnpm db:migrate` (jádro `0013_opsy
 - Stránka Systém se v prohlížeči nespustila (datová vrstva je testovaná, `tsc` čistý).
 - `tests/security-static.test.ts` (blok Caddyfile) čeká na úpravu INT (matcher `/api/intake/*` zanikl; ZADOSTI). `tests/docs.test.ts` a `sql.raw` v `finance/src/data/settlements.ts:72` padají z cizích důvodů.
 - NFR-12 chce týdenní zkoušku obnovy, zadání OPS měsíční: implementováno měsíčně (ZADOSTI architektovi).
+
+# QA-SEC: audit soukromí a bezpečnosti (2026-10-15)
+
+## QA-SEC.1 Co vzniklo
+
+- **Sestava** (`tests/support/fixture.ts`): `buildPrivateFixture` dokončena (platba přes příkaz `finance.payment.create`, helper `addPayment`; `fullDeps(f)` = `ModuleDeps` se službami a příspěvky všech modulů jako v aplikaci), nově `buildRichData` (úkoly po termínu, platby zaplacené/po splatnosti/brzy splatné, hodiny tento týden, složky Disku a požadavek, události kalendáře, zakázka sdílená pod soukromou firmou, osoby/obchody/poznámky u sdílené firmy). Soukromé záznamy mají `PRIVATE-CANARY-…` v názvu, soukromá platba má částku `PRIVATE_AMOUNT_MINOR` (987 654 321).
+- **`tests/private-paths.int.test.ts`** (14): sondy se skládají přímo z registrů (`tests/support/probes-private.ts`: widgety, pozornost, metriky vč. období/parametrů, vrstvy kalendáře, odznaky, příspěvky karty klienta s výslovně soukromými ID, e-mailové proměnné, služby `tasks`/`finance`/`disk`, hledání, historie, export historie, naposledy otevřené) + všech 97 deklarovaných `privatePaths` (celkem 226 sond). Partner: žádný canary, žádná chyba kromě odmítnutí, a výsledek je **shodný s výsledkem po „smazání“ soukromých řádků** (součty, počty, pořadí). Vlastník: canary, nebo se výsledek liší od partnerova (výjimky v `NEUTRAL_FOR_OWNER` se zdůvodněním). Negativní kontrola: po „zveřejnění“ všeho v DB partner canary ve stejných sondách uvidí (> 50 %), takže sondy únik opravdu odhalí. **Selhání při nové cestě:** (a) každá metrika, vrstva, odznak a služba musí mít záznam v `privatePaths`; (b) snímek `READERS` všech souborů v `packages/modules`, které čtou tabulky se zámkem (`from(job)`, `join company`…): nový čtecí soubor test shodí, dokud se nezapíše, čím je pokrytý (ověřeno vložením dočasného souboru). Nová položka registru (widget, metrika, vrstva, …) se testuje automaticky i bez záznamu v `privatePaths`.
+- **`tests/qa-private-scenarios.int.test.ts`** (23): AS-05 (detaily a přehledy soukromé zakázky, hodiny, kalendář „Obsazeno“, Disk R-13, saldo a součty, přehledy financí s `includePrivate`, hledání, historie, soubory, odchozí webhooky: soukromé jen endpointu `include_private`, realtime filtr), AS-06 (přiřazení soukromého úkolu/zakázky/obchodu/firmy/osoby partnerovi → `private_assign`, „Zveřejnit a přiřadit“), AS-15 (zveřejnění/zamčení přepočte seznamy, součty, hledání; historie z doby soukromí zůstává skrytá; vlastní zámek dítěte přežije zveřejnění rodiče), R-31.
+- **`tests/qa-private-commands.int.test.ts`** (3): hádání ID, partner volá každý příkaz s ID soukromých záznamů (47 příkazů, 123 volání; 105 příkazů s dalšími povinnými poli se přeskočilo): nikdy canary, nikdy úspěšný zápis, výjimky ve schváleném seznamu.
+- **`tests/qa-secrets.int.test.ts`** (4): token Meta a klíč Fakturoidu se uloží příkazem, pak se prohledá odpověď příkazů i **každá tabulka DB** (historie, příchozí události, doručení webhooků): čitelné tajemství nikde, v `integration_credential` jen obálka šifry.
+- **`tests/security-matrix.int.test.ts`**: doplněna datová část (externí bez oprávnění × každá entita: seznam, vytvoření, detail, smazání, hledání; partner: čtení/zápis/smazání podle role, Můj prostor nevidí; rozsah „jen moje“ vč. komentářů a hledání; export). `tests/security-static.test.ts`: test Caddyfile podle nového (`@small` = auth, pozvánky, push, Google webhook; `@ingest`), sken tajemství přeskakuje `.next*`, interní název povoluje `rebar_*` (DB pro testy).
+- `tests/private-matrix.int.test.ts` a `tests/trash.int.test.ts`: platby se zakládají přes `addPayment`/službu financí (entita `payment` je `noCreate`).
+
+## QA-SEC.2 Opravy v cizích souborech (jednořádkové, vždy s testem)
+
+- `packages/core/src/trash/tree.ts`: kaskáda koše přeskočí podřízené tabulky bez sloupce `id` (`payment_allocation`, složený klíč). Dřív smazání zakázky nebo platby spadlo (`update … where = $6`). Test: `tests/trash.int.test.ts` (6).
+- `packages/modules/kontakty/src/ares-service.ts`: `loadCompany` jde přes `privateScope`; `kontakty.ares` s `companyId` soukromé organizace dřív vrátil partnerovi její údaje (IČO, názvy v diffu). Test: `qa-private-commands`.
+- `packages/modules/kalendar/src/google/range.ts`: `eventsForRecord` nevrací události navázané na obchod/organizaci/kontakt, který aktér nesmí vidět. Test: `qa-private-commands` (`kalendar.forRecord`).
+- `packages/modules/disk/src/facts.ts`: `countByState` předával `Date` do surového `sql` (pád `disk.status` a Nastavení → Google Disk); nyní `gte(sloupec, datum)`. Test: `private-paths` (`path:disk.status`).
+- `packages/modules/finance/src/data/index.ts`: privatePath `finance.clientCard.tabCounts` volala `listPayments` s `registry: undefined` (pád); používá `deps`.
+- `packages/modules/finance/src/data/settlements.ts:72`: `sql.raw` nahrazen `inArray`. Nešlo o injekci (hodnoty `basis` jsou uzavřená dvojice konstant, vstup je zod enum), jen o výjimku z pravidla „žádné `sql.raw`“; `security-static` je zelený bez výjimky.
+- `packages/modules/ukoly/src/tasks/providers.ts`: doplněna privatePath `ukoly.metric.open` (metrika `ukoly.open` neměla záznam).
+- `packages/modules/reklama/src/meta/real-client.ts`: `paging.next` se následuje jen na `https://graph.facebook.com/…` (jinak by hostilní odpověď odnesla přístupový token na cizí adresu).
+- `.gitignore`: přidáno `.next-*/` (vývojářské sestavy `.next-mob`, `.next-kalb` byly v gitu, 322 souborů; koordinátor je musí odebrat z indexu `git rm -r --cached apps/web/.next-*`).
+
+## QA-SEC.3 Rozpory se spec a otevřené nálezy
+
+- **R-31 (nesoulad spec × implementace?):** spec 00 (§Viditelnost, bod 4) říká jen „úkoly a poznámky soukromé zakázky, její platby a hodiny jsou automaticky soukromé“; o dědění od soukromé organizace mlčí. C (R-31) a D §5.1(4) rozhodují: organizace a kontakt jsou kořeny, nekaskádují do obchodů a zakázek; Patrik soukromou firmu nevybere. Implementace to dělá (`company`/`person` bez `parents`; vlastník založí sdílenou zakázku pod soukromou firmou a zakázka je sdílená; partner záznam s odkazem na soukromou firmu nevytvoří, všech 5 pokusů odmítnuto). Důsledek, který spec nepopisuje: **sdílená zakázka pod soukromou firmou je pro partnera vidět** (firma maskovaná jako „Soukromý záznam“) a její sdílené platby/hodiny se počítají do jeho součtů; `finance.client.overview` s ID takové firmy vrací její sdílené platby (nález níže). Nehlásím jako „opraveno“, rozhodnutí je na vlastníkovi specifikace.
+- **Číslování scénářů:** v `C-digest` je AS-05 soukromá zakázka (včetně „Zveřejnit a přiřadit“), AS-06 role a oprávnění, AS-15 koš, historie a webhooky; zadání QA-SEC značí AS-06 = přiřazení soukromého úkolu a AS-15 = přepnutí viditelnosti. Testy pokrývají obsah ze zadání i z digestu (webhooky HMAC a retry kryje `packages/core/src/webhooks`).
+- **Otevřeno (nízká):** `finance.client.overview` pro ID neviditelné (soukromé) firmy vrací sdílené platby místo `NotFound` → FIN-B. Příkaz je ve schváleném seznamu `qa-private-commands`.
+- **Otevřeno (informativní):** ingest běží jako systémový aktér (`private.read`): Meta lead se páruje i se soukromou firmou (IČO, název) a soukromou osobou (e-mail, telefon) a vznikne sdílený obchod pod soukromým záznamem; partner vidí obchod, ne firmu. Spec/R-31 to neřeší → REK-A / KON (doporučení: lead nepárovat na soukromé záznamy).
+- **Otevřeno (informativní):** událost z Google Kalendáře vlastníka bez příznaku „soukromá“, navázaná na soukromý obchod/firmu, ukáže partnerovi svůj Google název (odkaz na obchod je skrytý). R-14 řeší jen soukromý úkol a příznak Googlu.
+- Mimo moje cesty (červené, neskrývám): `tests/platform-s1.int.test.ts` (2 testy: typ úkolu `task` bez seedu a `settlement` je `noCreate`) a `tests/docs.test.ts` (4: interní název v dokumentech, `docs/INDEX.md`, `docs/moduly/finance.md`) → INT/PRE.
+- Pokrytí hádání ID: 105 příkazů s dalšími povinnými vstupy se neprobíralo (jen bránou oprávnění v `security-matrix` a ručními testy modulů).
+
+## QA-SEC.4 Jak ověřit
+
+`REBAR_TEST_DB_NAME=rebar_test_qasec pnpm exec vitest run tests/private-paths.int.test.ts tests/qa-private-scenarios.int.test.ts tests/qa-private-commands.int.test.ts tests/qa-secrets.int.test.ts tests/private-matrix.int.test.ts tests/security-matrix.int.test.ts tests/security-static.test.ts tests/trash.int.test.ts`; ladění sond: `QASEC_DUMP=cesta.json` zapíše výsledky všech sond (partner / vlastník / po smazání).
+
+# INT: integrace (2026-10-15)
+
+## INT.1 Co se udělalo
+
+- **ZADOSTI:** každý řádek je označen „VYŘÍZENO (INT)“, „ODLOŽENO (INT) → F-n“ nebo „bez akce INT“; odložené jsou v [F-otevrene-body.md](F-otevrene-body.md).
+- **Kontrakty a moduly:** `ServiceMap.emailTemplates` + `SERVICE_OWNERS` + registrace ve `sablony-emailu`, bez přetypování v `muj-prostor`; `RecordAction.order`/`render`; `createDealFromLead` s `companyId: string | null`; `finance.client.overview` skrývá soukromou firmu; „Zavolat“ a „Napsat e-mail“ u organizace pryč.
+- **Platforma:** katalog upozornění jen `comment.mention` (v klientovi vypnutá), `runSeed` bez DPH, relace 30 dní, pozvánka 48 h, šablona pozvánky z `expiresIn`, `dev:seed --no-2fa` zrušen (2FA nejde vypnout).
+- **Aplikace:** sekce Nastavení (pole oprávnění, Profil), `creatable` bez `noCreate`, přesměrování kořene sekce (`/muj-prostor`), `DesktopOnly`, `InstallHint`.
+- **Testy:** opraveny `platform-s1`, `sections`, `seed`, `kalendar-google` a `muj-prostor-faktury` (typy), `docs`; nový `apps/web/e2e-crawl/routes.crawl.spec.ts`; `e2e/auth.setup.ts`, `global-setup.ts`, `playwright.config.ts`, `smoke.spec.ts`.
+- **Úklid:** `packages/_donor`, `apps/web/.next-kalb` a prázdný `idget-card.tsx` smazány; ESLint a Vitest ignorují `.next-*`; `@tiptap/*` zůstal jen v `ukoly`; formátování `drizzle/meta`.
+- **Dokumentace:** README, ARCHITECTURE, ADR 028 (+ stavy ADR 015–018, 023, 027), CHANGELOG, `docs/_archiv/` (CRM, Zakázka jako kořen), `docs/INDEX.md` (skupiny v `scripts/docs/sections/docs-meta.ts`), NOTIFICATIONS, SECURITY, DEPLOYMENT (Meta bez OAuth), F-otevrene-body.
+
+## INT.2 Stav kontrol
+
+Na vlastní databázi `opsys_int` (cluster 5434): `db:migrate`, `db:seed`, `dev:seed`, `pnpm build`, produkční server a crawl navigace (vlastník i partner) bez 404 a 5xx; `drizzle-kit generate` ve všech 14 balíčcích „No schema changes“. Migrace nebyly squashnuty (F-14). Výsledky `format:check`, `lint`, `typecheck`, `docs:check`, `docs:coverage --check`, `config:check` a `pnpm test` jsou v reportu INT; neověřené věci v [F-otevrene-body.md](F-otevrene-body.md) §2.

@@ -9,7 +9,7 @@ Modul [Zakázky](../moduly/zakazky.md). Počet tabulek: 5.
 
 ## job
 
-Zakázka. Číslo se přiděluje z číselné řady `zakazky.cislo` ve stejné transakci jako založení.
+Zakázka. `number` se přiděluje z řady `zakazky.cislo` (`Z-{YYYY}-{NNN}`). Viditelnost: kořen s vlastním zámkem (rodiče nemá; soukromý klient do zakázek nedědí, R-31). Odkazy na organizaci, obchod a aktuální fázi jsou měkké (bez cizího klíče). `drive_*` píše jen modul Disk, `marketing_stage` modul Finance přes `setMarketingStage`.
 
 Definice: `packages/modules/zakazky/src/schema.ts`.
 
@@ -18,85 +18,52 @@ Definice: `packages/modules/zakazky/src/schema.ts`.
 | `id` | `uuid` | ne | generuje aplikace | PK |
 | `number` | `text` | ne |  |  |
 | `title` | `text` | ne |  |  |
-| `company_id` | `uuid` | ne |  | → company.id (při smazání: no action) |
-| `person_id` | `uuid` | ano |  | → person.id (při smazání: no action) |
-| `stage_id` | `uuid` | ne |  | → pipeline_stage.id (při smazání: no action) |
-| `value_minor` | `bigint` | ne | `0` |  |
-| `currency` | `text` | ne | `'CZK'` |  |
-| `address` | `text` | ano |  |  |
+| `company_id` | `uuid` | ne |  |  |
+| `type` | `text` | ne |  | hodnoty: web, marketing, systemy |
+| `status` | `text` | ne | `'planned'` | hodnoty: planned, active, paused, done, cancelled |
+| `current_phase_id` | `uuid` | ano |  |  |
+| `billing_model` | `text` | ne | `'one_off'` | hodnoty: one_off, intro_then_retainer, retainer, hourly |
+| `marketing_stage` | `text` | ano |  | hodnoty: intro, decision, retainer, ended |
+| `owner_id` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `start_date` | `date` | ano |  |  |
-| `end_date` | `date` | ano |  |  |
-| `manager_id` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `due_date` | `date` | ano |  |  |
+| `completed_at` | `timestamp with time zone` | ano |  |  |
+| `price_minor` | `bigint` | ano |  |  |
 | `description` | `text` | ano |  |  |
-| `phase` | `text` | ne | `'preparation'` |  |
-| `phase_changed_at` | `timestamp with time zone` | ano |  |  |
-| `paused_from` | `text` | ano |  |  |
-| `lost_reason` | `text` | ano |  |  |
-| `won_at` | `date` | ano |  |  |
-| `handover_at` | `date` | ano |  |  |
-| `closed_at` | `date` | ano |  |  |
-| `warranty_months` | `integer` | ano |  |  |
-| `warranty_until` | `date` | ano |  |  |
-| `color` | `text` | ano |  |  |
-| `source_inquiry_id` | `uuid` | ano |  |  |
-| `template_id` | `uuid` | ano |  |  |
-| `expected_close_date` | `date` | ano |  |  |
-| `crm_probability_pct` | `smallint` | ano |  |  |
-| `crm_source` | `text` | ano |  |  |
-| `crm_source_channel` | `text` | ano |  |  |
-| `crm_campaign` | `text` | ano |  |  |
-| `site_city` | `text` | ano |  |  |
-| `crm_stage_entered_at` | `timestamp with time zone` | ano |  |  |
-| `crm_next_activity_at` | `timestamp with time zone` | ano |  |  |
-| `crm_last_activity_at` | `timestamp with time zone` | ano |  |  |
-| `crm_open_activities` | `integer` | ne | `0` |  |
-| `crm_overdue_activities` | `integer` | ne | `0` |  |
-| `crm_rotting` | `boolean` | ne | `false` |  |
-| `crm_weighted_minor` | `bigint` | ne | `0` |  |
-| `crm_archived_at` | `timestamp with time zone` | ano |  |  |
-| `crm_lost_note` | `text` | ano |  |  |
+| `deal_id` | `uuid` | ano |  |  |
+| `template_id` | `uuid` | ano |  | → job_template.id (při smazání: no action) |
+| `drive_folder_id` | `text` | ano |  |  |
+| `drive_status` | `text` | ne | `'none'` | hodnoty: none, pending, ready, error, timeout |
+| `is_private` | `boolean` | ne | `false` |  |
+| `visibility_source` | `text` | ne | `'own'` | hodnoty: own, inherited |
+| `tags` | `text[]` | ne | `'{}'::text[]` |  |
 | `custom` | `jsonb` | ne | `'{}'::jsonb` |  |
 | `created_at` | `timestamp with time zone` | ne | `now()` |  |
 | `updated_at` | `timestamp with time zone` | ne | `now()` |  |
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
 | `job_number_uq` | `number` | unikátní |
-| `job_phase_idx` | `phase` |  |
 | `job_company_idx` | `company_id` |  |
-| `job_stage_idx` | `stage_id` |  |
-| `job_manager_idx` | `manager_id` |  |
-| `job_crm_close_idx` | `expected_close_date` |  |
-| `job_crm_next_activity_idx` | `crm_next_activity_at` |  |
+| `job_owner_idx` | `owner_id` |  |
+| `job_status_idx` | `status`, `type` |  |
+| `job_deal_idx` | `deal_id` | částečný |
+| `job_due_idx` | `due_date` | částečný |
+| `job_template_idx` | `template_id` |  |
 | `job_title_trgm_idx` | `(výraz)` |  |
 | `job_number_trgm_idx` | `(výraz)` |  |
-| `job_address_trgm_idx` | `(výraz)` |  |
+| `job_tags_idx` | `tags` |  |
 | `job_custom_idx` | `custom` |  |
+| `job_private_idx` | `is_private` | částečný |
 
-## job_member
+## job_phase
 
-Tým zakázky. Člen týmu zakázku vidí i při oprávnění „jen moje“.
-
-Definice: `packages/modules/zakazky/src/schema.ts`.
-
-| Sloupec | Typ | Může být prázdný | Výchozí | Poznámka |
-| --- | --- | --- | --- | --- |
-| `job_id` | `uuid` | ne |  | PK; → job.id (při smazání: cascade) |
-| `user_id` | `uuid` | ne |  | PK; → user.id (při smazání: no action) |
-| `role` | `text` | ano |  |  |
-
-| Index | Sloupce | Druh |
-| --- | --- | --- |
-| `job_member_user_idx` | `user_id` |  |
-
-Složený primární klíč: `job_id`, `user_id`.
-
-## job_stage_history
-
-Historie stavů zakázky: jeden řádek na pobyt ve stavu (`left_at` je prázdné u aktuálního). Zapisuje ji změna stavu (`lifecycle/history.ts`); z ní se počítají dny ve stavu (pás fází), konverze a rychlost obchodu.
+Fáze zakázky (z šablony typu, upravitelné). Zdědí viditelnost zakázky (bez vlastního zámku).
 
 Definice: `packages/modules/zakazky/src/schema.ts`.
 
@@ -104,34 +71,73 @@ Definice: `packages/modules/zakazky/src/schema.ts`.
 | --- | --- | --- | --- | --- |
 | `id` | `uuid` | ne | generuje aplikace | PK |
 | `job_id` | `uuid` | ne |  | → job.id (při smazání: no action) |
-| `stage_id` | `uuid` | ne |  | → pipeline_stage.id (při smazání: no action) |
-| `phase` | `text` | ano |  |  |
-| `entered_at` | `timestamp with time zone` | ne | `now()` |  |
-| `left_at` | `timestamp with time zone` | ano |  |  |
-| `changed_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `name` | `text` | ne |  |  |
+| `position` | `integer` | ne |  |  |
+| `role` | `text` | ano |  | hodnoty: intro_evaluation, retainer |
+| `status` | `text` | ne | `'not_started'` | hodnoty: not_started, in_progress, done, skipped |
+| `planned_start` | `date` | ano |  |  |
+| `planned_end` | `date` | ano |  |  |
+| `completed_at` | `timestamp with time zone` | ano |  |  |
+| `is_private` | `boolean` | ne | `false` |  |
+| `visibility_source` | `text` | ne | `'own'` | hodnoty: own, inherited |
+| `created_at` | `timestamp with time zone` | ne | `now()` |  |
+| `updated_at` | `timestamp with time zone` | ne | `now()` |  |
+| `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
-| `job_stage_history_job_idx` | `job_id`, `entered_at` |  |
-| `job_stage_history_stage_idx` | `stage_id` |  |
+| `job_phase_job_idx` | `job_id`, `position` |  |
+| `job_phase_status_idx` | `status` |  |
+| `job_phase_private_idx` | `is_private` | částečný |
 
-## job_participant
+## job_member
 
-Další lidé na zakázce kromě hlavní kontaktní osoby (investor, TDI, projektant…), s rolí na zakázce.
+Tým zakázky: vedoucí a členové. Člen zakázku vidí i při oprávnění „jen moje“.
 
 Definice: `packages/modules/zakazky/src/schema.ts`.
 
 | Sloupec | Typ | Může být prázdný | Výchozí | Poznámka |
 | --- | --- | --- | --- | --- |
 | `id` | `uuid` | ne | generuje aplikace | PK |
-| `job_id` | `uuid` | ne |  | → job.id (při smazání: cascade) |
-| `person_id` | `uuid` | ne |  | → person.id (při smazání: no action) |
+| `job_id` | `uuid` | ne |  | → job.id (při smazání: no action) |
+| `user_id` | `uuid` | ne |  | → user.id (při smazání: no action) |
+| `role` | `text` | ne | `'member'` | hodnoty: lead, member |
+| `created_at` | `timestamp with time zone` | ne | `now()` |  |
+| `updated_at` | `timestamp with time zone` | ne | `now()` |  |
+| `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
+
+| Index | Sloupce | Druh |
+| --- | --- | --- |
+| `job_member_uq` | `job_id`, `user_id` | unikátní, částečný |
+| `job_member_user_idx` | `user_id` |  |
+
+## job_participant
+
+Další kontakty na zakázce (investor, TDI, projektant…) s rolí na zakázce.
+
+Definice: `packages/modules/zakazky/src/schema.ts`.
+
+| Sloupec | Typ | Může být prázdný | Výchozí | Poznámka |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | ne | generuje aplikace | PK |
+| `job_id` | `uuid` | ne |  | → job.id (při smazání: no action) |
+| `person_id` | `uuid` | ne |  |  |
 | `role` | `text` | ano |  |  |
 | `created_at` | `timestamp with time zone` | ne | `now()` |  |
 | `updated_at` | `timestamp with time zone` | ne | `now()` |  |
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -140,7 +146,7 @@ Definice: `packages/modules/zakazky/src/schema.ts`.
 
 ## job_template
 
-Šablona zakázky: úkoly, složky a role týmu v JSON (tvar určuje `templates` v modulu).
+Šablona zakázky: fáze, úkoly a platby ve verzovaném JSON (`payload`). Archivuje se, nemaže.
 
 Definice: `packages/modules/zakazky/src/schema.ts`.
 
@@ -148,13 +154,24 @@ Definice: `packages/modules/zakazky/src/schema.ts`.
 | --- | --- | --- | --- | --- |
 | `id` | `uuid` | ne | generuje aplikace | PK |
 | `name` | `text` | ne |  |  |
+| `type` | `text` | ne |  | hodnoty: web, marketing, systemy |
 | `description` | `text` | ano |  |  |
-| `payload` | `jsonb` | ne | `'{}'::jsonb` |  |
+| `default_billing_model` | `text` | ne | `'one_off'` | hodnoty: one_off, intro_then_retainer, retainer, hourly |
+| `is_default` | `boolean` | ne | `false` |  |
+| `archived_at` | `timestamp with time zone` | ano |  |  |
+| `payload` | `jsonb` | ne | `'{"v":1,"phases":[],"tasks":[],"payments":[]}'::jsonb` |  |
 | `created_at` | `timestamp with time zone` | ne | `now()` |  |
 | `updated_at` | `timestamp with time zone` | ne | `now()` |  |
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
+
+| Index | Sloupce | Druh |
+| --- | --- | --- |
+| `job_template_type_idx` | `type` |  |
+| `job_template_default_uq` | `type` | unikátní, částečný |
 
 ## Migrace
 
@@ -162,4 +179,4 @@ Složka `packages/modules/zakazky/drizzle`; pouze dopředné a zpětně kompatib
 
 | Pořadí | Název | Datum | Obsah |
 | --- | --- | --- | --- |
-| 0 | `0000_init` | 2026-10-14 | CREATE TABLE ×5, ALTER TABLE ×17, CREATE UNIQUE INDEX ×2, CREATE INDEX ×14; tabulky: job, job_member, job_participant, job_stage_history, job_template |
+| 0 | `0000_init` | 2026-10-14 | CREATE TABLE ×5, ALTER TABLE ×21, CREATE UNIQUE INDEX ×4, CREATE INDEX ×17; tabulky: job, job_member, job_participant, job_phase, job_template |

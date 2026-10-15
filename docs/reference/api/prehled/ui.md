@@ -9,13 +9,16 @@ Vstupní bod `@rebar/prehled/ui` (soubor `packages/modules/prehled/src/ui.tsx`).
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
-| [`ui`](#ui) | const | UI modulu „prehled“. Zástupné stránky nahradí skutečné UI. |  |
+| [`ui`](#ui) | const | UI modulu „prehled“. Skutečnou stránku `/prehled` vykresluje statická trasa aplikace (`apps/web/src/app/(app)/prehled`), protože potřebuje server actions nástěnek, které modul nezná; trasa předběhne obecný host stránek modulu, takže tato zástupná stránka se nikdy neukáže (test `tests/modules.test.ts` ji vyžaduje ke každé stránce z manifestu). |  |
 
 ### ui
 
 const · `packages/modules/prehled/src/ui.tsx`
 
-UI modulu „prehled“. Zástupné stránky nahradí skutečné UI.
+UI modulu „prehled“. Skutečnou stránku `/prehled` vykresluje statická trasa aplikace
+(`apps/web/src/app/(app)/prehled`), protože potřebuje server actions nástěnek, které modul nezná; trasa předběhne
+obecný host stránek modulu, takže tato zástupná stránka se nikdy neukáže (test `tests/modules.test.ts` ji vyžaduje
+ke každé stránce z manifestu).
 
 ```ts
 const ui: { readonly pages: readonly [{ readonly path: "/prehled"; readonly render: () => import("react").JSX.Element; }]; }

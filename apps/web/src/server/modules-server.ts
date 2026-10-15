@@ -68,6 +68,7 @@ export const SERVICE_OWNERS: Record<keyof ServiceMap, ModuleId> = {
   disk: "disk",
   tasks: "ukoly",
   finance: "finance",
+  emailTemplates: "sablony-emailu",
 };
 
 export type Collected = {

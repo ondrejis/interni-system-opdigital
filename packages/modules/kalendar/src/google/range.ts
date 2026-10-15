@@ -227,6 +227,19 @@ export async function eventsForRecord(
   },
 ): Promise<CalendarItemDto[]> {
   const viewer = viewerOf(ctx);
+  // cíl, který aktér nesmí vidět (soukromý obchod, organizace, kontakt), události nevrací (QA-SEC)
+  const target = q.dealId
+    ? (["deal", q.dealId] as const)
+    : q.companyId
+      ? (["company", q.companyId] as const)
+      : q.personId
+        ? (["person", q.personId] as const)
+        : null;
+  if (
+    target &&
+    (await visibleRecordTitles(ctx, env.registry, target[0], [target[1]]))[target[1]] === undefined
+  )
+    return [];
   const match = q.dealId
     ? eq(calendarEvent.dealId, q.dealId)
     : q.companyId

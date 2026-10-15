@@ -1,6 +1,13 @@
 "use client";
 
-import { Button, Combobox, FormSection, SegmentedControl, SettingsPage } from "@rebar/ui";
+import {
+  Button,
+  Combobox,
+  FormSection,
+  InstallHint,
+  SegmentedControl,
+  SettingsPage,
+} from "@rebar/ui";
 import { Palette } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -107,6 +114,7 @@ export function AppearanceForm({
                 }
               />
             </div>
+            <InstallHint />
           </div>
         </FormSection>
       </form>

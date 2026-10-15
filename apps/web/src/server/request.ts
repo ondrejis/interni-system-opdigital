@@ -16,7 +16,6 @@ export const getCtx = cache(async (): Promise<Ctx | null> => {
     db: s.db,
     headers: await headers(),
     catalog: s.catalog,
-    maxSessionAgeDays: 30,
   });
 });
 

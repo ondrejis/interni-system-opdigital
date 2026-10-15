@@ -1,7 +1,7 @@
 # ADR 018: Detail zakázky, stavební deník a odkaz pro investora
 
-- Stav: přijato (2026-10-09)
-- Kontext: ADR 015 (zakázka jako kořen), ADR 010 (registr entit a UI), ADR 012 (moduly, příkazy a poskytovatelé), `docs/ZAKAZKA.md`
+- Stav: v OPSYS se nepoužívá (stavební deník a investor odstraněny, viz ADR 028); původně přijato (2026-10-09)
+- Kontext: ADR 015 (zakázka jako kořen), ADR 010 (registr entit a UI), ADR 012 (moduly, příkazy a poskytovatelé), `docs/_archiv/ZAKAZKA.md`
 
 ## Rozhodnutí
 

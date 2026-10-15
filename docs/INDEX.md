@@ -17,20 +17,39 @@ Co systém je, jak je postavený a jak se upravuje pro klienta.
 
 ## OPSYS: zadání, rozbor jádra a rozběh
 
-Pracovní dokumenty projektu OPSYS (interní systém agentury): zadání, analýzy jádra a modulů, digest specifikace, plán a log rozběhu. Specifikace od zadavatele je v `docs/specifikace/`.
+Pracovní dokumenty projektu OPSYS (interní systém agentury): zadání, analýzy jádra a modulů, digest specifikace, plán, kontrakty C1 a C3, log rozběhu, žádosti mezi agenty, otevřené body a specifikace od zadavatele.
 
 - [OPSYS — společné zadání pro všechny agenty (čti jako první)](opsys/00-ZADANI.md) (`docs/opsys/00-ZADANI.md`)
 - [A: Inventura jádra pro OPSYS](opsys/A-core-inventura.md) (`docs/opsys/A-core-inventura.md`)
 - [OPSYS – B: audit modulů jádra Rebar vůči specifikaci](opsys/B-audit-modulu.md) (`docs/opsys/B-audit-modulu.md`)
 - [OPSYS – digest specifikace (C)](opsys/C-digest-specifikace.md) (`docs/opsys/C-digest-specifikace.md`)
+- [C1: viditelnost (zámek), koš, štítky, role: API pro moduly](opsys/C1-viditelnost-a-kos.md) (`docs/opsys/C1-viditelnost-a-kos.md`)
+- [C3: realtime, historie změn, paleta Cmd+K, seznamy](opsys/C3-realtime-historie-hledani.md) (`docs/opsys/C3-realtime-historie-hledani.md`)
 - [D – Plán, kontrakty a rozdělení práce OPSYS (ZÁVAZNÉ)](opsys/D-plan-a-kontrakty.md) (`docs/opsys/D-plan-a-kontrakty.md`)
 - [OPSYS – E: log rozběhu (odstranění stavebních modulů, klient opsys, lokální vývoj)](opsys/E-rozbehovy-log.md) (`docs/opsys/E-rozbehovy-log.md`)
+- [OPSYS: F: otevřené body po integraci](opsys/F-otevrene-body.md) (`docs/opsys/F-otevrene-body.md`)
+- [ZADOSTI: žádosti o změnu sdílených míst](opsys/ZADOSTI.md) (`docs/opsys/ZADOSTI.md`)
+- [OPSIS – Logická specifikace funkcí](specifikace/00-logicka-specifikace-funkci.md) (`docs/specifikace/00-logicka-specifikace-funkci.md`)
+- [OPSIS 00 – Přehled, rozhodnutí a fáze](specifikace/10-prehled-rozhodnuti-faze.md) (`docs/specifikace/10-prehled-rozhodnuti-faze.md`)
+- [OPSIS 01 – Architektura a tech stack](specifikace/11-architektura-tech-stack.md) (`docs/specifikace/11-architektura-tech-stack.md`)
+- [OPSIS 02 – Datový model](specifikace/12-datovy-model.md) (`docs/specifikace/12-datovy-model.md`)
+- [OPSIS 03 – Funkční specifikace](specifikace/13-funkcni-specifikace.md) (`docs/specifikace/13-funkcni-specifikace.md`)
+- [OPSIS 04 – Design systém](specifikace/14-design-system.md) (`docs/specifikace/14-design-system.md`)
+
+## Funkce platformy
+
+Průřezové funkce: nástěnky, exporty, mobil a PWA, upozornění (OPSYS je nepoužívá).
+
+- [Vlastní nástěnky](DASHBOARDY.md) (`docs/DASHBOARDY.md`)
+- [Exporty](EXPORTY.md) (`docs/EXPORTY.md`)
+- [Mobil a instalace na plochu (MOB-01…10, NFR-14)](MOBIL.md) (`docs/MOBIL.md`)
+- [Upozornění: push, zvoneček a e-mail](NOTIFICATIONS.md) (`docs/NOTIFICATIONS.md`)
 
 ## Provoz a bezpečnost
 
 Nasazení, provoz, zálohy, bezpečnost a výkon.
 
-- [Nasazení](DEPLOYMENT.md) (`docs/DEPLOYMENT.md`)
+- [Nasazení OPSYS](DEPLOYMENT.md) (`docs/DEPLOYMENT.md`)
 - [Provozní příručka (runbook)](RUNBOOK.md) (`docs/RUNBOOK.md`)
 - [Bezpečnost](SECURITY.md) (`docs/SECURITY.md`)
 - [Podklad pro SECURITY.md (kostra faktů)](security-notes.md) (`docs/security-notes.md`)
@@ -48,9 +67,15 @@ Pracovní a historické dokumenty.
 
 - [AUDIT dema — fáze 0 (podklad pro core „rebar“)](AUDIT.md) (`docs/AUDIT.md`)
 - [Otevřené otázky](OPEN-QUESTIONS.md) (`docs/OPEN-QUESTIONS.md`)
-- [Zakázka jako kořen: pracovní smlouva oblastí](ZAKAZKA.md) (`docs/ZAKAZKA.md`)
 - [Systém mezer a rytmu (UI)](UI-SPACING.md) (`docs/UI-SPACING.md`)
 - [Changelog](../CHANGELOG.md) (`CHANGELOG.md`)
+
+## Archiv
+
+Dokumenty původního (stavebního) jádra, které OPSYS nahradil; ponechané jako historie.
+
+- [CRM: pracovní smlouva oblastí](_archiv/CRM.md) (`docs/_archiv/CRM.md`)
+- [Zakázka jako kořen: pracovní smlouva oblastí](_archiv/ZAKAZKA.md) (`docs/_archiv/ZAKAZKA.md`)
 
 ## Moduly (vyprávěcí dokumentace)
 
@@ -119,17 +144,4 @@ Proč je věc udělaná tak, jak je. Každé rozhodnutí má vlastní číslovan
 - [ADR 025: Vlastní nástěnky: datový model a bezpečnostní model dotazů](adr/025-vlastni-nastenky.md) (`docs/adr/025-vlastni-nastenky.md`)
 - [ADR 026: Exporty: serverový export seznamů, fronta, šablony a plány](adr/026-exporty-fronta-plany.md) (`docs/adr/026-exporty-fronta-plany.md`)
 - [ADR 027: CRM nad zakázkou (nástěnka ve stylu Pipedrive)](adr/027-crm-nad-zakazkou.md) (`docs/adr/027-crm-nad-zakazkou.md`)
-
-## Ostatní dokumenty
-
-- [CRM: pracovní smlouva oblastí](CRM.md) (`docs/CRM.md`)
-- [Vlastní nástěnky](DASHBOARDY.md) (`docs/DASHBOARDY.md`)
-- [Exporty](EXPORTY.md) (`docs/EXPORTY.md`)
-- [Upozornění: push, zvoneček a e-mail](NOTIFICATIONS.md) (`docs/NOTIFICATIONS.md`)
-- [ZADOSTI: žádosti o změnu sdílených míst](opsys/ZADOSTI.md) (`docs/opsys/ZADOSTI.md`)
-- [OPSIS – Logická specifikace funkcí](specifikace/00-logicka-specifikace-funkci.md) (`docs/specifikace/00-logicka-specifikace-funkci.md`)
-- [OPSIS 00 – Přehled, rozhodnutí a fáze](specifikace/10-prehled-rozhodnuti-faze.md) (`docs/specifikace/10-prehled-rozhodnuti-faze.md`)
-- [OPSIS 01 – Architektura a tech stack](specifikace/11-architektura-tech-stack.md) (`docs/specifikace/11-architektura-tech-stack.md`)
-- [OPSIS 02 – Datový model](specifikace/12-datovy-model.md) (`docs/specifikace/12-datovy-model.md`)
-- [OPSIS 03 – Funkční specifikace](specifikace/13-funkcni-specifikace.md) (`docs/specifikace/13-funkcni-specifikace.md`)
-- [OPSIS 04 – Design systém](specifikace/14-design-system.md) (`docs/specifikace/14-design-system.md`)
+- [ADR 028: OPSYS z jádra rebar](adr/028-opsys-z-jadra-rebar.md) (`docs/adr/028-opsys-z-jadra-rebar.md`)

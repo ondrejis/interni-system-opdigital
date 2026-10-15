@@ -1,6 +1,6 @@
 # ADR 015: Zakázka jako kořen systému
 
-- Stav: přijato (2026-10-09)
+- Stav: nahrazeno ADR 028 (v OPSYS jsou obchod a zakázka samostatné entity); původně přijato (2026-10-09)
 - Kontext: analýza konkurenčního řešení (podklad `podklady/2026-10-09-stavario-analyza-zakazky.md`), ADR 003 (peníze), ADR 007 (oprávnění v datové vrstvě), ADR 010 (registr entit), ADR 012 (moduly, příkazy, poskytovatele)
 
 ## Kontext
@@ -48,7 +48,7 @@ je složí. Oblast má jednoho vlastníka; do cizí oblasti se nepíše, volá s
 ## Důsledky
 
 - Datový model celé zakázky je založen předem (migrace `zakazka_model`, `prijate_faktury_zadrzne`, jádro `pipeline_phase`), aby oblasti
-  nevytvářely souběžné konfliktní migrace. Další změna schématu jen přes zámek (viz `docs/ZAKAZKA.md`).
+  nevytvářely souběžné konfliktní migrace. Další změna schématu jen přes zámek (viz `docs/_archiv/ZAKAZKA.md`).
 - Hooky přechodu jsou globální registr (`setPhaseHooks` při sestavení modulů); testy, které sestavují entity bez `collectServers`, je musí nastavit samy.
 - Vyhraná nabídka se zamkne; úprava realizace jde jen přes změny (ZBV), takže původní dohoda zůstane dohledatelná.
 - Stavební objekty, katalog položek, import z Excelu/KROS, podpisy a Gantt se závislostmi navazují později; model na ně počítá (`budget_calc_line`, `catalogItemId`).

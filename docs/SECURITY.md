@@ -10,7 +10,7 @@ Je dostupný z internetu na jedné adrese, každý klient má vlastní server a 
 
 | Hrozba                                         | Hlavní opatření                                                                                                              |
 | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Uhodnuté nebo odcizené heslo                   | argon2id, min. 12 znaků, 2FA (TOTP) povinné pro majitele a administrátory, omezení počtu pokusů, historie přihlášení         |
+| Uhodnuté nebo odcizené heslo                   | argon2id, min. 12 znaků, 2FA (TOTP) povinné pro všechny, omezení počtu pokusů, historie přihlášení                           |
 | Zaměstnanec vidí, co nemá (ceny, cizí výkazy)  | oprávnění s rozsahem „vše / jen moje“ **v datové vrstvě**, testy oprávnění pro role (§3)                                     |
 | Podvržený požadavek z cizí stránky (CSRF)      | kontrola původu požadavku u mutací, cookies `SameSite`, `Secure` přes HTTPS                                                  |
 | Vložení škodlivého kódu (SQL, XSS)             | Zod validace všech vstupů, dotazy jen přes ORM nebo parametrizované, CSP, zákaz SVG/HTML v nahraných souborech               |
@@ -28,7 +28,7 @@ Mimo rozsah: fyzický přístup k serveru poskytovatele (důvěra v poskytovatel
 
 Implementace: Better Auth nad vlastní databází (`packages/core/src/auth/`), role a oprávnění jsou naše (`rbac`).
 
-- **Účty vznikají jen pozvánkou** (žádná veřejná registrace). Pozvánka platí 7 dní, v databázi je jen SHA-256 otisk tokenu a přijmout ji jde jednou ([ADR 008](adr/008-audit-a-tajemstvi.md)).
+- **Účty vznikají jen pozvánkou** (žádná veřejná registrace). Pozvánka platí 48 hodin, v databázi je jen SHA-256 otisk tokenu a přijmout ji jde jednou ([ADR 008](adr/008-audit-a-tajemstvi.md)).
 - **Heslo:** argon2id (19 MiB, 2 průchody), délka 12–128 znaků. Reset hesla odkazem platným hodinu a po resetu se zruší všechny relace.
 - **Změna hesla (Nastavení → Můj účet):** vyžaduje současné heslo, nové musí být jiné a splnit stejné minimum jako u pozvánky a resetu. Omezení pokusů 6 za 10 minut na uživatele (databáze; správné i špatné pokusy).
   Po změně se zruší všechny ostatní relace, aktuální zůstane. Audit (`change_password`, `change_password_failed`) nikdy neobsahuje hodnotu hesla ani otisk. Better Auth endpointy `/change-password`, `/set-password`, `/update-user`,
@@ -37,12 +37,12 @@ Implementace: Better Auth nad vlastní databází (`packages/core/src/auth/`), r
 - **Odkaz pro nové heslo od správce** (`users.manage`, majitele jen majitel): s nastaveným SMTP odejde e-mailem. **Bez SMTP** dostane správce jednorázový odkaz (platí hodinu, starší odkazy uživatele se zneplatní), který předá sám;
   heslo správce nikdy nevidí ani nenastavuje a po jeho použití se uživatel odhlásí všude, 2FA zůstává v platnosti. V auditu je jen to, že odkaz vznikl (`password_reset_link`), ne jeho obsah. Je to vědomá výjimka z pravidla
   „odkaz se v administraci neukazuje“ ([ADR 008](adr/008-audit-a-tajemstvi.md)): bez SMTP by jinak nebylo možné obnovit přístup; riziko (správce uživatele převezme, nemá-li 2FA) kryje audit a to, že 2FA mají vedoucí role povinně.
-- **2FA (TOTP)** s jednorázovými záložními kódy. Je **povinné pro role v `security.require2faRoles`** (výchozí `owner`, `admin`), volitelné pro ostatní. Role s povinným 2FA, které ho ještě nemá,
-  dostane omezenou relaci (`restriction = "2fa_setup"`) a smí jen nastavit 2FA ([ADR 007](adr/007-opravneni-v-datove-vrstve.md)). Role s povinným 2FA si ho **nemůže vypnout** (server odmítne `/two-factor/disable`);
+- **2FA (TOTP)** s jednorázovými záložními kódy. Je **povinné pro všechny uživatele** (`twoFactorPolicy: "all"`; `security.require2faRoles` rozhoduje jen u politiky „podle rolí“). Uživatel, který ho ještě nemá,
+  dostane omezenou relaci (`restriction = "2fa_setup"`) a smí jen nastavit 2FA ([ADR 007](adr/007-opravneni-v-datove-vrstve.md)). Při povinném 2FA si ho uživatel **nemůže vypnout** (server odmítne `/two-factor/disable`);
   ostatní ho vypnou po zadání hesla. Nové záložní kódy (po zadání hesla) zneplatní všechny dosavadní; obojí jde do auditu (`regenerate_backup_codes`, `disable_2fa`), bez hodnot kódů.
 - **Omezení počtu pokusů** (databáze, sdílená všemi procesy), za minutu: přihlášení 8, žádost o reset hesla 3, reset 5, ověření TOTP 8, záložní kód 5, nové záložní kódy 5, zapnutí a vypnutí 2FA 5; ostatní auth endpointy 120.
   Počítá se podle adresy klienta, kterou nastavuje Caddy (`X-Forwarded-For` se přepisuje, klient si ji podvrhnout nemůže). Další citlivé endpointy (příjem poptávek, nahrávání) mají vlastní limity (`consumeRateLimit`).
-- **Relace** jsou v databázi, klouzavé odhlášení po neaktivitě (`security.idleTimeoutMinutes`, výchozí 480 min). Deaktivovaný uživatel se nepřihlásí; administrátor může zrušit relace uživatele.
+- **Relace** jsou v databázi, klouzavé odhlášení po neaktivitě (`security.idleTimeoutMinutes`, výchozí 480 min; OPSYS má 30 dní, relace se při aktivitě prodlužuje, absolutní strop 90 dní). Kontrola uniklých hesel (k-anonymní dotaz na `api.pwnedpasswords.com`, odchází jen 5 znaků SHA-1) jde vypnout `PASSWORD_BREACH_CHECK=off`. Deaktivovaný uživatel se nepřihlásí; administrátor může zrušit relace uživatele.
 - **Historie přihlášení** (`login_event`): úspěšná i neúspěšná přihlášení s IP a prohlížečem.
 - **Odkazy bez přihlášení** (odkaz pro investora, odběr kalendáře ICS, klíč pro příjem poptávek): tajný náhodný token (odkaz pro investora má 32 bajtů), v databázi jen otisk (SHA-256), zrušitelný, s omezením počtu požadavků; neplatný, zrušený
   a prošlý odkaz jsou stejně „nenalezeno“. Odkaz pro investora nikdy nevrací ceny ([ADR 018](adr/018-detail-zakazky-denik-investor.md)).
@@ -138,7 +138,7 @@ oznamuje správce údajů, tedy klient; agentura jako zpracovatel pomáhá), sep
 ## 10. Známá omezení
 
 - CSP drží `'unsafe-inline'` ve `script-src` (Next.js hydratace a skript motivu jsou inline); bez `unsafe-eval` a bez cizích zdrojů. Přechod na nonce zatím není. Chybí `Cross-Origin-Opener-Policy`/`Cross-Origin-Resource-Policy`.
-- Omezení přihlášení je jen podle IP (útok z mnoha adres proti jednomu účtu omezen není; kompenzace: povinné 2FA pro vedení a argon2id); zamykání účtu není. Veřejný příjem poptávek chrání jen klíč a limit 60/min/IP (bez CAPTCHA).
+- Omezení přihlášení je jen podle IP (útok z mnoha adres proti jednomu účtu omezen není; kompenzace: povinné 2FA pro všechny a argon2id); zamykání účtu není. Příchozí požadavky z n8n (`/api/ingest/*`) chrání podpis HMAC a limit počtu požadavků.
 - Aplikace nemá offline režim ani šifrování dat v klidu na úrovni databáze; šifrování disku řeší poskytovatel VPS.
 - Odhlášení po neaktivitě i ochrana přihlášení jsou nastavené konzervativně, ale detekce neobvyklého přihlášení (nová země, nové zařízení) není součástí.
 - Instalace na čistém Ubuntu, skutečný restic a image se zatím neověřily na reálném serveru ([DEPLOYMENT](DEPLOYMENT.md)).

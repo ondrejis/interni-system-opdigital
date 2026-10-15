@@ -434,18 +434,22 @@ export function RecordView({
             <VisibilityLock entity={entity} id={id} row={row} />
             {ext.actions
               .filter((a) => !a.visible || a.visible(row))
-              .map((a) => (
-                <Button
-                  key={a.id}
-                  variant={a.primary ? "primary" : "secondary"}
-                  onClick={() => {
-                    if (a.dialog) return setDialogAction(a.id);
-                    void a.run?.({ entity, id, row, api, push: nav.push, refresh: nav.refresh });
-                  }}
-                >
-                  {a.label}
-                </Button>
-              ))}
+              .map((a) =>
+                a.render ? (
+                  <a.render key={a.id} entity={entity} id={id} row={row} />
+                ) : (
+                  <Button
+                    key={a.id}
+                    variant={a.primary ? "primary" : "secondary"}
+                    onClick={() => {
+                      if (a.dialog) return setDialogAction(a.id);
+                      void a.run?.({ entity, id, row, api, push: nav.push, refresh: nav.refresh });
+                    }}
+                  >
+                    {a.label}
+                  </Button>
+                ),
+              )}
             {mode !== "page" && api.hrefFor(entity.key, id) && (
               <IconButton
                 label="Otevřít na celé stránce"

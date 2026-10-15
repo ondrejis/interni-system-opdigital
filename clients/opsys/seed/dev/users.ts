@@ -13,8 +13,27 @@ export const DEV_USERS = {
 
 export type Who = keyof typeof DEV_USERS;
 
-/** Soubor s přihlašovacími údaji vývojových uživatelů (složka `.data/` je v gitignore). */
-export const DEV_CREDENTIALS_FILE = path.resolve(import.meta.dirname, "..", "..", "..", "..", ".data", "dev-credentials.txt");
+/**
+ * Soubor s přihlašovacími údaji vývojových uživatelů pro danou databázi (`.data/` je v gitignore). Každá databáze má
+ * svůj, protože hesla se generují při založení uživatele a jedna databáze o druhé neví.
+ */
+export function devCredentialsFile(databaseUrl: string): string {
+  let db = "db";
+  try {
+    db = new URL(databaseUrl).pathname.replace(/^\//, "").replace(/[^A-Za-z0-9_-]/g, "") || db;
+  } catch {
+    /* nečitelná adresa: obecný název */
+  }
+  return path.resolve(
+    import.meta.dirname,
+    "..",
+    "..",
+    "..",
+    "..",
+    ".data",
+    `dev-credentials-${db}.txt`,
+  );
+}
 
 /** Náhodné heslo (24 znaků, projde pravidly hesel jádra). */
 const newPassword = () => randomBytes(18).toString("base64url");
@@ -74,7 +93,9 @@ export async function ensureDevUsers({ db, auth, credentialsFile }: EnsureUsersO
       await db
         .update(schema.account)
         .set({ password: await hashPassword(password) })
-        .where(and(eq(schema.account.userId, res.userId), eq(schema.account.providerId, "credential")));
+        .where(
+          and(eq(schema.account.userId, res.userId), eq(schema.account.providerId, "credential")),
+        );
       passwords[who] = password;
       fresh.push(who);
     }
@@ -90,7 +111,6 @@ export async function disableTwoFactorRequirement(db: Db): Promise<void> {
     .set({ require2fa: false })
     .where(inArray(schema.role.key, ["owner", "partner"]));
 }
-
 
 /** Existují role `owner` a `partner` (po `pnpm db:seed`)? */
 export async function devRolesExist(db: Db): Promise<boolean> {

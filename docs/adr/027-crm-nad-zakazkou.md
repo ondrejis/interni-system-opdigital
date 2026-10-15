@@ -1,7 +1,7 @@
 # ADR 027: CRM nad zakázkou (nástěnka ve stylu Pipedrive)
 
-- Stav: přijato (2026-10-13)
-- Kontext: ADR 010 (registr entit a UI), ADR 012 (moduly a příkazy), ADR 015–016 (zakázka jako kořen, životní cyklus), ADR 024 (upozornění), [docs/CRM.md](../CRM.md) (smlouva oblastí)
+- Stav: nahrazeno ADR 028 (modul `obchody`); původně přijato (2026-10-13)
+- Kontext: ADR 010 (registr entit a UI), ADR 012 (moduly a příkazy), ADR 015–016 (zakázka jako kořen, životní cyklus), ADR 024 (upozornění), [docs/_archiv/CRM.md](../_archiv/CRM.md) (smlouva oblastí)
 
 ## Kontext
 

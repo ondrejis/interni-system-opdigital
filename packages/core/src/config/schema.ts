@@ -57,8 +57,8 @@ export const clientConfigSchema = z.strictObject({
 
   security: z
     .strictObject({
-      /** Odhlášení po neaktivitě (minuty). */
-      idleTimeoutMinutes: z.number().int().min(5).max(1440).default(480),
+      /** Odhlášení po neaktivitě (minuty; relace se při aktivitě prodlužuje). Nejvýše 30 dní. */
+      idleTimeoutMinutes: z.number().int().min(5).max(43_200).default(480),
       /** Klíče rolí, pro které je 2FA povinné. */
       require2faRoles: z.array(z.string()).default(["owner", "admin"]),
     })

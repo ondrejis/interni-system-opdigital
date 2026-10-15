@@ -1,5 +1,4 @@
 import { and, eq, isNull } from "drizzle-orm";
-import type { Executor } from "@rebar/core/db";
 import {
   indexRecord,
   resolveEntity,
@@ -14,6 +13,7 @@ import type { AresCommandResult } from "./contract";
 import { checkCompanyDuplicates } from "./duplicates";
 import { companyEntity } from "./entities";
 import { companyIndex } from "./indexing";
+import { privateScope } from "./private";
 import { company } from "./schema";
 
 /*
@@ -33,11 +33,12 @@ const targetOf = (row: typeof company.$inferSelect): AresTarget => ({
   zip: row.zip,
 });
 
-async function loadCompany(db: Executor, id: string) {
-  const [row] = await db
+async function loadCompany(ctx: Ctx, id: string) {
+  // soukromá organizace pro partnera neexistuje (QA-SEC: náhled ARES jinak vracel její údaje)
+  const [row] = await ctx.db
     .select()
     .from(company)
-    .where(and(eq(company.id, id), isNull(company.deletedAt)));
+    .where(and(eq(company.id, id), isNull(company.deletedAt), privateScope(ctx, company)));
   if (!row) throw new NotFoundError();
   return row;
 }
@@ -51,7 +52,7 @@ export async function previewAres(
   ctx: Ctx,
   input: { ico?: string | undefined; companyId?: string | undefined; fresh?: boolean },
 ): Promise<AresCommandResult> {
-  const existing = input.companyId ? await loadCompany(ctx.db, input.companyId) : null;
+  const existing = input.companyId ? await loadCompany(ctx, input.companyId) : null;
   const ico = input.ico?.trim() ? input.ico : (existing?.ico ?? "");
   if (!ico.trim())
     return { ok: false, reason: "invalid", message: "Organizace nemá vyplněné IČO." };

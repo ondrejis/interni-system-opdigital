@@ -110,10 +110,8 @@ describe("runSeed", () => {
     expect((await getPipeline(app.db, t, "default"))?.stages).toHaveLength(2);
     expect(await getLookup(app.db, `zdroje-${t}`)).toHaveLength(1);
     expect(await nextNumber(app.db, `faktury-${t}`, new Date(2026, 0, 1))).toBe("FV-2026-0001");
-    const vat = await listVatRates(app.db, "2026-10-08");
-    const byCode = Object.fromEntries(vat.map((v) => [v.code, v.rateBp]));
-    expect(byCode).toMatchObject({ standard: 2100, reduced: 1200, zero: 0 });
-    expect(vat.filter((v) => v.code === "standard")).toHaveLength(1);
+    // OPSYS DPH nepoužívá: seed sazby nezakládá
+    expect(await listVatRates(app.db, "2026-10-08")).toEqual([]);
   });
 });
 

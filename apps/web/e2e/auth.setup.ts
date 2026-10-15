@@ -15,7 +15,8 @@ setup("přihlášení majitele pro testy aplikace", async ({ page }) => {
   const secret = (await page.locator("code").innerText()).trim();
   await page.getByLabel("Kód z aplikace").fill(totp(secret));
   await page.getByRole("button", { name: "Potvrdit a zapnout" }).click();
-  await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByTestId("whoami")).toContainText("E2E Aplikace");
+  // po povinném 2FA aplikace přesměruje na úvodní stránku vlastníka (Přehled); shell je vykreslený (hlavní navigace)
+  await expect(page).toHaveURL(/\/prehled$/);
+  await expect(page.getByRole("navigation").first()).toBeVisible();
   await page.context().storageState({ path: "e2e/.auth/user.json" });
 });

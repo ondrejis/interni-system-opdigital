@@ -6,7 +6,7 @@ import { summarizePayments, validateSplitRules } from "../logic";
 import type { ClientFinanceOverview, JobFinanceOverview } from "../contract";
 import type { FinDeps } from "./deps";
 import { loadJob } from "./jobs";
-import { privateScope } from "./private";
+import { canSeePrivate, isPrivateRecord, privateScope } from "./private";
 import { toLogicRule, toRuleView } from "./model";
 import { loadRules } from "./rules";
 import { retainerView, loadActiveRetainer } from "./retainer";
@@ -111,6 +111,9 @@ export async function clientOverview(
   deps: FinDeps,
   input: { companyId: string; year?: number | undefined },
 ): Promise<ClientFinanceOverview> {
+  // soukromá firma se aktérovi bez `private.read` tváří jako neexistující (firma zámek na zakázky nekaskáduje)
+  if (!canSeePrivate(ctx) && (await isPrivateRecord(ctx.db, "company", input.companyId)))
+    throw new NotFoundError("Klient nenalezen.");
   const t = today();
   const year = input.year ?? Number(t.slice(0, 4));
   const recs = await selectPayments(ctx, {

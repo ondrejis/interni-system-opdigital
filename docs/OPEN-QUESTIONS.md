@@ -179,7 +179,7 @@ Otázky z analýzy konkurence. Výchozí chování je doporučení z analýzy; z
 | E5  | Cizí měna v účetních exportech       | Kurz systém nezná: ISDOC jde s měnou dokladu a kurzem 1, v podkladech DPH se měny nesčítají ani nepřepočítávají                                                                                                                                                                                                                                  |
 | E6  | PNG snímek nástěnky                  | Vzniká v prohlížeči (SVG `foreignObject`), bez těžké knihovny; nepodporuje cizí obrázky a v některých prohlížečích mírně liší písmo. PDF je spolehlivá varianta pro poradu                                                                                                                                                                       |
 
-## Nové (CRM, [docs/CRM.md](CRM.md))
+## Nové (CRM, [docs/_archiv/CRM.md](_archiv/CRM.md))
 
 Rozhodnuto výchozím chováním při zahájení vývoje (2026-10-13); změna je vždy snadná. Q-CRM1 je převzato z analýzy Pipedrive jako potvrzené zadáním majitele.
 

@@ -21,9 +21,10 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 
 - **Popis z manifestu:** Soukromá sekce vlastníka: hosting a údržba webů, domény s expirací, soukromá e-mailová knihovna, opakované faktury (Fakturoid) a přehled soukromých záznamů.
 - **Závisí na:** [`kontakty`](kontakty.md)
-- **Entity:** žádné
-- **Příkazy:** žádné
-- **Referenční stránky:** [modul](../reference/moduly/muj-prostor.md), [databáze](../reference/databaze/muj-prostor.md)
+- **Entity:** [`recurring_service`](../reference/entity/muj-prostor.md#recurring_service), [`web_domain`](../reference/entity/muj-prostor.md#web_domain), [`email_library_item`](../reference/entity/muj-prostor.md#email_library_item), [`recurring_invoice`](../reference/entity/muj-prostor.md#recurring_invoice)
+- **Příkazy:** [25 příkazů](../reference/prikazy/muj-prostor.md)
+- **Úlohy na pozadí:** `muj-prostor.invoices.prepare` (`30 5 * * *`)
+- **Referenční stránky:** [modul](../reference/moduly/muj-prostor.md), [entity](../reference/entity/muj-prostor.md), [příkazy](../reference/prikazy/muj-prostor.md), [databáze](../reference/databaze/muj-prostor.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 

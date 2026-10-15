@@ -87,6 +87,9 @@ export { PaletteActionsProvider, usePaletteActions } from "./components/palette-
 export { ShortcutsDialog } from "./components/shortcuts-dialog";
 export type { ShortcutGroup } from "./components/shortcuts-dialog";
 export { useHotkeys, modKey, isMac } from "./hooks/use-hotkeys";
+export { useIsMobile } from "./hooks/use-media";
+export { useDensity, ROW_HEIGHTS } from "./hooks/use-density";
+export type { Density } from "./hooks/use-density";
 export { AppShell, PageHeader } from "./shell/app-shell";
 export { BottomNav } from "./shell/bottom-nav";
 export type { BottomItem } from "./shell/bottom-nav";
@@ -97,6 +100,7 @@ export * from "./charts";
 export * from "./dashboards";
 export {
   ContactActionBar,
+  DesktopOnly,
   InstallHint,
   OfflineBridge,
   contactActions,

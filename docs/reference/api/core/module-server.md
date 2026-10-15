@@ -13,7 +13,7 @@ Vstupní bod `@rebar/core/module-server` (soubor `packages/core/src/modules/serv
 | [`createModuleDeps`](#createmoduledeps) | function | Doplní `ModuleDeps` o `services`. Služby se vyrábí líně při prvním použití (továrna dostane hotové `deps`), takže nevadí, že služba sama volá další služby. |  |
 | [`defineCommand`](#definecommand) | function |  |  |
 | [`defineDashboardMetric`](#definedashboardmetric) | function |  |  |
-| [`defineIngest`](#defineingest) | function | Pomocník pro typově bezpečnou definici příchozího zdroje (`ModuleServer.ingests`). |  |
+| [`defineIngest`](ingest.md#defineingest) | function | Pomocník pro typově bezpečnou definici příchozího zdroje (`ModuleServer.ingests`). | v `@rebar/core/ingest` |
 | [`defineModuleJob`](#definemodulejob) | function | Úloha modulu na pozadí: stejná jako `defineJob`, jen s typovanými službami workeru. |  |
 | [`defineModuleServer`](#definemoduleserver) | function |  |  |
 | [`emitEvent`](#emitevent) | function | Oznámí událost rozšířením klienta. Pro kód, který nemá `ModuleDeps` (hooky entit, např. `afterCreate`); příkazy modulů používají `deps.emit`. Běží v transakci akce, která událost vyvolala. |  |
@@ -28,7 +28,7 @@ Vstupní bod `@rebar/core/module-server` (soubor `packages/core/src/modules/serv
 | [`DashboardMetricInput`](#dashboardmetricinput) | type | Vstup výpočtu pojmenované metriky nástěnky (období a filtry z hlavičky nástěnky, parametry z widgetu). |  |
 | [`DashboardMetricResult`](#dashboardmetricresult) | type |  |  |
 | [`EventEmitter`](#eventemitter) | type |  |  |
-| [`IngestDef`](#ingestdef) | type | Příchozí požadavek od n8n a dalších (`POST /api/ingest/<source>`, podepsaný). Duplicita (`source`, `externalId`) se vyřídí bez zpracování. Trasu a zápis do `inbound_event` doplní C2. |  |
+| [`IngestDef`](ingest.md#ingestdef) | type | Příchozí požadavek od n8n a dalších (`POST /api/ingest/<source>`, podepsaný). Duplicita (`source`, `externalId`) se vyřídí bez zpracování. Trasu a zápis do `inbound_event` doplní C2. | v `@rebar/core/ingest` |
 | [`ModuleDeps`](#moduledeps) | type | Služby, které aplikace předává modulům (příkazy, poskytovatelé, úlohy). Moduly je dostávají jako parametr; nikdy neimportují jeden druhého kvůli službám (vypnutý modul nesmí zanechat stopu). |  |
 | [`ModuleJob`](#modulejob) | type |  |  |
 | [`ModuleJobDeps`](#modulejobdeps) | type | Úloha modulu na pozadí (připomínky, uzávěrky…); běží ve workeru s právy systému. |  |
@@ -80,16 +80,6 @@ _Bez popisu._
 
 ```ts
 function defineDashboardMetric(def: DashboardMetricDef): DashboardMetricDef
-```
-
-### defineIngest
-
-function · `packages/core/src/modules/server.ts`
-
-Pomocník pro typově bezpečnou definici příchozího zdroje (`ModuleServer.ingests`).
-
-```ts
-function defineIngest<S extends ZodType>(def: IngestDef<S>): IngestDef<S>
 ```
 
 ### defineModuleJob
@@ -245,8 +235,9 @@ type DashboardMetricDef = {
   label: string;
   description?: string;
   format: ValueFormat;
-  /** `scalar` = jedno číslo (KPI, měřidlo, srovnání období); `series` = kategorie × řady (grafy, tabulka). */
-  shape: "scalar" | "series";
+  /** `scalar` = jedno číslo (KPI, měřidlo, srovnání období); `series` = kategorie × řady (grafy, tabulka);
+   * `list` = seznam položek s odkazy (widget „Seznam“). */
+  shape: "scalar" | "series" | "list";
   /** Aktér musí mít VŠECHNA uvedená oprávnění; jinak metrika pro něj neexistuje (ani v nabídce, ani při vyhodnocení). */
   permissions: readonly string[];
   supports?: { period?: boolean; job?: boolean; person?: boolean; bucket?: boolean };
@@ -300,7 +291,9 @@ type DashboardMetricResult =
       kind: "series";
       categories: ChartCategory[];
       series: ChartSeriesData[];
-    };
+    }
+  /** Seznam položek (Poslední změny, nadcházející schůzky): jen pro widget typu „Seznam“. */
+  | { kind: "list"; items: ListItem[]; emptyText?: string };
 ```
 
 ### EventEmitter
@@ -311,26 +304,6 @@ _Bez popisu._
 
 ```ts
 type EventEmitter = <K extends EventName>(name: K, payload: EventMap[K]) => Promise<void>;
-```
-
-### IngestDef
-
-type · `packages/core/src/modules/server.ts`
-
-Příchozí požadavek od n8n a dalších (`POST /api/ingest/<source>`, podepsaný). Duplicita (`source`, `externalId`)
-se vyřídí bez zpracování. Trasu a zápis do `inbound_event` doplní C2.
-
-```ts
-type IngestDef<S extends ZodType = ZodType> = {
-  source: string;
-  schema: S;
-  externalId: (body: z.output<S>) => string;
-  handle: (
-    ctx: Ctx,
-    body: z.output<S>,
-    deps: ModuleDeps,
-  ) => Promise<{ entity?: { type: string; id: string } } | void>;
-};
 ```
 
 ### ModuleDeps

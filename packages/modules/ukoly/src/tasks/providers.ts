@@ -258,6 +258,7 @@ export const clientCard: ClientTabProvider = {
 export const privatePaths: PrivatePathDef[] = [
   { name: "ukoly.metric.today", run: (ctx) => todayCount(ctx) },
   { name: "ukoly.metric.overdue", run: (ctx) => overdueCount(ctx) },
+  { name: "ukoly.metric.open", run: (ctx) => countWhere(ctx, mine(ctx.actor.userId)) },
   { name: "ukoly.widget.today", run: (ctx, deps) => widget(ctx, deps) },
   { name: "ukoly.attention", run: (ctx, deps) => attention(ctx, deps) },
   { name: "ukoly.navBadge", run: (ctx, deps) => badge.count(ctx, deps) },

@@ -47,7 +47,7 @@ const GENERATED = walk("docs/reference", (f) => f.endsWith(".md"));
  * Pracovní dokumenty projektu OPSYS (zadání, rozbory, specifikace od zadavatele): mluví o jádru Rebar a o postupu prací,
  * proto se u nich nekontrolují odkazy, příkazy ani interní název. Do rozcestníku docs/INDEX.md patří (generuje se).
  */
-const WORKING_DOCS = ["docs/opsys/", "docs/specifikace/"];
+const WORKING_DOCS = ["docs/opsys/", "docs/specifikace/", "docs/_archiv/"];
 
 /** Ručně psané dokumenty, ve kterých se kontrolují odkazy a příkazy. */
 const DOCS = [
@@ -179,11 +179,9 @@ describe("interní název jádra", () => {
   it("v udržované dokumentaci pro vývojáře je jen jako název balíčku (@rebar/…), databáze, proměnná nebo cesta", () => {
     // Dovolené: @rebar/…, rebar_dev/rebar_test/… (databáze a role), REBAR_TEST_… (proměnné), `rebar` (věta, která
     // interní název vysvětluje), rebar/ (cesta v pracovním prostoru). Historické a pracovní dokumenty (AUDIT, ZAKAZKA, CRM) a rozcestník (INDEX cituje jejich nadpisy) se nekontrolují.
-    const allowed = /@rebar\/|rebar_[a-z0-9_]+|REBAR_[A-Z_]+|`rebar`|rebar\/|rebar@/gi;
+    const allowed = /@rebar\/|rebar_[a-z0-9_]+|REBAR_[A-Z_]+|`rebar`|rebar\/|rebar@|-rebar\.md/gi;
     const maintained = DOCS.filter(
-      (d) =>
-        !CLIENT_FACING.includes(d) &&
-        !["docs/AUDIT.md", "docs/ZAKAZKA.md", "docs/CRM.md", "docs/INDEX.md"].includes(d),
+      (d) => !CLIENT_FACING.includes(d) && !["docs/AUDIT.md", "docs/INDEX.md"].includes(d),
     );
     const found: string[] = [];
     for (const doc of maintained) {

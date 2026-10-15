@@ -29,7 +29,7 @@ function · `packages/core/src/custom-fields/definitions.ts`
 _Bez popisu._
 
 ```ts
-async function createFieldDef(ctx: Ctx, raw: z.input<typeof fieldInput>): Promise<{ type: "number" | "email" | "currency" | "date" | "record" | "user" | "select" | "url" | "phone" | "text" | "multiselect" | "checkbox"; key: string; id: string; label: string; options: schema.CustomFieldOptions; createdAt: Date; u…
+async function createFieldDef(ctx: Ctx, raw: z.input<typeof fieldInput>): Promise<{ type: "number" | "email" | "currency" | "date" | "record" | "user" | "select" | "url" | "phone" | "text" | "longtext" | "multiselect" | "checkbox"; key: string; id: string; label: string; options: schema.CustomFieldOptions; creat…
 ```
 
 ### deleteFieldDef
@@ -49,7 +49,7 @@ function · `packages/core/src/custom-fields/definitions.ts`
 Definice vlastních polí entity v pořadí. Čtou je všichni přihlášení (potřebují je formuláře a tabulky).
 
 ```ts
-async function listFieldDefs(db: Executor, entityType: string): Promise<{ createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; id: string; entityType: string; key: string; label: string; type: "number" | "email" | "currency" | "date" | "record" |…
+async function listFieldDefs(db: Executor, entityType: string): Promise<{ createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; deletedBy: string | null; deletedBatch: string | null; id: string; entityType: string; key: string; label: string; type…
 ```
 
 ### normalizeValue
@@ -90,7 +90,7 @@ function · `packages/core/src/custom-fields/definitions.ts`
 Typ a klíč pole se nemění (rozbilo by uložená data); jde změnit název, možnosti, povinnost a zobrazení.
 
 ```ts
-async function updateFieldDef(ctx: Ctx, id: string, patch: { label?: string; options?: z.input<typeof optionsSchema>; required?: boolean; showInTable?: boolean; position?: number; }): Promise<void>
+async function updateFieldDef(ctx: Ctx, id: string, patch: { label?: string; options?: z.input<typeof optionsSchema>; required?: boolean; showInTable?: boolean; showInForm?: boolean; position?: number; }): Promise<void>
 ```
 
 ### validateCustomValues

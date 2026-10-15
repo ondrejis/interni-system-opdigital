@@ -9,14 +9,14 @@ Vstupní bod `@rebar/hodiny/ui` (soubor `packages/modules/hodiny/src/ui.tsx`). E
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
-| [`ui`](#ui) | const | UI modulu „hodiny“. Zástupné stránky nahradí skutečné UI. |  |
+| [`ui`](#ui) | const | UI modulu „hodiny“. |  |
 
 ### ui
 
 const · `packages/modules/hodiny/src/ui.tsx`
 
-UI modulu „hodiny“. Zástupné stránky nahradí skutečné UI.
+UI modulu „hodiny“.
 
 ```ts
-const ui: { readonly pages: readonly [{ readonly path: "/hodiny"; readonly render: () => import("react").JSX.Element; }]; }
+const ui: ModuleUi
 ```

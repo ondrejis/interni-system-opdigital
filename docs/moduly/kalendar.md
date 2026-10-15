@@ -2,7 +2,7 @@
 
 > Vyprávěcí dokumentace modulu `kalendar`. Přesné seznamy (pole entit, oprávnění, příkazy a jejich vstupy, tabulky, úlohy, trasy) se tu **neopisují**: jsou v referenci, která vzniká z kódu a nezastará. Tady je to, co z kódu vyčíst nejde: jak věci fungují za sebou, proč jsou tak, jak jsou, a kde jsou hrany.
 
-Referenční stránky vzniklé z kódu: [modul](../reference/moduly/kalendar.md), [entity](../reference/entity/kalendar.md), [příkazy](../reference/prikazy/kalendar.md), [databáze](../reference/databaze/kalendar.md).
+Referenční stránky vzniklé z kódu: [modul](../reference/moduly/kalendar.md), [příkazy](../reference/prikazy/kalendar.md), [databáze](../reference/databaze/kalendar.md).
 
 <!--
 Jak psát (podrobně v docs/DOCS-PROCES.md):
@@ -19,20 +19,20 @@ Jak psát (podrobně v docs/DOCS-PROCES.md):
 
 _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprávění píš pod ním._
 
-- **Popis z manifestu:** Události s účastníky, opakováním a připomenutím, zdroje (zasedačky, vybavení) s kontrolou kolizí, vrstvy z ostatních modulů, odběr kalendáře v Google, Apple a Outlooku a import cizích kalendářů jako „obsazeno“.
+- **Popis z manifestu:** Kalendář propojený s Google Kalendářem každého uživatele (obousměrná synchronizace do minuty): pohledy Den, Týden, Měsíc a Agenda, schůzky a hovory z úkolů zapsané do Googlu, vrstvy z ostatních modulů (úkoly s termínem, termíny zakázek), vazby událostí na obchody, klienty a kontakty, cizí soukromé události jako „Obsazeno“.
 - **Závisí na:** žádném modulu
-- **Entity:** [`event`](../reference/entity/kalendar.md#event), [`calendar_resource`](../reference/entity/kalendar.md#calendar_resource)
-- **Příkazy:** [11 příkazů](../reference/prikazy/kalendar.md)
-- **Úlohy na pozadí:** `kalendar.reminders` (`*/5 * * * *`), `kalendar.sync` (`10 * * * *`)
-- **Referenční stránky:** [modul](../reference/moduly/kalendar.md), [entity](../reference/entity/kalendar.md), [příkazy](../reference/prikazy/kalendar.md), [databáze](../reference/databaze/kalendar.md)
+- **Entity:** žádné
+- **Příkazy:** [17 příkazů](../reference/prikazy/kalendar.md)
+- **Úlohy na pozadí:** `kalendar.sync` (`* * * * *`), `kalendar.sync.calendar`, `kalendar.push` (`* * * * *`), `kalendar.watch.renew` (`17 * * * *`)
+- **Nastavení v administraci:** `google_calendar`
+- **Referenční stránky:** [modul](../reference/moduly/kalendar.md), [příkazy](../reference/prikazy/kalendar.md), [databáze](../reference/databaze/kalendar.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 
-| Oprávnění            | Název                     | Výchozí: owner |
-| -------------------- | ------------------------- | -------------- |
-| `kalendar.read`      | Vidí kalendář             | vše            |
-| `kalendar.write`     | Upravuje události         | vše            |
-| `kalendar.resources` | Spravuje zdroje kalendáře | vše            |
+| Oprávnění        | Název             | Výchozí: owner |
+| ---------------- | ----------------- | -------------- |
+| `kalendar.read`  | Vidí kalendář     | vše            |
+| `kalendar.write` | Upravuje události | vše            |
 
 <!-- docs:generated:end -->
 

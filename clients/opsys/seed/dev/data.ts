@@ -158,12 +158,49 @@ export async function seedDevData(rt: DevSeedRuntime): Promise<DevSeedResult> {
     return need(r.personId, `id osoby ${lastName}`);
   };
   const p = {
-    truhlarstvi: await person(c.truhlarstvi, "Jan", "Vzorný", "Jednatel", "jan.vzorny@truhlarstvi-vzornik.example"),
-    autoservis: await person(c.autoservis, "Marie", "Ukázková", "Majitelka", "marie@autoservis-priklad.example"),
-    stavby: await person(c.stavby, "Petr", "Testovací", "Ředitel", "petr.testovaci@stavby-neexistujici.example"),
-    pekarna: await person(c.pekarna, "Eva", "Fiktivní", "Majitelka", "eva@pekarna-fiktivni.example"),
-    zahradnictvi: await person(c.zahradnictvi, "Karel", "Příkladný", "Majitel", "karel@zahradnictvi-testovaci.example"),
-    kavarna: await person(c.kavarna, "Lucie", "Demonstrační", "Provozní", "lucie@kavarna-ukazkova.example", false),
+    truhlarstvi: await person(
+      c.truhlarstvi,
+      "Jan",
+      "Vzorný",
+      "Jednatel",
+      "jan.vzorny@truhlarstvi-vzornik.example",
+    ),
+    autoservis: await person(
+      c.autoservis,
+      "Marie",
+      "Ukázková",
+      "Majitelka",
+      "marie@autoservis-priklad.example",
+    ),
+    stavby: await person(
+      c.stavby,
+      "Petr",
+      "Testovací",
+      "Ředitel",
+      "petr.testovaci@stavby-neexistujici.example",
+    ),
+    pekarna: await person(
+      c.pekarna,
+      "Eva",
+      "Fiktivní",
+      "Majitelka",
+      "eva@pekarna-fiktivni.example",
+    ),
+    zahradnictvi: await person(
+      c.zahradnictvi,
+      "Karel",
+      "Příkladný",
+      "Majitel",
+      "karel@zahradnictvi-testovaci.example",
+    ),
+    kavarna: await person(
+      c.kavarna,
+      "Lucie",
+      "Demonstrační",
+      "Provozní",
+      "lucie@kavarna-ukazkova.example",
+      false,
+    ),
     bivaly: await person(c.bivaly, "Tomáš", "Dřívější", "Jednatel", "tomas@byvaly-klient.example"),
   };
 
@@ -186,7 +223,13 @@ export async function seedDevData(rt: DevSeedRuntime): Promise<DevSeedResult> {
     out.deals++;
     return need(r.dealId, "id obchodu");
   };
-  const dealMeta = (title: string, companyId: string, personId: string, value: number, svc: string[]) => ({
+  const dealMeta = (
+    title: string,
+    companyId: string,
+    personId: string,
+    value: number,
+    svc: string[],
+  ) => ({
     title,
     companyId,
     personId,
@@ -203,22 +246,35 @@ export async function seedDevData(rt: DevSeedRuntime): Promise<DevSeedResult> {
     stageId: stageId("Nová poptávka"),
   });
   const dPekarna = await deal(partner, {
-    ...dealMeta("Reklamy na Meta: pekárna (ukázka)", c.pekarna, p.pekarna, 2_400_000, ["marketing"]),
+    ...dealMeta("Reklamy na Meta: pekárna (ukázka)", c.pekarna, p.pekarna, 2_400_000, [
+      "marketing",
+    ]),
     ownerId: partnerId,
     source: "referral",
     stageId: stageId("Nová poptávka"),
   });
   await run("obchody.moveStage", partner, { dealId: dPekarna, stageId: stageId("Kontaktováno") });
   const dZahradnictvi = await deal(owner, {
-    ...dealMeta("Nový web zahradnictví (ukázka)", c.zahradnictvi, p.zahradnictvi, 6_800_000, ["web", "marketing"]),
+    ...dealMeta("Nový web zahradnictví (ukázka)", c.zahradnictvi, p.zahradnictvi, 6_800_000, [
+      "web",
+      "marketing",
+    ]),
     ownerId: ownerId,
     source: "web_form",
     stageId: stageId("Nová poptávka"),
   });
-  await run("obchody.moveStage", owner, { dealId: dZahradnictvi, stageId: stageId("Kontaktováno") });
-  await run("obchody.moveStage", owner, { dealId: dZahradnictvi, stageId: stageId("Schůzka / konzultace") });
+  await run("obchody.moveStage", owner, {
+    dealId: dZahradnictvi,
+    stageId: stageId("Kontaktováno"),
+  });
+  await run("obchody.moveStage", owner, {
+    dealId: dZahradnictvi,
+    stageId: stageId("Schůzka / konzultace"),
+  });
   await deal(partner, {
-    ...dealMeta("Retainer pro autoservis (ukázka)", c.autoservis, p.autoservis, 1_800_000, ["marketing"]),
+    ...dealMeta("Retainer pro autoservis (ukázka)", c.autoservis, p.autoservis, 1_800_000, [
+      "marketing",
+    ]),
     ownerId: partnerId,
     stageId: stageId("Nabídka odeslaná"),
   });
@@ -232,7 +288,11 @@ export async function seedDevData(rt: DevSeedRuntime): Promise<DevSeedResult> {
     ownerId: ownerId,
     stageId: stageId("Nabídka odeslaná"),
   });
-  await run("obchody.lose", owner, { dealId: dLost, reason: "price", note: "Vybrali levnější variantu (ukázka)." });
+  await run("obchody.lose", owner, {
+    dealId: dLost,
+    reason: "price",
+    note: "Vybrali levnější variantu (ukázka).",
+  });
   await deal(owner, {
     title: "Soukromý obchod Ondřeje (ukázka)",
     companyId: c.soukroma,
@@ -245,16 +305,23 @@ export async function seedDevData(rt: DevSeedRuntime): Promise<DevSeedResult> {
 
   /* ---------- výhry obchodů → klienti a zakázky ---------- */
   const win = async (ctx: Ctx, dealId: string, wonOn: string, jobs: R[]) => {
-    const r = await run<{ jobs: { id: string; number: string; type: string }[] }>("obchody.win", ctx, {
-      dealId,
-      wonOn,
-      jobs,
-    });
+    const r = await run<{ jobs: { id: string; number: string; type: string }[] }>(
+      "obchody.win",
+      ctx,
+      {
+        dealId,
+        wonOn,
+        jobs,
+      },
+    );
     out.jobs += r.jobs.length;
     return r.jobs;
   };
   const dWonTruhlarstvi = await deal(owner, {
-    ...dealMeta("Web a reklamy pro truhlářství (ukázka)", c.truhlarstvi, p.truhlarstvi, 9_600_000, ["web", "marketing"]),
+    ...dealMeta("Web a reklamy pro truhlářství (ukázka)", c.truhlarstvi, p.truhlarstvi, 9_600_000, [
+      "web",
+      "marketing",
+    ]),
     ownerId,
     stageId: stageId("Vyjednávání"),
   });
@@ -287,7 +354,13 @@ export async function seedDevData(rt: DevSeedRuntime): Promise<DevSeedResult> {
     },
   ]);
   const dWonAutoservis = await deal(partner, {
-    ...dealMeta("Marketing: úvodní fáze autoservisu (ukázka)", c.autoservis, p.autoservis, 1_400_000, ["marketing"]),
+    ...dealMeta(
+      "Marketing: úvodní fáze autoservisu (ukázka)",
+      c.autoservis,
+      p.autoservis,
+      1_400_000,
+      ["marketing"],
+    ),
     ownerId: partnerId,
     stageId: stageId("Vyjednávání"),
   });
@@ -514,10 +587,10 @@ export async function seedDevData(rt: DevSeedRuntime): Promise<DevSeedResult> {
     dueOn: d(4),
     paidOn: d(-3),
   });
-  // část salda je vyrovnaná zápisem
+  // část salda je vyrovnaná zápisem (Ondřej vyfakturoval víc, než mu patří, a část rozdílu už Patrikovi poslal)
   await run("finance.settlement.create", owner, {
-    fromUserId: partnerId,
-    toUserId: ownerId,
+    fromUserId: ownerId,
+    toUserId: partnerId,
     amountMinor: 500_000,
     settledOn: d(-2),
     method: "transfer",
@@ -653,7 +726,13 @@ export async function seedDevData(rt: DevSeedRuntime): Promise<DevSeedResult> {
   });
 
   /* ---------- hodiny ---------- */
-  const hours = async (ctx: Ctx, jobId: string, date: string, minutes: number, noteText: string) => {
+  const hours = async (
+    ctx: Ctx,
+    jobId: string,
+    date: string,
+    minutes: number,
+    noteText: string,
+  ) => {
     await run("hodiny.save", ctx, { jobId, date, minutes, note: noteText });
     out.timeEntries++;
   };

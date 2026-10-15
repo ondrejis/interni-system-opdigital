@@ -10,7 +10,7 @@ import { currentSessionId } from "@/server/current-session";
 import { AccountPage } from "./account-page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Můj účet" };
+export const metadata = { title: "Profil" };
 
 /** Profil: údaje a avatar, změna hesla, přihlášená a důvěryhodná zařízení, odkaz na dvoufázové ověření. Dostupné každému přihlášenému. */
 export default async function MyAccountPage() {

@@ -10,6 +10,11 @@ const CONFIG = [
   "/nastaveni/rady",
   "/nastaveni/moduly",
 ];
+/** Řádky, které mají vedle `settings.manage` i užší oprávnění (Pipeline, Vlastní pole). */
+const NARROW: Record<string, string> = {
+  "/nastaveni/stavy": "settings.pipelines",
+  "/nastaveni/vlastni-pole": "settings.custom_fields",
+};
 
 const ctxFor = (perms: Record<string, Scope>, unrestricted = false) => {
   const actor: Actor = {
@@ -26,8 +31,18 @@ const hrefs = (ctx: ReturnType<typeof ctxFor>) => allowedSections(ctx).map((s) =
 
 describe("sekce Nastavení podle oprávnění", () => {
   it("konfigurační stránky vyžadují settings.manage", () => {
-    for (const href of CONFIG)
-      expect(SETTINGS_SECTIONS.find((s) => s.href === href)?.permission).toBe("settings.manage");
+    for (const href of CONFIG) {
+      const permission = SETTINGS_SECTIONS.find((s) => s.href === href)?.permission;
+      expect(permission).toEqual(
+        NARROW[href] ? ["settings.manage", NARROW[href]] : "settings.manage",
+      );
+    }
+  });
+
+  it("Pipeline a Vlastní pole vidí i ten, kdo má jen settings.pipelines / settings.custom_fields", () => {
+    expect(hrefs(ctxFor({ "settings.pipelines": "all" }))).toContain("/nastaveni/stavy");
+    expect(hrefs(ctxFor({ "settings.pipelines": "all" }))).not.toContain("/nastaveni/vlastni-pole");
+    expect(hrefs(ctxFor({ "settings.custom_fields": "all" }))).toContain("/nastaveni/vlastni-pole");
   });
 
   it("majitel (settings.manage) vidí všech pět konfiguračních stránek", () => {
@@ -35,22 +50,28 @@ describe("sekce Nastavení podle oprávnění", () => {
     for (const href of CONFIG) expect(seen).toContain(href);
   });
 
-  it("partner a externista konfiguraci nevidí, jen vlastní účet", () => {
+  it("partner a externista správcovskou konfiguraci nevidí, jen vlastní účet (a Pipeline či Vlastní pole podle užšího oprávnění)", () => {
     for (const key of ["partner", "external"]) {
       const role = (opsysSeed.roles ?? []).find((r) => r.key === key)!;
       const seen = hrefs(ctxFor((role.permissions ?? {}) as Record<string, Scope>));
-      for (const href of CONFIG) expect(seen, `${key} nesmí vidět ${href}`).not.toContain(href);
+      const perms = role.permissions ?? {};
+      for (const href of CONFIG) {
+        // Pipeline a Vlastní pole smí vidět ten, kdo má jen užší oprávnění (Patrik)
+        const narrow = NARROW[href];
+        if (narrow && narrow in perms) expect(seen).toContain(href);
+        else expect(seen, `${key} nesmí vidět ${href}`).not.toContain(href);
+      }
       expect(seen).toContain("/nastaveni/zabezpeceni");
     }
   });
 
-  it("Můj účet (profil, heslo, zařízení) má každý přihlášený, i bez jakéhokoli oprávnění", () => {
+  it("Profil (jméno, heslo, zařízení) má každý přihlášený, i bez jakéhokoli oprávnění", () => {
     expect(hrefs(ctxFor({}))).toEqual(
       expect.arrayContaining(["/nastaveni/ucet", "/nastaveni/zabezpeceni"]),
     );
     const own = SETTINGS_SECTIONS.find((s) => s.href === "/nastaveni/ucet");
     expect(own?.permission).toBeNull();
-    // bez správcovských oprávnění je Můj účet první položka, na kterou Nastavení přesměruje
+    // bez správcovských oprávnění je Profil první položka, na kterou Nastavení přesměruje
     expect(hrefs(ctxFor({}))[0]).toBe("/nastaveni/ucet");
   });
 

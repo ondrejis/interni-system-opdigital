@@ -2,7 +2,7 @@
   Fakta o složkách a požadavcích načtená z tabulek `drive_folder` a `drive_request` (čtení bez oprávnění aktéra:
   volající rozhoduje, komu výsledek ukáže). Z faktů se odvozuje stav složky pro tlačítko i rozhodnutí handlerů.
 */
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import type { Executor } from "@rebar/core/db";
 import { driveFolder, driveRequest } from "./schema";
 import {
@@ -245,7 +245,7 @@ export async function countByState(
   const rows = await db
     .select({ state: driveRequest.state, n: sql<number>`count(*)::int` })
     .from(driveRequest)
-    .where(sql`${driveRequest.requestedAt} >= ${since}`)
+    .where(gte(driveRequest.requestedAt, since))
     .groupBy(driveRequest.state);
   const out: Record<DriveRequestState, number> = {
     pending: 0,

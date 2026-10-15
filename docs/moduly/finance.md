@@ -21,9 +21,11 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 
 - **Popis z manifestu:** Platby zakázek a jejich rozdělení mezi dvě IČO, retainery, vyrovnání mezi partnery (saldo) a přehledy příjmů.
 - **Závisí na:** [`zakazky`](zakazky.md)
-- **Entity:** žádné
-- **Příkazy:** žádné
-- **Referenční stránky:** [modul](../reference/moduly/finance.md), [databáze](../reference/databaze/finance.md)
+- **Entity:** [`payment`](../reference/entity/finance.md#payment), [`settlement`](../reference/entity/finance.md#settlement)
+- **Příkazy:** [25 příkazů](../reference/prikazy/finance.md)
+- **Úlohy na pozadí:** `finance.retainer.generate` (`0 5 1 * *`), `finance.retainer.catchup` (`30 5 * * *`)
+- **Nastavení v administraci:** `finance.balance_basis`, `finance.default_split`
+- **Referenční stránky:** [modul](../reference/moduly/finance.md), [entity](../reference/entity/finance.md), [příkazy](../reference/prikazy/finance.md), [databáze](../reference/databaze/finance.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 
@@ -121,7 +123,7 @@ Vše v `packages/modules/finance/src/ui/**` (UI nevolá databázi, jen příkazy
 - **`/finance/vyrovnani`** (`settlement-page.tsx`): jedno číslo („Patrik dluží Ondřejovi 12 400 Kč“ / „Vyrovnáno“), přepínač základu, rozpis po osobách a měsících s rozkliknutím na platby, dialog Zapsat vyrovnání (předvyplněno saldem), seznam vyrovnání se stornem.
 - **Retainer dialogy** (`retainer-dialogs.tsx`): Pokračovat na retainer, Změnit od měsíce, Ukončit k měsíci (náhled dopadu: zrušené plánované platby, ponechané vystavené, hned dokončená zakázka, nabídka karty klienta, nemá-li jinou aktivní zakázku).
 - **`/finance/prehledy`** (`reports-page.tsx`): příjmy podle osoby po měsících (skládaný sloupcový graf), podle typu zakázky (prstenec), top 10 klientů (vodorovné sloupce), měsíční příjem z retainerů; grafy z `@rebar/ui`.
-- **Nastavení → Finance** (`settings.tsx`, `apps/web/.../nastaveni/finance/page.tsx`): základ salda a výchozí rozdělení nových zakázek (`finance.settings.set`).
+- **Nastavení → Finance** (`settings.tsx`, `apps/web/src/app/(app)/nastaveni/finance/page.tsx`): základ salda a výchozí rozdělení nových zakázek (`finance.settings.set`).
 - **Paleta (Cmd+K):** „Zapsat platbu“ (`/finance?nova=1`), „Zapsat vyrovnání“ (`/finance/vyrovnani?zapsat=1`). Widgety pro Přehled (Příjmy tento měsíc, Saldo, Nezaplacené platby) dodává server (`data/metrics.ts`), odkazují na tyto stránky.
 - **Mobil:** čtení a základní akce (stavový tok, zápis platby, vyrovnání); tabulky jako karty; editor pravidel je použitelný, ale určený pro počítač.
 - **Testy:** `src/ui/split-logic.test.ts`, `src/ui/format.test.ts` (čistá logika UI), e2e `apps/web/e2e/finance.spec.ts` (AS-02 až AS-04 z pohledu UI).
@@ -130,4 +132,6 @@ Vše v `packages/modules/finance/src/ui/**` (UI nevolá databázi, jen příkazy
 
 <!-- Hlavní místa v kódu a testy, které chování zajišťují, ve tvaru `cesta/soubor.ts#symbol`. -->
 
-TODO: doplnit vyprávění
+- `packages/modules/finance/src/logic/allocate.ts#allocate` (rozdělení platby podle pravidel), `#validateSplitRules`, `#allocateJob`; `logic/balance.ts#balance` (saldo vyrovnání); `logic/retainer.ts#retainerSchedule`, `#retainerEndImpact`; `logic/overdue.ts` (po splatnosti).
+- Služba pro ostatní moduly: `packages/modules/finance/src/data/finance-service.ts` (`ServiceMap["finance"]`).
+- Testy: `packages/modules/finance/src/logic/*.test.ts` (čistá logika: rozdělení, saldo, retainer, scénáře), `packages/modules/finance/src/data/finance.int.test.ts`, `packages/modules/finance/src/ui/*.test.ts`, e2e `apps/web/e2e/finance.spec.ts`.

@@ -13,7 +13,7 @@ Vstupní bod `@rebar/core/views` (soubor `packages/core/src/views/index.ts`). Ex
 | [`deleteView`](#deleteview) | function |  |  |
 | [`ensureSeedViews`](#ensureseedviews) | function | Založí chybějící výchozí sdílené pohledy. Pohled potřebuje vlastníka, proto se použije nejstarší aktivní uživatel (majitel); bez uživatele se nic neděje a krok se zopakuje při dalším seedu. Pohled stejného názvu, který už existuje (i smazaný správcem), se nezakládá znovu. |  |
 | [`listViews`](#listviews) | function | Pohledy entity: vlastní a sdílené, s příznakem oblíbeného. |  |
-| [`setFavorite`](#setfavorite) | function | Oblíbený pohled se ukazuje v postranním panelu; je to věc uživatele, ne pohledu. |  |
+| [`setFavorite`](#setfavorite) | function | Připnutí pohledu do levého panelu („Pohledy“ v navigaci): věc uživatele, ne pohledu, proto se drží v `view_favorite` (partner si může připnout sdílený pohled Ondřeje). U vlastního pohledu se navíc nastaví `saved_view.pinned`. |  |
 | [`updateView`](#updateview) | function |  |  |
 | [`viewConfigSchema`](#viewconfigschema) | const |  |  |
 | [`SeedViewDef`](#seedviewdef) | type | Výchozí sdílený pohled entity, který modul nasadí klientovi (např. „Moje zakázky“). |  |
@@ -25,7 +25,7 @@ function · `packages/core/src/views/views.ts`
 _Bez popisu._
 
 ```ts
-async function createView(ctx: Ctx, def: EntityDef, knownAttrs: ReadonlySet<string>, raw: z.input<typeof viewInput>): Promise<{ name: string; id: string; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; entityType: string; position: number; ownerId: string; shared: boolean; config: schema.SavedV…
+async function createView(ctx: Ctx, def: EntityDef, knownAttrs: ReadonlySet<string>, raw: z.input<typeof viewInput>): Promise<{ name: string; id: string; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; deletedBy: string | null; deletedBatch: string | null; entityType: string; position: number; …
 ```
 
 ### deleteView
@@ -64,7 +64,8 @@ async function listViews(ctx: Ctx, def: EntityDef): Promise<{ id: string; name: 
 
 function · `packages/core/src/views/views.ts`
 
-Oblíbený pohled se ukazuje v postranním panelu; je to věc uživatele, ne pohledu.
+Připnutí pohledu do levého panelu („Pohledy“ v navigaci): věc uživatele, ne pohledu, proto se drží v `view_favorite`
+(partner si může připnout sdílený pohled Ondřeje). U vlastního pohledu se navíc nastaví `saved_view.pinned`.
 
 ```ts
 async function setFavorite(ctx: Ctx, id: string, favorite: boolean): Promise<void>

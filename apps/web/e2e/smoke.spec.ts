@@ -6,7 +6,7 @@ test.use({ storageState: { cookies: [], origins: [] } });
 test("nepřihlášený je poslán na přihlášení a vidí název klienta v titulku", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/prihlaseni$/);
-  await expect(page).toHaveTitle(/Demo firma/);
+  await expect(page).toHaveTitle(/OPSYS/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Přihlášení");
 });
 

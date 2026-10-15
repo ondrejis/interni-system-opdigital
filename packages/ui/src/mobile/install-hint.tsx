@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { Button } from "../components/button";
 import { installState, type InstallState } from "./start";
 
-type PromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+type PromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: string }>;
+};
 
 /**
  * Pokyn „Přidat OPSYS na plochu“ (MOB-10) pro Nastavení → Vzhled nebo Profil. Android: tlačítko Nainstalovat;
@@ -42,8 +45,8 @@ export function InstallHint() {
       {state === "prompt" ? (
         <>
           <p className="text-sm text-muted">
-            OPSYS jde přidat na plochu jako aplikaci. Naposledy načtená data pak uvidíte i při slabém
-            signálu (jen ke čtení).
+            OPSYS jde přidat na plochu jako aplikaci. Naposledy načtená data pak uvidíte i při
+            slabém signálu (jen ke čtení).
           </p>
           <Button
             type="button"

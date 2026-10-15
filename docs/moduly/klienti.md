@@ -22,8 +22,8 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 - **Popis z manifestu:** Klienti agentury: stav (lead, aktivní, pozastavený, bývalý), služby, kontext a karta klienta složená z příspěvků ostatních modulů.
 - **Závisí na:** [`kontakty`](kontakty.md)
 - **Entity:** žádné
-- **Příkazy:** žádné
-- **Referenční stránky:** [modul](../reference/moduly/klienti.md), [databáze](../reference/databaze/klienti.md)
+- **Příkazy:** [6 příkazů](../reference/prikazy/klienti.md)
+- **Referenční stránky:** [modul](../reference/moduly/klienti.md), [příkazy](../reference/prikazy/klienti.md), [databáze](../reference/databaze/klienti.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 

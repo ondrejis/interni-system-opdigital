@@ -610,7 +610,7 @@ const · `packages/core/src/export/spec.ts`
 Co a jak se exportuje: entita, pohled (filtry, řazení, hledání), sloupce a formát. Základ šablon i plánů.
 
 ```ts
-const exportSpecSchema: z.ZodObject<{ entity: z.ZodString; format: z.ZodEnum<{ csv: "csv"; xlsx: "xlsx"; pdf: "pdf"; }>; scope: z.ZodDefault<z.ZodEnum<{ all: "all"; view: "view"; }>>; columns: z.ZodOptional<z.ZodArray<z.ZodString>>; query: z.ZodOptional<z.ZodObje…
+const exportSpecSchema: z.ZodObject<{ entity: z.ZodString; format: z.ZodEnum<{ csv: "csv"; xlsx: "xlsx"; pdf: "pdf"; }>; scope: z.ZodDefault<z.ZodEnum<{ view: "view"; all: "all"; }>>; columns: z.ZodOptional<z.ZodArray<z.ZodString>>; query: z.ZodOptional<z.ZodObje…
 ```
 
 ### CsvDelimiter

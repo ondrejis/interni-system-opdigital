@@ -24,3 +24,4 @@ apps/web/e2e/.auth/
 apps/web/e2e-crawl/.auth/
 apps/web/e2e-shuffled/
 apps/web/test-results-*/
+.next-*/

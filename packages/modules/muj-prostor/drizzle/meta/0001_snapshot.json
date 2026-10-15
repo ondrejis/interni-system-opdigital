@@ -165,12 +165,8 @@
           "name": "email_library_item_created_by_user_id_fk",
           "tableFrom": "email_library_item",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -178,12 +174,8 @@
           "name": "email_library_item_updated_by_user_id_fk",
           "tableFrom": "email_library_item",
           "tableTo": "user",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -191,12 +183,8 @@
           "name": "email_library_item_deleted_by_user_id_fk",
           "tableFrom": "email_library_item",
           "tableTo": "user",
-          "columnsFrom": [
-            "deleted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deleted_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -379,12 +367,8 @@
           "name": "recurring_invoice_recurring_service_id_recurring_service_id_fk",
           "tableFrom": "recurring_invoice",
           "tableTo": "recurring_service",
-          "columnsFrom": [
-            "recurring_service_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["recurring_service_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -392,12 +376,8 @@
           "name": "recurring_invoice_approved_by_user_id_fk",
           "tableFrom": "recurring_invoice",
           "tableTo": "user",
-          "columnsFrom": [
-            "approved_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["approved_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -405,12 +385,8 @@
           "name": "recurring_invoice_created_by_user_id_fk",
           "tableFrom": "recurring_invoice",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -418,12 +394,8 @@
           "name": "recurring_invoice_updated_by_user_id_fk",
           "tableFrom": "recurring_invoice",
           "tableTo": "user",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -431,12 +403,8 @@
           "name": "recurring_invoice_deleted_by_user_id_fk",
           "tableFrom": "recurring_invoice",
           "tableTo": "user",
-          "columnsFrom": [
-            "deleted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deleted_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -649,12 +617,8 @@
           "name": "recurring_service_created_by_user_id_fk",
           "tableFrom": "recurring_service",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -662,12 +626,8 @@
           "name": "recurring_service_updated_by_user_id_fk",
           "tableFrom": "recurring_service",
           "tableTo": "user",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -675,12 +635,8 @@
           "name": "recurring_service_deleted_by_user_id_fk",
           "tableFrom": "recurring_service",
           "tableTo": "user",
-          "columnsFrom": [
-            "deleted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deleted_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -884,12 +840,8 @@
           "name": "web_domain_recurring_service_id_recurring_service_id_fk",
           "tableFrom": "web_domain",
           "tableTo": "recurring_service",
-          "columnsFrom": [
-            "recurring_service_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["recurring_service_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -897,12 +849,8 @@
           "name": "web_domain_created_by_user_id_fk",
           "tableFrom": "web_domain",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -910,12 +858,8 @@
           "name": "web_domain_updated_by_user_id_fk",
           "tableFrom": "web_domain",
           "tableTo": "user",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -923,12 +867,8 @@
           "name": "web_domain_deleted_by_user_id_fk",
           "tableFrom": "web_domain",
           "tableTo": "user",
-          "columnsFrom": [
-            "deleted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deleted_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

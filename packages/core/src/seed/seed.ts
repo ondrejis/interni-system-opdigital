@@ -2,7 +2,6 @@ import type { ClientConfig } from "../config/schema";
 import type { ModuleSeed } from "../modules/manifest";
 import { ensureLookup, ensurePipeline, type LookupDef, type PipelineDef } from "../config-data";
 import type { Executor } from "../db/client";
-import { schema } from "../db/client";
 import { ensureSeries, type SeriesDef } from "../numbering";
 import { ensureSeedDashboards } from "../dashboards/service";
 import { ensureSeedViews } from "../views/seed";
@@ -19,13 +18,6 @@ export type Seed = {
 export function defineSeed(seed: Seed): Seed {
   return seed;
 }
-
-/** Sazby DPH v ČR od 1. 1. 2024: základní 21 %, snížená 12 %, nulová. */
-const CZ_VAT = [
-  { code: "standard", label: "Základní 21 %", rateBp: 2100 },
-  { code: "reduced", label: "Snížená 12 %", rateBp: 1200 },
-  { code: "zero", label: "Nulová 0 %", rateBp: 0 },
-];
 
 export type RunSeedOptions = {
   config: Pick<ClientConfig, "security"> & Partial<Pick<ClientConfig, "dashboards">>;
@@ -55,8 +47,5 @@ export async function runSeed(
     db,
     moduleSeeds.flatMap((m) => m.views ?? []),
   );
-  await db
-    .insert(schema.vatRate)
-    .values(CZ_VAT.map((v) => ({ ...v, validFrom: "2024-01-01" })))
-    .onConflictDoNothing();
+  // sazby DPH se nezakládají: OPSYS DPH nepoužívá (nikdo není plátce). Tabulka a správa sazeb zůstávají v jádru.
 }

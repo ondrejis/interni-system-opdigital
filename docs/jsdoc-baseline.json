@@ -18,13 +18,6 @@
     "packages/core/src/auth/session.ts": ["ResolveCtxOptions"],
     "packages/core/src/collab/comments.ts": ["parseMentions"],
     "packages/core/src/collab/notifications.ts": ["NewNotification", "markAllRead", "unreadCount"],
-    "packages/core/src/collab/tasks.ts": [
-      "completeTask",
-      "createTask",
-      "deleteTask",
-      "listTasks",
-      "updateTask"
-    ],
     "packages/core/src/config-data/lookups.ts": ["LookupDef"],
     "packages/core/src/config-data/pipelines.ts": [
       "PipelineDef",
@@ -248,7 +241,7 @@
     "packages/core/src/rbac/context.ts": ["createCtx", "systemCtx"],
     "packages/core/src/rbac/permissions.ts": ["assertCan"],
     "packages/core/src/rbac/seed.ts": ["EnsureRolesOptions", "RoleDef"],
-    "packages/core/src/rbac/types.ts": ["Actor", "ActorKind", "Ctx"],
+    "packages/core/src/rbac/types.ts": ["Actor", "Ctx"],
     "packages/core/src/security/crypto.ts": ["Cipher", "KeyRing", "createCipher", "parseKeyRing"],
     "packages/core/src/seed/seed.ts": ["RunSeedOptions", "defineSeed"],
     "packages/core/src/settings/defs.ts": ["Branding"],
@@ -267,28 +260,7 @@
       "weekStartIso"
     ],
     "packages/core/src/views/views.ts": ["createView", "deleteView", "updateView"],
-    "packages/modules/kalendar/src/commands.ts": ["CalendarItemOut"],
-    "packages/modules/kalendar/src/ics.ts": ["IcsEvent", "IcsExportEvent", "icsText"],
     "packages/modules/kalendar/src/recurrence.ts": ["EventTimes", "Occurrence", "Recurrence"],
-    "packages/modules/kalendar/src/safe-fetch.ts": [
-      "FetchBlockedError",
-      "Transport",
-      "TransportResult"
-    ],
-    "packages/modules/zakazky/src/detail/visibility.ts": ["fromExecution", "fromPreparation"],
-    "packages/modules/zakazky/src/lifecycle/phases.ts": [
-      "HealthKey",
-      "PhaseAction",
-      "PhaseDef",
-      "PhaseKey",
-      "canTransition",
-      "isPhaseKey",
-      "isPreContract"
-    ],
-    "packages/modules/zakazky/src/lifecycle/transitions.ts": ["PhaseOption", "stageById"],
-    "packages/modules/zakazky/src/lifecycle/ui.tsx": ["PhasePreview"],
-    "packages/modules/zakazky/src/templates/payload.ts": ["TemplatePayload"],
-    "packages/modules/zakazky/src/templates/service.ts": ["ApplyTemplateResult", "BuildOptions"],
     "packages/ui/src/charts/bar-chart.tsx": ["BarChartProps"],
     "packages/ui/src/charts/bar-layout.ts": [
       "BarLayout",
@@ -338,7 +310,6 @@
       "FileItem",
       "RecordResult",
       "SavedViewInfo",
-      "TaskItem",
       "TimelineItem"
     ],
     "packages/ui/src/data/context.tsx": ["useEntityApi"],

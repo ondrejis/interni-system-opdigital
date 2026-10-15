@@ -14,6 +14,8 @@ function emailAction(entityType: EmailEntityType): RecordAction {
     id: "sablony-emailu.email",
     label: "E-mail ze šablony",
     permission: "sablony-emailu.read",
+    // pořadí v hlavičce klienta (`CLIENT_ACTIONS.email`; konstanty jádra se do prohlížeče netáhnou)
+    order: 30,
     dialog: {
       title: "E-mail ze šablony",
       render: ({ id, close }) => (

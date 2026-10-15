@@ -1,7 +1,7 @@
 # ADR 016: Životní cyklus zakázky: fáze, přechody a seznam
 
-- Stav: přijato (2026-10-09)
-- Kontext: ADR 015 (zakázka jako kořen), ADR 012 (moduly, příkazy, poskytovatelé), ADR 010 (registr entit), `docs/ZAKAZKA.md` (oblast 1)
+- Stav: nahrazeno ADR 028 (fáze zakázky jsou `job_phase` ze šablon, ne pevný životní cyklus); původně přijato (2026-10-09)
+- Kontext: ADR 015 (zakázka jako kořen), ADR 012 (moduly, příkazy, poskytovatelé), ADR 010 (registr entit), `docs/_archiv/ZAKAZKA.md` (oblast 1)
 
 ## Rozhodnutí
 

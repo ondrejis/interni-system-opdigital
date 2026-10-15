@@ -34,10 +34,11 @@ export default defineClientConfig({
   navigation: { groupOrder: ["Práce", "CRM", "Realizace", "Finance", "Marketing", "Můj prostor"] },
 
   // OPSYS nepoužívá upozornění (e-mail, push, zvonek) ani terminál: moduly neregistrují události upozornění,
-  // `notifications` zůstává prázdné; platformní kód zůstává v jádru.
-  notifications: {},
+  // jediná událost jádra (zmínka v komentáři) je vypnutá; platformní kód zůstává v jádru.
+  notifications: { events: { "comment.mention": { enabled: false } } },
 
-  security: { require2faRoles: ["owner", "partner"] },
+  // Relace trvá 30 dní a při každé aktivitě se prodlužuje (AUT-04); 2FA je povinné pro všechny (`twoFactorPolicy`).
+  security: { idleTimeoutMinutes: 43_200, require2faRoles: ["owner", "partner"] },
 
   // Výchozí nástěnky rolí (zakládají se jednou, správce je pak upravuje v aplikaci). Podrobně docs/DASHBOARDY.md.
   dashboards: { enabled: true, defaults: opsysDashboards() },

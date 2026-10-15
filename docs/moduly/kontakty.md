@@ -19,10 +19,10 @@ Jak psát (podrobně v docs/DOCS-PROCES.md):
 
 _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprávění píš pod ním._
 
-- **Popis z manifestu:** Organizace a kontaktní osoby: více telefonů a e-mailů, doplnění z ARES, kontrola duplicit a jejich sloučení.
+- **Popis z manifestu:** Organizace (klient je organizace se stavem klienta) a kontaktní osoby: více telefonů a e-mailů, doplnění z ARES, kontrola duplicit a jejich sloučení.
 - **Závisí na:** žádném modulu
 - **Entity:** [`company`](../reference/entity/kontakty.md#company), [`person`](../reference/entity/kontakty.md#person)
-- **Příkazy:** [7 příkazů](../reference/prikazy/kontakty.md)
+- **Příkazy:** [13 příkazů](../reference/prikazy/kontakty.md)
 - **Referenční stránky:** [modul](../reference/moduly/kontakty.md), [entity](../reference/entity/kontakty.md), [příkazy](../reference/prikazy/kontakty.md), [databáze](../reference/databaze/kontakty.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**

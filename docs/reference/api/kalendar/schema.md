@@ -5,76 +5,128 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/kalendar/schema` (soubor `packages/modules/kalendar/src/schema.ts`). Exportů: 6, z toho s popisem 5.
+Vstupní bod `@rebar/kalendar/schema` (soubor `packages/modules/kalendar/src/schema.ts`). Exportů: 10, z toho s popisem 10.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
-| [`calendarFeed`](#calendarfeed) | const | Osobní tajný odkaz na odběr kalendáře (iCalendar) pro Google, Apple, Outlook. V databázi je jen otisk (SHA-256) tokenu, takže únik databáze odkazy neprozradí; token se uživateli ukáže jen při vytvoření. |  |
-| [`calendarImport`](#calendarimport) | const | Import cizího kalendáře (tajná adresa iCal z Googlu nebo iCloudu): v systému se ukáže jako „obsazeno“. |  |
-| [`calendarResource`](#calendarresource) | const | Zdroj, který lze v kalendáři obsadit: zasedačka, projektor, školicí místnost… (stroje mají vlastní rezervace). |  |
-| [`event`](#event) | const | Událost. Časy jsou okamžiky (UTC). U celodenní události je `startsAt` místní půlnoc prvního dne a `endsAt` místní půlnoc dne po posledním (jako v iCalendar). Opakování (`recurrence`) se rozbaluje v místním čase, takže se přes změnu letního času drží stejná hodina. Zakázka je měkký odkaz bez cizího klíče. |  |
-| [`eventAttendee`](#eventattendee) | const | Další účastníci události (vlastník je v `event.ownerId`). |  |
-| [`externalEvent`](#externalevent) | const |  |  |
+| [`CALENDAR_ACCESS_ROLES`](#calendar_access_roles) | const | Oprávnění uživatele ke kalendáři v Googlu (`accessRole` z `calendarList`). |  |
+| [`CALENDAR_ACCOUNT_STATUSES`](#calendar_account_statuses) | const | Stav propojení účtu s Googlem. |  |
+| [`CALENDAR_EVENT_SOURCES`](#calendar_event_sources) | const | Kde událost vznikla: v Googlu, nebo v OPSYS (schůzka/hovor z úkolu zapsaný do Googlu). |  |
+| [`CALENDAR_EVENT_VISIBILITIES`](#calendar_event_visibilities) | const | Viditelnost události v Googlu (`visibility`). `private` a `confidential` druhému uživateli ukážeme jen jako „Obsazeno“. |  |
+| [`CALENDAR_PUSH_OPS`](#calendar_push_ops) | const | Operace fronty zápisu do Googlu. |  |
+| [`calendar`](#calendar) | const | Kalendář z Google účtu: zobrazení v OPSYS, cíl zápisu nových schůzek, synchronizační token a kanál pro push. |  |
+| [`calendarAccount`](#calendaraccount) | const | Propojený Google účet uživatele (jeden na uživatele). `tokens_enc` jsou přístupové a obnovovací tokeny zašifrované přes `cipher` (nikdy v otevřené podobě); `status = reauth` znamená, že je potřeba souhlas obnovit. |  |
+| [`calendarEvent`](#calendarevent) | const | Zrcadlo události z Google Kalendáře (zdroj pravdy je Google; konflikt rozhodne novější změna). Vazby na úkol, obchod, organizaci a kontakt jsou měkké. Soukromou událost cizího uživatele ukazuje systém jen jako „Obsazeno“. |  |
+| [`calendarPush`](#calendarpush) | const | Fronta zápisu do Googlu (outbox). Vzniká v transakci změny úkolu (`task.*` → handler) a zpracovává ji úloha `kalendar.push`; díky tomu zápis do Googlu nemůže předběhnout potvrzení změny a výpadek Googlu změnu neztratí. Na jeden úkol je nejvýš jeden nevyřízený řádek (další změny se slučují, `queued_at` se posune). U mazání nese `payload` identifikaci události (úkol už nemusí existovat). |  |
+| [`CalendarAttendee`](#calendarattendee) | type | Účastník události z Google Kalendáře (zrcadlo odpovědi API, bez tajemství). |  |
 
-### calendarFeed
+### CALENDAR_ACCESS_ROLES
 
 const · `packages/modules/kalendar/src/schema.ts`
 
-Osobní tajný odkaz na odběr kalendáře (iCalendar) pro Google, Apple, Outlook. V databázi je jen otisk (SHA-256)
-tokenu, takže únik databáze odkazy neprozradí; token se uživateli ukáže jen při vytvoření.
+Oprávnění uživatele ke kalendáři v Googlu (`accessRole` z `calendarList`).
 
 ```ts
-const calendarFeed: import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "calendar_feed"; schema: undefined; columns: { userId: import("drizzle-orm/pg-core").PgColumn<{ name: "user_id"; tableName: "calendar_feed"; dataType: "string"; columnType: "PgUUID";…
+const CALENDAR_ACCESS_ROLES: readonly ["owner", "writer", "reader", "freeBusyReader"]
 ```
 
-### calendarImport
+### CALENDAR_ACCOUNT_STATUSES
 
 const · `packages/modules/kalendar/src/schema.ts`
 
-Import cizího kalendáře (tajná adresa iCal z Googlu nebo iCloudu): v systému se ukáže jako „obsazeno“.
+Stav propojení účtu s Googlem.
 
 ```ts
-const calendarImport: import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "calendar_import"; schema: undefined; columns: { id: import("drizzle-orm/pg-core").PgColumn<{ name: string; tableName: "calendar_import"; dataType: "string"; columnType: "PgUUID"; da…
+const CALENDAR_ACCOUNT_STATUSES: readonly ["ok", "reauth", "error"]
 ```
 
-### calendarResource
+### CALENDAR_EVENT_SOURCES
 
 const · `packages/modules/kalendar/src/schema.ts`
 
-Zdroj, který lze v kalendáři obsadit: zasedačka, projektor, školicí místnost… (stroje mají vlastní rezervace).
+Kde událost vznikla: v Googlu, nebo v OPSYS (schůzka/hovor z úkolu zapsaný do Googlu).
 
 ```ts
-const calendarResource: import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "calendar_resource"; schema: undefined; columns: { createdAt: import("drizzle-orm/pg-core").PgColumn<{ name: string; tableName: "calendar_resource"; dataType: "date"; columnType: "Pg…
+const CALENDAR_EVENT_SOURCES: readonly ["google", "opsys"]
 ```
 
-### event
+### CALENDAR_EVENT_VISIBILITIES
 
 const · `packages/modules/kalendar/src/schema.ts`
 
-Událost. Časy jsou okamžiky (UTC). U celodenní události je `startsAt` místní půlnoc prvního dne a `endsAt` místní půlnoc
-dne po posledním (jako v iCalendar). Opakování (`recurrence`) se rozbaluje v místním čase, takže se přes změnu letního času
-drží stejná hodina. Zakázka je měkký odkaz bez cizího klíče.
+Viditelnost události v Googlu (`visibility`). `private` a `confidential` druhému uživateli ukážeme jen jako „Obsazeno“.
 
 ```ts
-const event: import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "event"; schema: undefined; columns: { createdAt: import("drizzle-orm/pg-core").PgColumn<{ name: string; tableName: "event"; dataType: "date"; columnType: "PgTimestamp"; data: Date; …
+const CALENDAR_EVENT_VISIBILITIES: readonly ["default", "public", "private", "confidential"]
 ```
 
-### eventAttendee
+### CALENDAR_PUSH_OPS
 
 const · `packages/modules/kalendar/src/schema.ts`
 
-Další účastníci události (vlastník je v `event.ownerId`).
+Operace fronty zápisu do Googlu.
 
 ```ts
-const eventAttendee: import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "event_attendee"; schema: undefined; columns: { eventId: import("drizzle-orm/pg-core").PgColumn<{ name: "event_id"; tableName: "event_attendee"; dataType: "string"; columnType: "PgUU…
+const CALENDAR_PUSH_OPS: readonly ["upsert", "delete"]
 ```
 
-### externalEvent
+### calendar
 
 const · `packages/modules/kalendar/src/schema.ts`
 
-_Bez popisu._
+Kalendář z Google účtu: zobrazení v OPSYS, cíl zápisu nových schůzek, synchronizační token a kanál pro push.
 
 ```ts
-const externalEvent: import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "external_event"; schema: undefined; columns: { id: import("drizzle-orm/pg-core").PgColumn<{ name: string; tableName: "external_event"; dataType: "string"; columnType: "PgUUID"; data…
+const calendar: import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "calendar"; schema: undefined; columns: { createdAt: import("drizzle-orm/pg-core").PgColumn<{ name: string; tableName: "calendar"; dataType: "date"; columnType: "PgTimestamp"; data: …
+```
+
+### calendarAccount
+
+const · `packages/modules/kalendar/src/schema.ts`
+
+Propojený Google účet uživatele (jeden na uživatele). `tokens_enc` jsou přístupové a obnovovací tokeny zašifrované
+přes `cipher` (nikdy v otevřené podobě); `status = reauth` znamená, že je potřeba souhlas obnovit.
+
+```ts
+const calendarAccount: import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "calendar_account"; schema: undefined; columns: { createdAt: import("drizzle-orm/pg-core").PgColumn<{ name: string; tableName: "calendar_account"; dataType: "date"; columnType: "PgTi…
+```
+
+### calendarEvent
+
+const · `packages/modules/kalendar/src/schema.ts`
+
+Zrcadlo události z Google Kalendáře (zdroj pravdy je Google; konflikt rozhodne novější změna). Vazby na úkol, obchod,
+organizaci a kontakt jsou měkké. Soukromou událost cizího uživatele ukazuje systém jen jako „Obsazeno“.
+
+```ts
+const calendarEvent: import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "calendar_event"; schema: undefined; columns: { createdAt: import("drizzle-orm/pg-core").PgColumn<{ name: string; tableName: "calendar_event"; dataType: "date"; columnType: "PgTimest…
+```
+
+### calendarPush
+
+const · `packages/modules/kalendar/src/schema.ts`
+
+Fronta zápisu do Googlu (outbox). Vzniká v transakci změny úkolu (`task.*` → handler) a zpracovává ji úloha
+`kalendar.push`; díky tomu zápis do Googlu nemůže předběhnout potvrzení změny a výpadek Googlu změnu neztratí.
+Na jeden úkol je nejvýš jeden nevyřízený řádek (další změny se slučují, `queued_at` se posune). U mazání nese
+`payload` identifikaci události (úkol už nemusí existovat).
+
+```ts
+const calendarPush: import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "calendar_push"; schema: undefined; columns: { id: import("drizzle-orm/pg-core").PgColumn<{ name: string; tableName: "calendar_push"; dataType: "string"; columnType: "PgUUID"; data: …
+```
+
+### CalendarAttendee
+
+type · `packages/modules/kalendar/src/schema.ts`
+
+Účastník události z Google Kalendáře (zrcadlo odpovědi API, bez tajemství).
+
+```ts
+type CalendarAttendee = {
+  email: string;
+  name?: string;
+  responseStatus?: "accepted" | "declined" | "tentative" | "needsAction";
+  self?: boolean;
+  organizer?: boolean;
+};
 ```

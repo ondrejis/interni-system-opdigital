@@ -18,12 +18,6 @@
     "@rebar/core": "workspace:*",
     "@rebar/kontakty": "workspace:*",
     "@rebar/ui": "workspace:*",
-    "@tiptap/extension-link": "^3.32.0",
-    "@tiptap/extension-task-item": "^3.32.0",
-    "@tiptap/extension-task-list": "^3.32.0",
-    "@tiptap/pm": "^3.32.0",
-    "@tiptap/react": "^3.32.0",
-    "@tiptap/starter-kit": "^3.32.0",
     "drizzle-orm": "^0.45.3",
     "react": "^19.3.0",
     "zod": "^4.6.5"

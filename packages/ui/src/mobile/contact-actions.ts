@@ -29,21 +29,25 @@ export function internationalDigits(
   return d;
 }
 
+/** Odkaz `tel:` pro zavolání; null, když číslo není použitelné. */
 export function telHref(phone: string | null | undefined): string | null {
   const d = dialDigits(phone);
   return d ? `tel:${d}` : null;
 }
 
+/** Odkaz `sms:` pro napsání zprávy; null, když číslo není použitelné. */
 export function smsHref(phone: string | null | undefined): string | null {
   const d = dialDigits(phone);
   return d ? `sms:${d}` : null;
 }
 
+/** Odkaz `wa.me` pro WhatsApp (číslo v mezinárodním tvaru); null, když číslo není použitelné. */
 export function whatsappHref(phone: string | null | undefined): string | null {
   const d = internationalDigits(phone);
   return d ? `https://wa.me/${d}` : null;
 }
 
+/** Odkaz `mailto:` pro napsání e-mailu; null u neplatné adresy. */
 export function mailHref(email: string | null | undefined): string | null {
   const e = email?.trim();
   return e && e.includes("@") ? `mailto:${e}` : null;
@@ -58,7 +62,8 @@ export function addressText(parts: {
 }): string | null {
   const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
   const cityLine = [s(parts.zip), s(parts.city)].filter(Boolean).join(" ");
-  const country = s(parts.country) && s(parts.country).toUpperCase() !== "CZ" ? s(parts.country) : "";
+  const country =
+    s(parts.country) && s(parts.country).toUpperCase() !== "CZ" ? s(parts.country) : "";
   const line = [s(parts.street), cityLine, country].filter(Boolean).join(", ");
   return line || null;
 }
@@ -69,7 +74,9 @@ export function mapsLink(address: string | null | undefined): string | null {
   return a ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a)}` : null;
 }
 
+/** Druh rychlé akce na kartě kontaktu nebo klienta. */
 export type ContactActionKind = "call" | "sms" | "whatsapp" | "mail" | "navigate" | "drive";
+/** Jedna rychlá akce: popisek, ikona a odkaz. */
 export type ContactAction = {
   kind: ContactActionKind;
   label: string;
@@ -84,7 +91,12 @@ export type ContactAction = {
  * omezí výběr (karta kontaktu: telefon + e-mail; karta klienta: Zavolat, E-mail, Navigovat, Disk).
  */
 export function contactActions(
-  data: { phone?: string | null; email?: string | null; address?: string | null; driveUrl?: string | null },
+  data: {
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+    driveUrl?: string | null;
+  },
   only?: readonly ContactActionKind[],
 ): ContactAction[] {
   const all: (ContactAction | null)[] = [

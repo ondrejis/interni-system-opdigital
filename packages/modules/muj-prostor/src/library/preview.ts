@@ -1,5 +1,9 @@
 import { and, eq, isNull } from "drizzle-orm";
-import { NotImplementedError, type EmailVarsProvider } from "@rebar/core/contracts";
+import {
+  NotImplementedError,
+  type EmailVarsProvider,
+  type ServiceMap,
+} from "@rebar/core/contracts";
 import { schema } from "@rebar/core/db";
 import { queryRecords, resolveEntity, visibleRecordTitles } from "@rebar/core/entities";
 import type { ModuleDeps } from "@rebar/core/module-server";
@@ -68,44 +72,14 @@ export function buildCatalog(deps: Pick<ModuleDeps, "services">): LibraryVariabl
   };
 }
 
-type Port = {
-  importText(
-    ctx: Ctx,
-    input: {
-      name: string;
-      category: string | null;
-      language: "cs" | "sk" | "en";
-      subject: string;
-      bodyText: string;
-      bodyJson: Record<string, unknown>;
-      tags: string[];
-    },
-  ): Promise<{ id: string; href: string }>;
-  exportText(
-    ctx: Ctx,
-    id: string,
-  ): Promise<{
-    name: string;
-    category: string | null;
-    subject: string;
-    bodyText: string;
-    bodyJson: Record<string, unknown> | null;
-    tags: string[];
-  } | null>;
-  remove(ctx: Ctx, id: string): Promise<void>;
-};
-/** Služba sdílených šablon, kterou nabízí modul `sablony-emailu` (klíč `emailTemplates`; viz ZADOSTI MPR-2). */
-export type EmailTemplatesPort = Port;
+/** Služba sdílených šablon, kterou nabízí modul `sablony-emailu` (klíč `emailTemplates`). */
+export type EmailTemplatesPort = ServiceMap["emailTemplates"];
 
-/**
- * Služba modulu `sablony-emailu` pro přesun textů (`emailTemplates`), nebo `undefined`, dokud ji modul nenabízí. Klíč zatím
- * není v `ServiceMap` (kontrakty jsou zmrazené), proto se bere bez typové kontroly; až ho architekt doplní, zmizí přetypování.
- */
+/** Služba modulu `sablony-emailu` pro přesun textů (`emailTemplates`), nebo `undefined`, pokud modul není zapnutý. */
 export function emailTemplatesPort(
   deps: Pick<ModuleDeps, "services">,
 ): EmailTemplatesPort | undefined {
-  const optional = deps.services.optional as unknown as (key: string) => unknown;
-  return optional.call(deps.services, "emailTemplates") as EmailTemplatesPort | undefined;
+  return deps.services.optional("emailTemplates");
 }
 
 const nonEmpty = (v: Record<string, string>): Record<string, string> =>

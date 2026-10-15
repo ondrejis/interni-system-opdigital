@@ -5,14 +5,14 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (manifest modulu (`defineModule`), serverová část (`defineModuleServer`), UI modulu a zdrojové soubory). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Zakázky: fáze, termíny, tým, šablony, komentáře a úkoly (kostra, model se přepracovává).
+Zakázky typu web, marketing a systémy: fáze, tým, šablony s úkoly a platbami, stav a termíny; zakládají se z vyhraných obchodů nebo ručně.
 
 - **Identifikátor:** `zakazky`, ikona `briefcase`
 - **Závisí na:** [`kontakty`](kontakty.md)
 - **Balíček:** `packages/modules/zakazky`
 - **Vyprávěcí dokumentace:** [docs/moduly/zakazky.md](../../moduly/zakazky.md)
-- **Příkazy:** [11 příkazů](../prikazy/zakazky.md)
-- **Entity:** [`job`](../entity/zakazky.md#job)
+- **Příkazy:** [25 příkazů](../prikazy/zakazky.md)
+- **Entity:** [`job`](../entity/zakazky.md#job), [`job_template`](../entity/zakazky.md#job_template)
 - **Databáze:** [tabulky a migrace](../databaze/zakazky.md)
 
 ## Navigace
@@ -20,12 +20,6 @@ Zakázky: fáze, termíny, tým, šablony, komentáře a úkoly (kostra, model s
 | Položka | Adresa | Ikona | Oprávnění | Sekce panelu | Nadřazená položka |
 | --- | --- | --- | --- | --- | --- |
 | Zakázky | `/zakazky` | `briefcase` | `zakazky.read` | Realizace |  |
-
-## Stránky modulu
-
-| Adresa | Název | Oprávnění | Vykreslení v UI modulu |
-| --- | --- | --- | --- |
-| `/zakazky/sablony` | Šablony zakázek | `zakazky.read` | ano |
 
 ## Oprávnění
 
@@ -39,41 +33,17 @@ Výchozí přidělení rolím je v [opravneni.md](../opravneni.md).
 | `zakazky.delete` | Maže zakázky | Do koše; obnovit smí každý své |
 | `zakazky.export` | Exportuje zakázky |  |
 | `zakazky.templates` | Spravuje šablony zakázek |  |
-| `zakazky.finance` | Vidí hodnotu a finance zakázek | Hodnota zakázky a částky odvozené z ní (přechodné; převezme modul Finance) |
+| `zakazky.finance` | Vidí hodnotu a finance zakázek | Přechodné oprávnění z původního jádra; ceny zakázek řídí `finance.read` |
 
 ## Výchozí data (seed)
 
 Doplní se při seedu klienta, jen když modul běží; co správce změnil v administraci, se nepřepisuje.
-
-### Pipeline
-
-| Entita | Klíč | Název | Stavy (v pořadí) |
-| --- | --- | --- | --- |
-| `job` | `default` | Zakázky | Nová poptávka → Kontaktováno → Obhlídka → Nabídka v přípravě → Nabídka odeslána → Jednání → Příprava → Realizace → Předání → Záruka → Uzavřeno → Prohráno → Pozastaveno |
-
-### Číselníky
-
-| Klíč | Název | Hodnoty |
-| --- | --- | --- |
-| `job.lost_reason` | Důvod prohry zakázky | `price` (Cena), `timing` (Termín), `competitor` (Vybrali konkurenci), `no_response` (Bez odezvy), `cancelled` (Zákazník zrušil záměr), `other` (Jiný důvod) |
-| `job.source` | Zdroj obchodu | `web` (Web), `phone` (Telefon), `email` (E-mail), `referral` (Doporučení), `personal` (Osobně), `other` (Jiný) |
 
 ### Číselné řady
 
 | Klíč | Vzor | Nulování |
 | --- | --- | --- |
 | `zakazky.cislo` | `Z-{YYYY}-{NNN}` |  |
-
-### Výchozí pohledy
-
-| Entita | Název | Pořadí |
-| --- | --- | --- |
-| `job` | Moje zakázky | 10 |
-| `job` | Nabídky čekající na odpověď | 20 |
-| `job` | V realizaci | 30 |
-| `job` | Po termínu | 40 |
-| `job` | V záruce | 50 |
-| `job` | Kanban podle stavu | 60 |
 
 ## Rozšíření uživatelského rozhraní
 
@@ -83,57 +53,99 @@ Modul doplňuje obecný detail záznamu (viz [ARCHITECTURE](../../ARCHITECTURE.m
 
 | Entita | Záložka | Název | Oprávnění | Skupina | Pořadí | Podmíněná |
 | --- | --- | --- | --- | --- | --- | --- |
-| `company` | `zakazky` | Zakázky | `zakazky.read` |  |  |  |
-| `person` | `zakazky` | Zakázky | `zakazky.read` |  |  |  |
+| `job` | `ukoly` | Úkoly |  |  | 10 |  |
+| `job` | `historie` | Historie |  |  | 700 |  |
 
 ### Akce v hlavičce detailu
 
 | Entita | Akce | Název | Oprávnění | Hlavní | Okno |
 | --- | --- | --- | --- | --- | --- |
-| `job` | `change-phase` | Změnit fázi | `zakazky.write` |  | ano |
-| `job` | `save-as-template` | Uložit jako šablonu | `zakazky.write` |  | ano |
+| `job` | `complete-job` | Dokončit zakázku | `zakazky.write` |  | ano |
+| `job` | `cancel-job` | Zrušit zakázku | `zakazky.write` |  | ano |
+| `job` | `save-as-template` | Uložit jako šablonu | `zakazky.templates` |  | ano |
 
 ### Karty na přehledu záznamu
 
 | Entita | Karta | Sloupec | Pořadí | Oprávnění | Podmíněná |
 | --- | --- | --- | --- | --- | --- |
-| `job` | `source-inquiry` | main | 90 |  |  |
+| `job` | `phases` | main | 10 |  |  |
+| `job` | `deal` | main | 20 |  |  |
 | `job` | `team` | side | 10 |  |  |
+| `job` | `participants` | side | 20 |  |  |
 
 Vlastní hlavičku detailu (pás pod názvem) mají entity: `job`.
 
-Základní záložky, které modul u entity skrývá: `job`: `activity`.
+Základní záložky, které modul u entity skrývá: `job`: `tasks`, `activity`.
+
+### paletteActions
+
+_Tato část UI modulu zatím nemá vlastní sekci v generátoru, zobrazeno obecně._
+
+| id | label | keywords | icon | permission | href |
+| --- | --- | --- | --- | --- | --- |
+| `zakazky.new` | `Nová zakázka` | `zakázka vytvořit založit projekt` | `briefcase` | `zakazky.create` | `/zakazky?novy=1` |
+| `zakazky.board` | `Board zakázek podle stavu` | `kanban zakázky` | `briefcase` | `zakazky.read` | `/zakazky?pohled=stav` |
+| `zakazky.phases` | `Board zakázek podle fází` | `kanban fáze zakázky` | `briefcase` | `zakazky.read` | `/zakazky/faze` |
+| `zakazky.templates` | `Šablony zakázek` | `šablona nastavení` | `briefcase` | `zakazky.read` | `/zakazky/sablony` |
 
 ## Serverová část
-
-### Háčky přechodu fáze
-
-| Háček | Entita | Z fáze | Do fáze | Kontrola | Akce před | Akce po |
-| --- | --- | --- | --- | --- | --- | --- |
-| `lifecycle.offer-requirements` | `job` | `*` | `offer` | ano |  |  |
-| `lifecycle.execution-requirements` | `job` | `*` | `execution` | ano |  |  |
-| `lifecycle.warranty-requirements` | `job` | `*` | `warranty` | ano |  | ano |
-| `lifecycle.skip-warranty` | `job` | `handover` | `closed` | ano |  |  |
 
 ### Blokace smazání
 
 | Blokace | Mazaná entita | Navázané záznamy (1 / 2–4 / 5+) | Doporučení |
 | --- | --- | --- | --- |
 | `zakazky.company-jobs` | `company` | zakázku / zakázky / zakázek | výchozí |
-| `zakazky.person-jobs` | `person` | zakázku / zakázky / zakázek | výchozí |
 
 ### Vrstvy kalendáře
 
 | Klíč | Název | Barva |
 | --- | --- | --- |
-| `zakazky.warranty-end` | Konec záruky | `indigo` |
+| `zakazky.deadlines` | Termíny zakázek | `orange` |
 
 ### Poskytovatelé dat
 
-Poskytovatelé jsou funkce, jejichž výstup (položky, dlaždice, hodnoty) závisí na datech a oprávnění uživatele, proto se z kódu nedají vyjmenovat. Počty: položky „Vyžaduje pozornost“: 1 poskytovatelů.
+Poskytovatelé jsou funkce, jejichž výstup (položky, dlaždice, hodnoty) závisí na datech a oprávnění uživatele, proto se z kódu nedají vyjmenovat. Počty: položky „Vyžaduje pozornost“: 1 poskytovatelů; dlaždice přehledu: 1 poskytovatelů.
+
+### dashboardMetrics
+
+_Tento registr zatím nemá vlastní sekci v generátoru, zobrazeno obecně._
+
+| key | label | description | format | shape | permissions | compute |
+| --- | --- | --- | --- | --- | --- | --- |
+| `zakazky.slipping` | `Zakázky ve skluzu` | `Živé zakázky po termínu nebo s úkoly po termínu.` | `number` | `scalar` | `zakazky.read` | funkce |
+| `zakazky.by_status` | `Zakázky podle stavu` | `Počet zakázek v každém stavu.` | `number` | `series` | `zakazky.read` | funkce |
+
+### ensure
+
+_Tento registr zatím nemá vlastní sekci v generátoru, zobrazeno obecně._
+
+Počet položek: 1. `ensureDefaultTemplates`
+
+### contributions
+
+_Tento registr zatím nemá vlastní sekci v generátoru, zobrazeno obecně._
+
+Počet položek: 2. `pole (1)`, `pole (1)`
+
+### privatePaths
+
+_Tento registr zatím nemá vlastní sekci v generátoru, zobrazeno obecně._
+
+| name | run |
+| --- | --- |
+| `zakazky.metric.slipping` | funkce |
+| `zakazky.metric.by_status` | funkce |
+| `zakazky.widgets` | funkce |
+| `zakazky.attention` | funkce |
+| `zakazky.calendar.deadlines` | funkce |
+| `zakazky.board` | funkce |
+| `zakazky.clientCard` | funkce |
+| `zakazky.emailVars` | funkce |
+| `zakazky.api.briefs` | funkce |
 
 ## Tabulky entit
 
 | Entita | Tabulka |
 | --- | --- |
 | `job` | `job` |
+| `job_template` | `job_template` |

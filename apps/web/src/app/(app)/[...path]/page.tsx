@@ -1,7 +1,7 @@
 import { describeEntity, resolveEntity } from "@rebar/core/entities";
 import { scopeOf } from "@rebar/core/rbac";
 import { PageHeader } from "@rebar/ui";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { can } from "@rebar/core/rbac";
 import { requireCtx } from "@/server/request";
 import { getServices } from "@/server/services";
@@ -55,6 +55,15 @@ export default async function EntityRoute({
         />
       );
     }
+  }
+  // Kořen sekce bez vlastní stránky (`/muj-prostor`): přesměruje na první položku navigace modulu, kterou aktér smí otevřít.
+  if (!def && path.length === 1) {
+    const first = runtime.modules
+      .flatMap((m) => m.nav)
+      .filter((n) => n.href.startsWith(`/${path[0]}/`))
+      .filter((n) => n.permission === undefined || [n.permission].flat().some((k) => can(ctx, k)))
+      .sort((a, b) => (a.order ?? 100) - (b.order ?? 100))[0];
+    if (first) redirect(`/${first.href.replace(/^\/+/, "")}`); // pevná adresa z manifestu modulu
   }
   if (!def || !scopeOf(ctx, def.permissions.read)) notFound();
 

@@ -53,7 +53,11 @@ export function OfflineBridge({ userId, pathname }: { userId: string; pathname: 
   // navštívená stránka se uloží i jako dokument (klientská navigace stahuje jen RSC data), aby šla otevřít bez spojení;
   // jen když už service worker řídí stránku a ne častěji než jednou za 10 minut
   useEffect(() => {
-    if (!online || typeof navigator.serviceWorker === "undefined" || !navigator.serviceWorker.controller)
+    if (
+      !online ||
+      typeof navigator.serviceWorker === "undefined" ||
+      !navigator.serviceWorker.controller
+    )
       return;
     const t = setTimeout(() => {
       const k = `opsys.warm.${pathname}`;
@@ -110,7 +114,10 @@ export function OfflineBridge({ userId, pathname }: { userId: string; pathname: 
       void caches
         .open(OFFLINE_DATA_CACHE)
         .then((c) =>
-          c.put(OFFLINE_DATA_KEY, new Response(body, { headers: { "content-type": "application/json" } })),
+          c.put(
+            OFFLINE_DATA_KEY,
+            new Response(body, { headers: { "content-type": "application/json" } }),
+          ),
         )
         .catch(() => undefined);
     };

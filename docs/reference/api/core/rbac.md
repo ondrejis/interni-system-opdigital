@@ -5,19 +5,22 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core/rbac` (soubor `packages/core/src/rbac/index.ts`). Exportů: 24, z toho s popisem 15.
+Vstupní bod `@rebar/core/rbac` (soubor `packages/core/src/rbac/index.ts`). Exportů: 27, z toho s popisem 19.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
 | [`assertCan`](#assertcan) | function |  |  |
+| [`assertCanAny`](#assertcanany) | function | Aktér musí mít kterékoli z oprávnění (`PermissionError`, když žádné). |  |
 | [`can`](#can) | function | Smí aktér provést akci? Bez `record` odpovídá na „má k tomu vůbec přístup“ (rozsah `own` stačí). S `record` u rozsahu `own` musí být aktér mezi vlastníky. |  |
+| [`canSeePrivate`](entities.md#canseeprivate) | function | Smí aktér vidět soukromé záznamy (zámek)? Jen s oprávněním `private.read`, které má vlastník (role `owner`) a které nejde přidělit jiné roli. Partner nikdy; systémový aktér (úlohy, n8n) ano. | v `@rebar/core/entities` |
 | [`createCtx`](#createctx) | function |  |  |
-| [`ensureRoles`](#ensureroles) | function | Založí chybějící role z výchozí definice (seed klienta). Existující role se nemění (správce je upravil v administraci), jen se jim dorovná povinné 2FA podle konfigurace. |  |
+| [`ensureRoles`](#ensureroles) | function | Založí chybějící role z výchozí definice (seed klienta). Existující role správce upravil v administraci, proto se jim dorovná jen povinné 2FA podle konfigurace a oprávnění, která seed přidal nově (např. nový modul): ta se jen přidají, nikdy neodeberou a nepřidá se znovu to, co správce ručně odebral (seznam už nasazených oprávnění je v nastavení `rbac.seeded.<klíč role>`). Oprávnění `private.read` nedostane žádná role kromě systémové. |  |
 | [`inTx`](#intx) | function | Provede `fn` v transakci; `ctx.db` uvnitř je transakce (zápis i audit jsou atomické). |  |
 | [`loadActor`](#loadactor) | function | Načte aktéra (uživatele s oprávněními jeho role). Vrací `null` pro neexistujícího, deaktivovaného nebo smazaného uživatele. Systémová role (owner) dostane všechna oprávnění katalogu v rozsahu `all`, aby se po přidání modulu nemusela doplňovat. |  |
 | [`requireScope`](#requirescope) | function | Vrátí rozsah, nebo vyhodí PermissionError. |  |
 | [`scopeOf`](#scopeof) | function | Jaký rozsah má aktér u oprávnění (`null` = nemá ho vůbec). |  |
 | [`scopedWhere`](#scopedwhere) | function | Podmínka do `WHERE` pro seznamy: u rozsahu `all` nic (`undefined`), u `own` jen záznamy, kde je aktér v kterémkoli ze sloupců s vlastníkem. Bez oprávnění vyhodí PermissionError. Každý dotaz nad záznamy s rozsahem musí podmínku použít (kontrola je v datové vrstvě). |  |
+| [`sourceCtx`](#sourcectx) | function | Kontext pro změny, které nedělá člověk: příchozí volání z n8n, synchronizace s Googlem nebo Metou, naplánovaná úloha. Smí všechno (jako systém), ale historie u změny ukáže `kind` a `label` („n8n: Disk“). |  |
 | [`systemCtx`](#systemctx) | function |  |  |
 | [`NotFoundError`](#notfounderror) | class | Záznam neexistuje (nebo ho uživatel nesmí vidět — oboje se tváří stejně). |  |
 | [`PermissionError`](#permissionerror) | class | Uživatel nemá právo na akci nebo záznam. |  |
@@ -25,7 +28,7 @@ Vstupní bod `@rebar/core/rbac` (soubor `packages/core/src/rbac/index.ts`). Expo
 | [`SELF_SERVICE_PERMISSIONS`](#self_service_permissions) | const | Oprávnění, která smí i omezená relace (např. nastavení vlastního 2FA). |  |
 | [`SYSTEM_ACTOR`](#system_actor) | const | Aktér pro úlohy na pozadí: smí všechno, v auditu je vidět jako „system“. |  |
 | [`Actor`](#actor) | type |  |  |
-| [`ActorKind`](#actorkind) | type |  |  |
+| [`ActorKind`](#actorkind) | type | Druh aktéra změny: uživatel, systém (úlohy), servisní přístup agentury, nebo vnější zdroj (n8n, Google, Meta, naplánovaná úloha). Vnější zdroje a úlohy jsou `unrestricted`; v historii je vidět `kind` a `label`. |  |
 | [`Ctx`](#ctx) | type |  |  |
 | [`EnsureRolesOptions`](#ensurerolesoptions) | type |  |  |
 | [`LoadActorOptions`](#loadactoroptions) | type |  |  |
@@ -42,6 +45,16 @@ _Bez popisu._
 
 ```ts
 function assertCan(ctx: Ctx, key: string, record?: OwnedRecord): void
+```
+
+### assertCanAny
+
+function · `packages/core/src/rbac/permissions.ts`
+
+Aktér musí mít kterékoli z oprávnění (`PermissionError`, když žádné).
+
+```ts
+function assertCanAny(ctx: Ctx, ...keys: string[]): void
 ```
 
 ### can
@@ -69,8 +82,10 @@ function createCtx(db: Executor, actor: Actor, meta: { requestId?: string | unde
 
 function · `packages/core/src/rbac/seed.ts`
 
-Založí chybějící role z výchozí definice (seed klienta). Existující role se nemění
-(správce je upravil v administraci), jen se jim dorovná povinné 2FA podle konfigurace.
+Založí chybějící role z výchozí definice (seed klienta). Existující role správce upravil v administraci, proto se jim
+dorovná jen povinné 2FA podle konfigurace a oprávnění, která seed přidal nově (např. nový modul): ta se jen přidají,
+nikdy neodeberou a nepřidá se znovu to, co správce ručně odebral (seznam už nasazených oprávnění je v nastavení
+`rbac.seeded.<klíč role>`). Oprávnění `private.read` nedostane žádná role kromě systémové.
 
 ```ts
 async function ensureRoles(db: Executor, defs: readonly RoleDef[], { catalog, require2faRoles = [] }: EnsureRolesOptions = {}): Promise<void>
@@ -128,6 +143,17 @@ Každý dotaz nad záznamy s rozsahem musí podmínku použít (kontrola je v da
 
 ```ts
 function scopedWhere(ctx: Ctx, key: string, ownerColumns: readonly AnyColumn[]): SQL | undefined
+```
+
+### sourceCtx
+
+function · `packages/core/src/rbac/context.ts`
+
+Kontext pro změny, které nedělá člověk: příchozí volání z n8n, synchronizace s Googlem nebo Metou, naplánovaná
+úloha. Smí všechno (jako systém), ale historie u změny ukáže `kind` a `label` („n8n: Disk“).
+
+```ts
+function sourceCtx(db: Executor, kind: Exclude<ActorKind, "user">, label?: string, requestId?: string): Ctx
 ```
 
 ### systemCtx
@@ -210,6 +236,8 @@ type Actor = {
   kind: ActorKind;
   userId: string | null;
   roleKey: string | null;
+  /** Popisek vnějšího aktéra do historie (např. „n8n: Disk“, „Google Kalendář“); u uživatele prázdný. */
+  label?: string | undefined;
   /** Role aktéra je systémová (owner). Jen takový aktér smí přidělovat systémové role. */
   systemRole?: boolean;
   /** Oprávnění role v aktuální sestavě modulů (oprávnění vypnutých modulů tu nejsou). */
@@ -224,10 +252,11 @@ type Actor = {
 
 type · `packages/core/src/rbac/types.ts`
 
-_Bez popisu._
+Druh aktéra změny: uživatel, systém (úlohy), servisní přístup agentury, nebo vnější zdroj (n8n, Google, Meta,
+naplánovaná úloha). Vnější zdroje a úlohy jsou `unrestricted`; v historii je vidět `kind` a `label`.
 
 ```ts
-type ActorKind = "user" | "system" | "agency";
+type ActorKind = "user" | "system" | "agency" | "n8n" | "google" | "meta" | "job";
 ```
 
 ### Ctx

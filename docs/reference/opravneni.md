@@ -36,8 +36,6 @@ Prázdná buňka = role oprávnění nemá.
 | `dashboards.manage` | Spravuje nástěnky | Výchozí nástěnky pro role, cizí a sdílené nástěnky (Nastavení → Nástěnky) | vše |
 | `exports.schedule` | Plánuje exporty a sdílí šablony exportů | Plány (denně, týdně, měsíčně) a sdílené šablony; export samotný vyžaduje čtení dat | vše |
 | `exports.manage` | Spravuje exporty všech | Vidí historii exportů všech, zastavuje cizí plány a mění nastavení exportů | vše |
-| `tasks.read` | Vidí úkoly | Rozsah „vše“ = úkoly všech, jinak jen vlastní a zadané | vše |
-| `tasks.assign` | Přiděluje úkoly ostatním |  | vše |
 | `comments.moderate` | Maže cizí komentáře |  | vše |
 | `files.manage` | Spravuje cizí soubory |  | vše |
 | `employees.read` | Vidí údaje zaměstnanců | Včetně hodinového nákladu | vše |
@@ -81,7 +79,7 @@ Prázdná buňka = role oprávnění nemá.
 | `zakazky.delete` | Maže zakázky | Do koše; obnovit smí každý své | vše |
 | `zakazky.export` | Exportuje zakázky |  | vše |
 | `zakazky.templates` | Spravuje šablony zakázek |  | vše |
-| `zakazky.finance` | Vidí hodnotu a finance zakázek | Hodnota zakázky a částky odvozené z ní (přechodné; převezme modul Finance) | vše |
+| `zakazky.finance` | Vidí hodnotu a finance zakázek | Přechodné oprávnění z původního jádra; ceny zakázek řídí `finance.read` | vše |
 
 ### Modul Obchody
 
@@ -108,9 +106,8 @@ Prázdná buňka = role oprávnění nemá.
 
 | Klíč | Název | Popis | Výchozí: owner |
 | --- | --- | --- | --- |
-| `kalendar.read` | Vidí kalendář | Rozsah „jen moje“ = události, které vlastním nebo na které jsem pozvaný | vše |
-| `kalendar.write` | Upravuje události | Rozsah „jen moje“ = jen vlastní události | vše |
-| `kalendar.resources` | Spravuje zdroje kalendáře |  | vše |
+| `kalendar.read` | Vidí kalendář | Rozsah „jen moje“ = jen kalendáře mého Google účtu; „vše“ i kalendáře ostatních (jejich soukromé události jako „Obsazeno“) | vše |
+| `kalendar.write` | Upravuje události | Připojení vlastního Google účtu, zakládání a přesouvání schůzek, vazby na klienty a obchody; rozsah „jen moje“ = jen vlastní události | vše |
 
 ### Modul Hodiny
 
@@ -177,78 +174,75 @@ Přehled z registru entit, příkazů, navigace a stránek. Sloupec Příkazy je
 | `comments.moderate` |  |  |  |  |
 | `dashboards.manage` |  |  |  |  |
 | `dashboards.write` |  |  |  |  |
-| `disk.manage` |  |  |  |  |
-| `disk.read` |  |  |  |  |
-| `disk.write` |  |  |  |  |
+| `disk.manage` |  |  | 5 |  |
+| `disk.read` |  |  | 1 |  |
+| `disk.write` |  |  | 2 |  |
 | `employees.read` |  |  |  |  |
 | `employees.write` |  |  |  |  |
 | `exports.manage` |  |  |  |  |
 | `exports.schedule` |  |  |  |  |
 | `files.manage` |  |  |  |  |
-| `finance.export` |  |  |  |  |
-| `finance.payments_write` |  |  |  |  |
-| `finance.read` |  |  |  | `/finance`, `/finance/vyrovnani`, `/finance/vyrovnani`, `/finance` |
-| `finance.settings` |  |  |  |  |
-| `finance.settlements_write` |  |  |  |  |
-| `finance.splits_edit` |  |  |  |  |
-| `hodiny.delete` |  |  |  |  |
-| `hodiny.read` |  |  |  | `/hodiny`, `/hodiny` |
-| `hodiny.write` |  |  |  |  |
-| `kalendar.read` | `event (read)`, `calendar_resource (read)` |  | 9 | `/kalendar`, `/kalendar` |
-| `kalendar.resources` | `calendar_resource (write)` |  |  |  |
-| `kalendar.write` | `event (write)` |  | 2 |  |
-| `klienti.read` |  |  |  | `/klienti`, `/klienti` |
-| `klienti.write` |  |  |  |  |
-| `kontakty.ares` |  |  | 1 |  |
-| `kontakty.create` |  |  |  |  |
-| `kontakty.delete` |  |  |  |  |
-| `kontakty.export` |  |  |  |  |
+| `finance.export` | `payment (export)`, `settlement (export)` |  |  |  |
+| `finance.payments_write` | `payment (write)`, `payment (create)`, `payment (delete)` |  | 7 |  |
+| `finance.read` | `payment (read)`, `settlement (read)` | `job.price` | 13 | `/finance`, `/finance/vyrovnani`, `/finance/prehledy`, `/finance`, `/finance/vyrovnani`, `/finance/prehledy` |
+| `finance.settings` |  |  | 1 |  |
+| `finance.settlements_write` | `settlement (write)`, `settlement (create)` |  | 2 |  |
+| `finance.splits_edit` |  |  | 2 |  |
+| `hodiny.delete` | `time_entry (delete)` |  | 1 |  |
+| `hodiny.read` | `time_entry (read)` |  | 6 | `/hodiny`, `/hodiny` |
+| `hodiny.write` | `time_entry (write)`, `time_entry (create)` |  | 2 |  |
+| `kalendar.read` |  |  | 4 | `/kalendar`, `/kalendar` |
+| `kalendar.write` |  |  | 11 |  |
+| `klienti.read` |  |  | 3 | `/klienti`, `/klienti` |
+| `klienti.write` |  |  | 3 |  |
+| `kontakty.ares` |  |  | 2 |  |
+| `kontakty.create` | `company (create)`, `person (create)` |  | 1 | `/kontakty/firmy/nova`, `/kontakty/osoby/novy` |
+| `kontakty.delete` | `company (delete)`, `person (delete)` |  |  |  |
+| `kontakty.export` | `company (export)`, `person (export)` |  |  |  |
 | `kontakty.merge` |  |  | 2 |  |
-| `kontakty.read` | `company (read)`, `person (read)` |  | 3 | `/kontakty/firmy`, `/kontakty/osoby` |
-| `kontakty.write` | `company (write)`, `person (write)` |  | 2 |  |
-| `muj-prostor.domains` |  |  |  | `/muj-prostor/domeny`, `/muj-prostor/domeny` |
-| `muj-prostor.email_library` |  |  |  | `/muj-prostor/knihovna`, `/muj-prostor/knihovna` |
-| `muj-prostor.hosting` |  |  |  | `/muj-prostor/hosting`, `/muj-prostor/hosting` |
-| `muj-prostor.private_overview` |  |  |  | `/muj-prostor/soukrome`, `/muj-prostor/soukrome` |
-| `muj-prostor.recurring_invoices` |  |  |  | `/muj-prostor/faktury`, `/muj-prostor/faktury` |
-| `obchody.create` |  |  |  |  |
-| `obchody.delete` |  |  |  |  |
-| `obchody.export` |  |  |  |  |
-| `obchody.pipelines` |  |  |  |  |
-| `obchody.read` |  |  |  | `/obchody`, `/obchody` |
-| `obchody.write` |  |  | 1 |  |
+| `kontakty.read` | `company (read)`, `person (read)` |  | 6 | `/kontakty/firmy`, `/kontakty/osoby` |
+| `kontakty.write` | `company (write)`, `person (write)` |  | 3 |  |
+| `muj-prostor.domains` | `web_domain (read)`, `web_domain (write)`, `web_domain (create)`, `web_domain (delete)`, `web_domain (export)` |  | 4 | `/muj-prostor/domeny`, `/muj-prostor/domeny` |
+| `muj-prostor.email_library` | `email_library_item (read)`, `email_library_item (write)`, `email_library_item (create)`, `email_library_item (delete)`, `email_library_item (export)` |  | 5 | `/muj-prostor/knihovna`, `/muj-prostor/knihovna` |
+| `muj-prostor.hosting` | `recurring_service (read)`, `recurring_service (write)`, `recurring_service (create)`, `recurring_service (delete)`, `recurring_service (export)` |  | 4 | `/muj-prostor/hosting`, `/muj-prostor/hosting` |
+| `muj-prostor.private_overview` |  |  | 2 | `/muj-prostor/soukrome`, `/muj-prostor/soukrome` |
+| `muj-prostor.recurring_invoices` | `recurring_invoice (read)`, `recurring_invoice (write)`, `recurring_invoice (create)` |  | 11 | `/muj-prostor/faktury`, `/muj-prostor/faktury` |
+| `obchody.create` | `deal (create)` |  | 2 |  |
+| `obchody.delete` | `deal (delete)` |  | 1 |  |
+| `obchody.export` | `deal (export)` |  |  |  |
+| `obchody.pipelines` |  |  | 8 |  |
+| `obchody.read` | `deal (read)` |  | 6 | `/obchody` |
+| `obchody.write` | `deal (write)` |  | 8 |  |
 | `prehled.read` |  |  |  | `/prehled`, `/prehled` |
 | `private.read` |  |  |  |  |
-| `reklama.manage` |  |  |  |  |
-| `reklama.read` |  |  |  | `/reklama`, `/reklama` |
-| `reklama.write` |  |  |  |  |
+| `reklama.manage` | `ad_account (create)` |  | 10 |  |
+| `reklama.read` | `ad_account (read)`, `ad_campaign (read)` |  | 6 | `/reklama` |
+| `reklama.write` | `ad_account (write)`, `ad_campaign (write)` |  | 2 |  |
 | `roles.manage` |  |  |  |  |
-| `sablony-emailu.create` |  |  |  |  |
-| `sablony-emailu.delete` |  |  |  |  |
-| `sablony-emailu.read` |  |  |  | `/sablony-emailu`, `/sablony-emailu` |
-| `sablony-emailu.write` |  |  |  |  |
+| `sablony-emailu.create` | `email_template (create)` |  |  |  |
+| `sablony-emailu.delete` | `email_template (delete)` |  |  |  |
+| `sablony-emailu.read` | `email_template (read)` |  | 7 | `/sablony-emailu` |
+| `sablony-emailu.write` | `email_template (write)` |  | 1 |  |
 | `settings.custom_fields` |  |  |  |  |
 | `settings.integrations` |  |  |  |  |
-| `settings.manage` |  |  |  |  |
+| `settings.manage` |  |  | 2 |  |
 | `settings.pipelines` |  |  |  |  |
 | `settings.tags` |  |  |  |  |
-| `tasks.assign` |  |  |  |  |
-| `tasks.read` |  |  |  |  |
 | `trash.purge` |  |  |  |  |
 | `trash.read` |  |  |  |  |
-| `ukoly.create` |  |  |  |  |
-| `ukoly.delete` |  |  |  |  |
-| `ukoly.read` |  |  |  | `/ukoly`, `/ukoly` |
-| `ukoly.types` |  |  |  | `/ukoly/typy` |
-| `ukoly.write` |  |  |  |  |
+| `ukoly.create` | `task (create)`, `note (create)` |  | 3 |  |
+| `ukoly.delete` | `task (delete)`, `note (delete)` |  | 2 |  |
+| `ukoly.read` | `task (read)`, `note (read)`, `task_type (read)` |  | 8 | `/ukoly`, `/ukoly`, `/poznamky/samostatne` |
+| `ukoly.types` | `task_type (write)`, `task_type (create)`, `task_type (delete)` |  | 3 | `/ukoly/typy` |
+| `ukoly.write` | `task (write)`, `note (write)` |  | 10 |  |
 | `users.manage` |  |  |  |  |
-| `zakazky.create` |  |  |  |  |
-| `zakazky.delete` |  |  |  |  |
-| `zakazky.export` |  |  |  |  |
-| `zakazky.finance` |  | `job.value`, `job.crmWeighted` |  |  |
-| `zakazky.read` | `job (read)` |  | 3 | `/zakazky`, `/zakazky/sablony` |
-| `zakazky.templates` |  |  |  |  |
-| `zakazky.write` | `job (write)` |  | 8 |  |
+| `zakazky.create` | `job (create)` |  | 2 |  |
+| `zakazky.delete` | `job (delete)` |  |  |  |
+| `zakazky.export` | `job (export)` |  |  |  |
+| `zakazky.finance` |  |  |  |  |
+| `zakazky.read` | `job (read)`, `job_template (read)` |  | 7 | `/zakazky` |
+| `zakazky.templates` | `job_template (write)`, `job_template (create)`, `job_template (delete)` |  | 6 |  |
+| `zakazky.write` | `job (write)` |  | 11 |  |
 
 ## Kontrola konzistence
 Všechna oprávnění vyžadovaná entitami, příkazy, navigací a stránkami jsou v katalogu.

@@ -46,7 +46,7 @@ export const notification = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    /** Klíč události z katalogu (`task.assigned`); u starších upozornění původní druh. */
+    /** Klíč události z katalogu (`comment.mention`); u starších upozornění původní druh. */
     kind: text("kind").notNull(),
     severity: text("severity", { enum: ["normal", "urgent"] })
       .notNull()

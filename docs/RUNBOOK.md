@@ -297,7 +297,7 @@ Majitel ztratil heslo i 2FA a není jiný administrátor:
 - **Vlastní heslo si každý mění sám** v Nastavení → Profil (po instalaci i majitel; krok 6 v [DEPLOYMENT](DEPLOYMENT.md)). Po změně se odhlásí ostatní zařízení.
 - **Podezření na cizí přístup:** uživatel v Profil → Přihlášená zařízení odhlásí neznámé zařízení (nebo „Odhlásit všechna ostatní“) a změní heslo. Správce může u uživatele zvolit „Odhlásit všude“
   a „Poslat odkaz pro nové heslo“. Historie přihlášení (včetně neúspěšných) je v nabídce uživatele.
-- **Ztracený telefon s 2FA:** přihlášení záložním kódem, pak Zabezpečení účtu → nové záložní kódy. Povinné 2FA (majitel, administrátor) vypnout nejde; když chybí záložní kódy, použije se postup výše (jiný správce odkaz pro heslo a majitel přes `seed`).
+- **Ztracený telefon s 2FA:** přihlášení záložním kódem, pak Zabezpečení účtu → nové záložní kódy. Povinné 2FA (v OPSYS pro všechny) vypnout nejde; když chybí záložní kódy, použije se postup výše (jiný správce odkaz pro heslo a majitel přes `seed`).
 - Pokusy o změnu hesla jsou omezené (6 za 10 minut na uživatele); při překročení počkej, nebo požádej správce o odkaz pro nové heslo.
 
 ## 11. n8n: tajemství webhooků a ingestu, výpadek n8n

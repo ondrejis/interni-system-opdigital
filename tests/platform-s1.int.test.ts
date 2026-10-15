@@ -127,8 +127,14 @@ describe("entity modelu OPSYS", () => {
       price: 700_000_00,
     });
     expect(String(job.row.number)).toMatch(/^Z-\d{4}-\d{3,}$/);
+    // typ aktivity musí existovat (výchozí typy zakládá `db:seed`, tady je prázdná šablona databáze)
+    await createRecord(boss.ctx, registry, await R("task_type"), {
+      name: `Zavolat ${tag}`,
+      key: `zavolat_${tag}`,
+    });
     const task = await createRecord(boss.ctx, registry, await R("task"), {
       title: `Zavolat ${tag}`,
+      type: `zavolat_${tag}`,
       deal: deal.row.id,
       assignee: boss.id,
       dueDate: "2026-10-20",
@@ -143,11 +149,14 @@ describe("entity modelu OPSYS", () => {
       job: job.row.id,
       minutes: 90,
     });
-    const payment = await createRecord(boss.ctx, registry, await R("payment"), {
-      description: `Platba ${tag}`,
-      job: job.row.id,
-      amount: 7_000_00,
-    });
+    // platba a vyrovnání vznikají jen příkazy modulu finance (`noCreate`), engine je přímo nezaloží
+    await expect(
+      createRecord(boss.ctx, registry, await R("payment"), {
+        description: `Platba ${tag}`,
+        job: job.row.id,
+        amount: 7_000_00,
+      }),
+    ).rejects.toThrow(/zakázce|Platb/i);
     for (const [key, id] of [
       ["company", co.row.id],
       ["person", person.row.id],
@@ -156,16 +165,14 @@ describe("entity modelu OPSYS", () => {
       ["task", task.row.id],
       ["note", note.row.id],
       ["time_entry", hours.row.id],
-      ["payment", payment.row.id],
     ] as const) {
       const e = await R(key);
       expect((await getRecord(boss.ctx, registry, e, id)).row.id, key).toBe(id);
     }
 
-    // hledání bez diakritiky najde firmu, kontakt, obchod i platbu
+    // hledání bez diakritiky najde firmu, kontakt a obchod
     const hits = await searchAll(boss.ctx, registry.all(), `novotna${tag}`);
     expect(hits.some((h) => h.entityType === "person")).toBe(true);
-    expect((await searchAll(boss.ctx, registry.all(), `Platba ${tag}`)).length).toBeGreaterThan(0);
 
     // úprava a smazání do koše
     await updateRecord(boss.ctx, registry, await R("deal"), deal.row.id, {
@@ -204,13 +211,15 @@ describe("entity modelu OPSYS", () => {
       name: `Šablona zakázky ${tag}`,
       type: "web",
     });
-    await createRecord(boss.ctx, registry, await R("settlement"), {
-      settledOn: "2026-10-14",
-      from: boss.id,
-      to: (await makeUser(app.db, [])).id,
-      amount: 1_000_00,
-      method: "transfer",
-    });
+    await expect(
+      createRecord(boss.ctx, registry, await R("settlement"), {
+        settledOn: "2026-10-14",
+        from: boss.id,
+        to: (await makeUser(app.db, [])).id,
+        amount: 1_000_00,
+        method: "transfer",
+      }),
+    ).rejects.toThrow(/Vyrovnání/);
     expect((await searchAll(boss.ctx, registry.all(), `${tag}.example`)).length).toBeGreaterThan(0);
   });
 });

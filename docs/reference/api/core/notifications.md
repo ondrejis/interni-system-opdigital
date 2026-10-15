@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core/notifications` (soubor `packages/core/src/notifications/index.ts`). Exportů: 87, z toho s popisem 46.
+Vstupní bod `@rebar/core/notifications` (soubor `packages/core/src/notifications/index.ts`). Exportů: 82, z toho s popisem 45.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
@@ -37,7 +37,6 @@ Vstupní bod `@rebar/core/notifications` (soubor `packages/core/src/notification
 | [`resolveEvent`](#resolveevent) | function | Pořadí vrstev: katalog → konfigurace klienta → úpravy správce (nejvyšší přednost). |  |
 | [`saveAdminRules`](#saveadminrules) | function | Uloží úpravy správce (celý dokument). Pravidlo shodné s výchozím se předem odstraní (zadá volající). |  |
 | [`saveMyPreferences`](#savemypreferences) | function | Uloží předvolby přihlášeného. Neznámé události se zahodí; hodnoty shodné s výchozími se neukládají (pozdější změna výchozího chování klienta se pak projeví i tomu, kdo nic neměnil). |  |
-| [`sendTaskDigests`](#sendtaskdigests) | function | Ranní přehled úkolů: každému, kdo má úkoly s dnešním termínem nebo po termínu, přijde jedno upozornění. Idempotentní (událost má `dedupe: "day"`), takže opakované spuštění ve stejný den nic nezdvojí; o víkendech a státních svátcích se neposílá. |  |
 | [`snoozeNotification`](#snoozenotification) | function | Odložení upozornění (akce „Odložit“ na push): stejné upozornění se za zadanou dobu připomene znovu. Smí jen majitel upozornění. Vrací, zda bylo odloženo. |  |
 | [`stripMoney`](#stripmoney) | function | Text bez částek: „VP-1 Odsávání: +52 000 Kč“ → „VP-1 Odsávání“, „K fakturaci 393 960 Kč“ → „K fakturaci“. |  |
 | [`tagOf`](#tagof) | function |  |  |
@@ -51,7 +50,7 @@ Vstupní bod `@rebar/core/notifications` (soubor `packages/core/src/notification
 | [`NotificationCatalogError`](#notificationcatalogerror) | class |  |  |
 | [`CHANNELS`](#channels) | const |  |  |
 | [`CHANNEL_LABELS`](#channel_labels) | const |  |  |
-| [`COMMENT_MENTION`](#comment_mention) | const |  |  |
+| [`COMMENT_MENTION`](#comment_mention) | const | Události platformy. Moduly přidávají své přes `notifications` v manifestu (OPSYS žádné nemá, viz `clients/opsys/config.ts`). |  |
 | [`CORE_NOTIFICATION_EVENTS`](#core_notification_events) | const |  |  |
 | [`DEFAULT_DIGEST_TIMES`](#default_digest_times) | const |  |  |
 | [`DEFAULT_QUIET_HOURS`](#default_quiet_hours) | const |  |  |
@@ -61,10 +60,6 @@ Vstupní bod `@rebar/core/notifications` (soubor `packages/core/src/notification
 | [`RETRY_BACKOFF_SECONDS`](#retry_backoff_seconds) | const | Po každém neúspěšném pokusu se čeká déle; po posledním je doručení „failed“. |  |
 | [`SEVERITY_LABELS`](#severity_labels) | const |  |  |
 | [`SYSTEM_TEST`](#system_test) | const | Zkušební upozornění z Nastavení: obchází tiché hodiny a shrnutí a nezobrazuje se v Inboxu. |  |
-| [`TASK_ASSIGNED`](#task_assigned) | const | Události platformy. Moduly přidávají své přes `notifications` v manifestu. |  |
-| [`TASK_DONE`](#task_done) | const |  |  |
-| [`TASK_DUE_CHANGED`](#task_due_changed) | const |  |  |
-| [`TASK_DUE_TODAY`](#task_due_today) | const |  |  |
 | [`eventRuleSchema`](#eventruleschema) | const | Úprava jedné události; vynechané položky zůstávají podle katalogu. |  |
 | [`notificationRulesSchema`](#notificationrulesschema) | const | Úpravy správce v Nastavení (všechno volitelné, doplňuje se do konfigurace klienta). |  |
 | [`notificationRulesSetting`](#notificationrulessetting) | const | Úpravy správce klienta (Nastavení → Pravidla upozornění). Čte je jádro přímo z tabulky `setting`, bez šifrování. |  |
@@ -381,18 +376,6 @@ Uloží předvolby přihlášeného. Neznámé události se zahodí; hodnoty sho
 async function saveMyPreferences(ctx: Ctx, raw: unknown): Promise<void>
 ```
 
-### sendTaskDigests
-
-function · `packages/core/src/notifications/scheduled.ts`
-
-Ranní přehled úkolů: každému, kdo má úkoly s dnešním termínem nebo po termínu, přijde jedno upozornění.
-Idempotentní (událost má `dedupe: "day"`), takže opakované spuštění ve stejný den nic nezdvojí; o víkendech
-a státních svátcích se neposílá.
-
-```ts
-async function sendTaskDigests(db: Executor, now = new Date()): Promise<{ users: number; created: number }>
-```
-
 ### snoozeNotification
 
 function · `packages/core/src/notifications/dispatch.ts`
@@ -522,7 +505,7 @@ const CHANNEL_LABELS: Record<Channel, string>
 
 const · `packages/core/src/notifications/catalog.ts`
 
-_Bez popisu._
+Události platformy. Moduly přidávají své přes `notifications` v manifestu (OPSYS žádné nemá, viz `clients/opsys/config.ts`).
 
 ```ts
 const COMMENT_MENTION: import("./types").NotificationEventDef<"comment.mention", "author" | "excerpt", "mentioned">
@@ -617,46 +600,6 @@ Zkušební upozornění z Nastavení: obchází tiché hodiny a shrnutí a nezob
 
 ```ts
 const SYSTEM_TEST: import("./types").NotificationEventDef<"system.test", never, "self">
-```
-
-### TASK_ASSIGNED
-
-const · `packages/core/src/notifications/catalog.ts`
-
-Události platformy. Moduly přidávají své přes `notifications` v manifestu.
-
-```ts
-const TASK_ASSIGNED: import("./types").NotificationEventDef<"task.assigned", "title" | "author" | "due", "assignee">
-```
-
-### TASK_DONE
-
-const · `packages/core/src/notifications/catalog.ts`
-
-_Bez popisu._
-
-```ts
-const TASK_DONE: import("./types").NotificationEventDef<"task.done", "title", "author">
-```
-
-### TASK_DUE_CHANGED
-
-const · `packages/core/src/notifications/catalog.ts`
-
-_Bez popisu._
-
-```ts
-const TASK_DUE_CHANGED: import("./types").NotificationEventDef<"task.due_changed", "title" | "due" | "previous", "assignee">
-```
-
-### TASK_DUE_TODAY
-
-const · `packages/core/src/notifications/catalog.ts`
-
-_Bez popisu._
-
-```ts
-const TASK_DUE_TODAY: import("./types").NotificationEventDef<"task.due_today", "list" | "summary", "assignee">
 ```
 
 ### eventRuleSchema

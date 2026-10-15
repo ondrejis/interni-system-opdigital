@@ -131,8 +131,8 @@ export async function processLead(
   });
   const made = await createDealFromLead(c, deps, {
     title: leadDealTitle(lead.name, { formName: body.formName, campaignName }),
-    // lead bez firmy: obchod má jen kontakt (sloupec `deal.company_id` je nullable; typ API to zatím nepovoluje, viz ZADOSTI)
-    companyId: contact.companyId as string,
+    // lead bez firmy: obchod má jen kontakt
+    companyId: contact.companyId,
     personId: contact.personId,
     source: "meta",
     meta: {

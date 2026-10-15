@@ -592,6 +592,8 @@ describe("příkazy: schůzka z kalendáře, přesun, smazání, vazby", () => {
   it("bez modulu úkolů vznikne událost jen v Googlu; pozvánky jen s přepínačem, soukromá s příznakem", async () => {
     fake.clearCalls();
     const base = {
+      place: undefined,
+      description: undefined,
       title: "Z kalendáře",
       startsAt: at("22", "09:00"),
       endsAt: at("22", "10:00"),
@@ -620,7 +622,13 @@ describe("příkazy: schůzka z kalendáře, přesun, smazání, vazby", () => {
   it("přesun tažením propíše čas do Googlu; neshoda etagu vrátí srozumitelnou chybu a data se obnoví", async () => {
     const created = await createMeetingCommand.handler(
       owner().ctx,
-      { title: "Přesunout", startsAt: at("23", "09:00"), endsAt: at("23", "10:00") },
+      {
+        title: "Přesunout",
+        place: undefined,
+        description: undefined,
+        startsAt: at("23", "09:00"),
+        endsAt: at("23", "10:00"),
+      },
       deps(),
     );
     const moved = await moveCommand.handler(
@@ -724,7 +732,13 @@ describe("příkazy: schůzka z kalendáře, přesun, smazání, vazby", () => {
   it("smazání události z kalendáře ji smaže v Googlu", async () => {
     const created = await createMeetingCommand.handler(
       owner().ctx,
-      { title: "Smazat", startsAt: at("24", "09:00"), endsAt: at("24", "10:00") },
+      {
+        title: "Smazat",
+        place: undefined,
+        description: undefined,
+        startsAt: at("24", "09:00"),
+        endsAt: at("24", "10:00"),
+      },
       deps(),
     );
     const [row] = await db

@@ -34,3 +34,38 @@ Výchozí přidělení rolím je v [opravneni.md](../opravneni.md).
 | Klíč | Název | Popis |
 | --- | --- | --- |
 | `prehled.read` | Vidí úvodní přehled |  |
+
+## Serverová část
+
+### dashboardMetrics
+
+_Tento registr zatím nemá vlastní sekci v generátoru, zobrazeno obecně._
+
+| key | label | description | format | shape | permissions | params | compute |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `prehled.recent_changes` | `Poslední změny` | `Co se v systému naposledy dělo: poslední změny záznamů, které smíte vidět (soukromé záznamy Ondřeje partner nevidí).` | `number` | `list` | `activity.read` | pole (1) | funkce |
+
+### privatePaths
+
+_Tento registr zatím nemá vlastní sekci v generátoru, zobrazeno obecně._
+
+| name | run |
+| --- | --- |
+| `prehled.metric.recent_changes` | funkce |
+| `prehled.metric.recent_changes_mine` | funkce |
+| `prehled.widget.seznam.company` | funkce |
+| `prehled.widget.cislo.company` | funkce |
+| `prehled.widget.seznam.person` | funkce |
+| `prehled.widget.cislo.person` | funkce |
+| `prehled.widget.seznam.job` | funkce |
+| `prehled.widget.cislo.job` | funkce |
+| `prehled.widget.seznam.deal` | funkce |
+| `prehled.widget.cislo.deal` | funkce |
+| `prehled.widget.seznam.task` | funkce |
+| `prehled.widget.cislo.task` | funkce |
+| `prehled.widget.seznam.note` | funkce |
+| `prehled.widget.cislo.note` | funkce |
+| `prehled.widget.seznam.payment` | funkce |
+| `prehled.widget.cislo.payment` | funkce |
+| `prehled.widget.seznam.time_entry` | funkce |
+| `prehled.widget.cislo.time_entry` | funkce |

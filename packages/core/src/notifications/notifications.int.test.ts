@@ -949,13 +949,13 @@ describe("plánované události a úklid", () => {
 
   it("starší způsob (createNotifications) dodržuje předvolby a katalog; bez katalogu je to běžné upozornění", async () => {
     const u = await person();
-    await saveMyPreferences(u.ctx, { events: { "task.assigned": { bell: false } } });
+    await saveMyPreferences(u.ctx, { events: { "comment.mention": { bell: false } } });
     await createNotifications(app.db, [
-      { userId: u.id, kind: "task.assigned", title: "Přiděleno" },
+      { userId: u.id, kind: "comment.mention", title: "Přiděleno" },
       { userId: u.id, kind: "legacy.kind", title: "Staré volání" },
     ]);
     const rows = await notificationsOf(u.id);
-    expect(rows.find((r) => r.kind === "task.assigned")!.inbox).toBe(false);
+    expect(rows.find((r) => r.kind === "comment.mention")!.inbox).toBe(false);
     expect(rows.find((r) => r.kind === "legacy.kind")!.inbox).toBe(true);
     const d = await deliveries(u.id);
     expect(d.some((x) => x.channel === "push")).toBe(true);

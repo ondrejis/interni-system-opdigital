@@ -11,7 +11,7 @@
 - **Poznámky a komentáře nejsou audit.** Komentáře jsou samostatná tabulka s úpravami, mazáním a zmínkami.
 - **Tajemství v databázi** (heslo SMTP…) jsou zašifrovaná AES-256-GCM samostatným klíčem `APP_ENCRYPTION_KEY` (ne odvozeným z tajemství přihlašování), s identifikátorem klíče pro rotaci. Do auditu ani do administrace se nedostanou v čitelné podobě.
 - **E-maily s tajným odkazem** (pozvánka, reset hesla): v `email_log` je jen příjemce, šablona, předmět a stav — žádné tělo. Ve frontě úloh jsou proměnné šablony jen zašifrované a dokončená úloha se po 10 minutách maže. Pozvánka a reset hesla neukazují odkaz v administraci; **výjimka:** jednorázový odkaz pro nové heslo, který správce vyžádá u uživatele **bez nastaveného SMTP**, se správci jednou zobrazí k předání (platí hodinu, v auditu je jen jeho vznik).
-- **Pozvánka** platí 7 dní, v DB je jen otisk tokenu (SHA-256), přijmout ji jde jednou (i souběžně).
+- **Pozvánka** platí 48 hodin, v DB je jen otisk tokenu (SHA-256), přijmout ji jde jednou (i souběžně).
 
 ## Důsledky
 

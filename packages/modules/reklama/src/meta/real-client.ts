@@ -96,7 +96,9 @@ export function createRealMetaClient(opts: RealMetaClientOptions): MetaAdsClient
     for (let page = 0; url && page < MAX_PAGES; page++) {
       const body: Page<T> = await request<Page<T>>(url);
       out.push(...(body.data ?? []));
-      url = body.paging?.next;
+      // další stránku smíme stáhnout jen z Graph API (jinak by odpověď mohla odnést přístupový token na cizí adresu)
+      const next = body.paging?.next;
+      url = next?.startsWith(`${BASE}/`) ? next : undefined;
     }
     return out;
   }

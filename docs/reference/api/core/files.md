@@ -165,7 +165,7 @@ záznam, uživatel k němu musí mít právo zápisu; bez vazby je soubor „vol
 dokud se nepřipojí) a nepřipojené soubory se po 24 hodinách uklidí.
 
 ```ts
-async function uploadFile(ctx: Ctx, deps: FilesDeps, input: { name: string; data: Buffer; attachTo?: AttachTo }): Promise<{ file: { name: string; id: string; kind: "image" | "document"; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; sha256: string; size: number; storageKey: string; mime: s…
+async function uploadFile(ctx: Ctx, deps: FilesDeps, input: { name: string; data: Buffer; attachTo?: AttachTo }): Promise<{ file: { name: string; id: string; kind: "image" | "document"; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; deletedBy: string | null; deletedBatch: string | null; sh…
 ```
 
 ### LocalDiskStorage

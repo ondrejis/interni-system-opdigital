@@ -23,10 +23,10 @@ export default defineConfig({
     extraHTTPHeaders: { "x-forwarded-for": `198.51.100.${1 + Math.floor(Math.random() * 250)}` },
   },
   projects: [
-    { name: "setup", testMatch: /auth\.setup\.ts/ },
+    { name: "setup", testMatch: /(^|\/)auth\.setup\.ts$/ },
     {
       name: "chromium",
-      testIgnore: /auth\.setup\.ts/,
+      testIgnore: /(^|\/)auth\.setup\.ts$/,
       dependencies: ["setup"],
       use: { ...devices["Desktop Chrome"], storageState: STATE },
     },
@@ -42,6 +42,8 @@ export default defineConfig({
       APP_ALLOW_HTTP: "1",
       // ukázková stránka komponent `/ui` (v ostrém provozu je vypnutá)
       UI_SHOWCASE: "1",
+      // Fakturoid (opakované faktury v Můj prostor) se v e2e nevolá: vestavěný fake klient bez sítě
+      FAKTUROID_MODE: "fake",
     },
     reuseExistingServer: false,
     timeout: 240_000,

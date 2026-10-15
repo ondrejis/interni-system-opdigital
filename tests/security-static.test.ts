@@ -90,9 +90,13 @@ describe("Caddyfile: bezpečnostní hlavičky a limity", () => {
     expect(caddy).toMatch(/-Server/);
     expect(caddy).toMatch(/header_up X-Forwarded-For \{remote_host\}/);
     expect(caddy).toMatch(/max_size 30MB/);
-    // veřejné a přihlašovací cesty nepotřebují velká těla (poptávky, přihlášení, pozvánky)
+    // veřejné a přihlašovací cesty nepotřebují velká těla (přihlášení, pozvánky, push, Google webhook kalendáře)
     expect(caddy).toMatch(
-      /@small[\s\S]*\/api\/intake\/\*[\s\S]*request_body @small[\s\S]*max_size \d+KB/,
+      /@small path[^\n]*\/api\/auth\/\*[^\n]*\/api\/kalendar\/google\/webhook[\s\S]*request_body @small[\s\S]*max_size \d+KB/,
+    );
+    // příchozí požadavky z n8n mají vlastní (větší, ale omezený) limit těla
+    expect(caddy).toMatch(
+      /@ingest path \/api\/ingest\/\*[\s\S]*request_body @ingest[\s\S]*max_size \d+(KB|MB)/,
     );
   });
 });
@@ -265,7 +269,11 @@ describe("tajemství v repozitáři", () => {
     }
   })();
   const files = (tracked ?? walk(root).map(rel)).filter(
-    (f) => !/(pnpm-lock\.yaml|\.(png|jpe?g|ico|woff2?|ttf|pdf|xlsx|zip|svg)$)/.test(f),
+    (f) =>
+      // sestavené výstupy Next.js (`.next`, `.next-<vývojář>`) obsahují cizí knihovny, které o „klíčích“ jen mluví
+      !/(pnpm-lock\.yaml|\.(png|jpe?g|ico|woff2?|ttf|pdf|xlsx|zip|svg)$|(^|\/)\.next[^/]*\/)/.test(
+        f,
+      ),
   );
 
   it("žádný soubor v repu neobsahuje klíč, token ani heslo (ukázky v testech a návodech jsou zástupné)", () => {
@@ -324,7 +332,11 @@ describe("interní název a klienti", () => {
         fs
           .readFileSync(f, "utf8")
           .split("\n")
-          .map((l, i) => ({ at: `${rel(f)}:${i + 1}`, l: l.replace(/@rebar\//g, "") }))
+          .map((l, i) => ({
+            at: `${rel(f)}:${i + 1}`,
+            // `@rebar/*` (obor balíčků) a proměnné prostředí a názvy testovacích databází `rebar_*` jsou povolené
+            l: l.replace(/@rebar\//g, "").replace(/\brebar_[a-z0-9_]+/gi, ""),
+          }))
           .filter(({ l }) => /rebar/i.test(l)),
       )
       .map((x) => x.at);

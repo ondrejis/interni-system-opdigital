@@ -21,9 +21,9 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 
 - **Popis z manifestu:** Šablony e-mailů s proměnnými z klienta, kontaktu, obchodu a zakázky; otevření připraveného e-mailu v Gmailu nebo kopie do schránky.
 - **Závisí na:** [`kontakty`](kontakty.md)
-- **Entity:** žádné
-- **Příkazy:** žádné
-- **Referenční stránky:** [modul](../reference/moduly/sablony-emailu.md), [databáze](../reference/databaze/sablony-emailu.md)
+- **Entity:** [`email_template`](../reference/entity/sablony-emailu.md#email_template)
+- **Příkazy:** [8 příkazů](../reference/prikazy/sablony-emailu.md)
+- **Referenční stránky:** [modul](../reference/moduly/sablony-emailu.md), [entity](../reference/entity/sablony-emailu.md), [příkazy](../reference/prikazy/sablony-emailu.md), [databáze](../reference/databaze/sablony-emailu.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 

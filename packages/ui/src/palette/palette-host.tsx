@@ -74,12 +74,14 @@ function toggleTheme() {
   }
 }
 
-const ACTION_ICON: Record<HitAction["kind"], React.ReactNode> = {
-  call: <Phone />,
-  copy: <Clipboard />,
-  mail: <Mail />,
-  drive: <HardDrive />,
-};
+/** Ikona akce u nálezu. Funkce, ne konstanta s JSX: modul se načítá i mimo bundler (generátor dokumentace). */
+const actionIcon = (kind: HitAction["kind"]): React.ReactNode =>
+  ({
+    call: <Phone />,
+    copy: <Clipboard />,
+    mail: <Mail />,
+    drive: <HardDrive />,
+  })[kind];
 
 /**
  * Paleta Cmd+K nad daty aplikace: příkazy z `paletteActions` zapnutých modulů (podle oprávnění), „Nový …“ pro entity,
@@ -216,7 +218,7 @@ export function PaletteHost(p: PaletteHostProps) {
             actions: hitActions(h).map((a): PaletteRowAction => ({
               id: a.kind,
               label: a.label,
-              icon: a.kind === "drive" ? <ExternalLink /> : ACTION_ICON[a.kind],
+              icon: a.kind === "drive" ? <ExternalLink /> : actionIcon(a.kind),
               ...(a.kind === "copy"
                 ? {
                     onRun: () => {

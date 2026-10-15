@@ -5,75 +5,94 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/kontakty/server` (soubor `packages/modules/kontakty/src/server.ts`). Exportů: 19, z toho s popisem 14.
+Vstupní bod `@rebar/kontakty/server` (soubor `packages/modules/kontakty/src/server.ts`). Exportů: 23, z toho s popisem 22.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
-| [`matchContactDuplicates`](api.md#matchcontactduplicates) | function | Najde existující firmy a osoby, které se shodují v IČO (jen firmy), e-mailu nebo telefonu (shoda bez ohledu na velikost písmen, mezery a předvolbu). Respektuje rozsah oprávnění ke kontaktům aktéra (`kontakty.read`). Slouží kontrole duplicit při zakládání obchodů i rychlém zadání (a při sloučení kontaktů). | v `@rebar/kontakty/api` |
+| [`discoverReferences`](#discoverreferences) | function | Najde v katalogu databáze všechno, co odkazuje na firmu nebo osobu (viz popis nahoře). |  |
+| [`matchContactDuplicates`](api.md#matchcontactduplicates) | function | Najde existující organizace a osoby, které se shodují v IČO (jen organizace), e-mailu nebo telefonu (bez ohledu na velikost písmen, mezery a předvolbu; osoby podle všech jejich údajů, ne jen hlavních). Respektuje rozsah `kontakty.read` aktéra a soukromé záznamy. Slouží kontrole duplicit při zakládání obchodů a rychlém zadání a při sloučení kontaktů. | v `@rebar/kontakty/api` |
+| [`mergeContacts`](#mergecontacts) | function | Sloučí `sourceId` do `targetId` (hlavní záznam): přepojí všechny odkazy (obchody, zakázky, úkoly, poznámky, platby, komentáře, soubory…), doplní prázdná pole hlavního záznamu, spojí štítky, služby a kontaktní údaje, zdroj smaže (měkce, jde obnovit z koše, ale odkazy se nevrací) a zapíše historii k oběma záznamům. Vše v jedné transakci. Oprávnění: příkaz `kontakty.merge` (vlastník) a zápis do obou záznamů (rozsah „jen moje“ platí). |  |
 | [`normalizeEmail`](api.md#normalizeemail) | function | E-mail pro porovnání: bez mezer, malými písmeny; bez zavináče je neplatný (`null`). | v `@rebar/kontakty/api` |
 | [`normalizeIco`](api.md#normalizeico) | function | IČO: jen číslice (mezery a pomlčky pryč), kratší se doplní zleva nulami na osm. Prázdné nebo nesmyslné = `null`. | v `@rebar/kontakty/api` |
-| [`normalizePhone`](api.md#normalizephone) | function | Telefon: devět koncových číslic (bez předvolby +420 / 00420); kratší než devět číslic se neporovnává. | v `@rebar/kontakty/api` |
-| [`COMPANY_TYPE_LOOKUP`](#company_type_lookup) | const | Číselníky kontaktů (správa v Nastavení → Číselníky; výchozí položky jsou v manifestu modulu). |  |
-| [`PERSON_ROLE_LOOKUP`](#person_role_lookup) | const |  |  |
-| [`POINT_TYPE_LOOKUP`](#point_type_lookup) | const |  |  |
-| [`TAG_LOOKUP`](#tag_lookup) | const |  |  |
-| [`company`](schema.md#company) | const | Firma: klient, dodavatel nebo subdodavatel. IČO je mezi živými záznamy unikátní. | v `@rebar/kontakty/schema` |
-| [`companyEntity`](#companyentity) | const | Firmy: klienti, dodavatelé a subdodavatelé v jedné evidenci. |  |
+| [`normalizePhone`](api.md#normalizephone) | function | Telefon ve starém tvaru: devět koncových číslic (bez předvolby +420 / 00420); kratší než devět číslic se neporovnává. Nové kontaktní údaje se porovnávají v E.164 (`normalizePhoneE164`); tohle zůstává pro volající, kteří mají jen volný text. | v `@rebar/kontakty/api` |
+| [`planMerge`](#planmerge) | function | Rozhodne, co z mizejícího záznamu přejde do hlavního: prázdná pole se doplní, štítky, služby a vlastní pole se spojí, u klienta vyhraje aktivnější stav (a nejstarší „klient od“), u osoby se spojí příznak „rozhoduje“. Rozdílné IČO, DIČ, e-mail a telefon zůstanou z hlavního záznamu a uživatel je dostane jako varování. Bez databáze. |  |
+| [`previewMerge`](#previewmerge) | function | Náhled sloučení: co se přepojí, co se doplní a před čím je potřeba varovat. Nic nemění. |  |
+| [`setAresClient`](api.md#setaresclient) | function | Adaptér ARES, který používají příkazy modulu. V testech se nahradí fake (`createFakeAres`); `null` vrátí reálný. | v `@rebar/kontakty/api` |
+| [`CLIENT_STATUSES`](schema.md#client_statuses) | const | Stav klienta u organizace (`company.client_status`); `null` = organizace není klient (jen kontakt, dodavatel…). | v `@rebar/kontakty/schema` |
+| [`SERVICE_TYPES`](schema.md#service_types) | const | Typy služeb, které agentura klientovi poskytuje (`company.services`). | v `@rebar/kontakty/schema` |
+| [`TAG_LOOKUP`](#tag_lookup) | const | Společný číselník štítků (core `tag`), nabídka se zužuje na entitu přes `lookupScope`. |  |
+| [`aresCache`](schema.md#arescache) | const | Cache odpovědí ARES podle IČO (24 h, ORG-04); technická tabulka bez soft-delete. | v `@rebar/kontakty/schema` |
+| [`company`](schema.md#company) | const | Organizace. Klient je organizace se `client_status` (ne samostatná entita). IČO je mezi živými záznamy unikátní. Viditelnost: kořen s vlastním zámkem (soukromá organizace nedědí do obchodů ani zakázek, R-31). `drive_*` píše jen modul Disk, `last_activity_at` modul Úkoly (oboje přes `writeSystemFields`). | v `@rebar/kontakty/schema` |
+| [`companyEntity`](#companyentity) | const | Organizace: klienti, potenciální klienti, dodavatelé a ostatní firmy v jedné evidenci (klient = `client_status`). |  |
 | [`entities`](#entities) | const |  |  |
-| [`person`](schema.md#person) | const | Kontaktní osoba, volitelně u firmy. | v `@rebar/kontakty/schema` |
-| [`personContactPoint`](schema.md#personcontactpoint) | const | Další e-maily a telefony osoby s typem (práce, mobil, domů…). Hlavní e-mail a telefon zůstávají ve sloupcích osoby (`person.email`, `person.phone`) kvůli hledání a kontrole duplicit; tady jsou jen doplňující údaje. | v `@rebar/kontakty/schema` |
-| [`personEntity`](#personentity) | const | Kontaktní osoby, volitelně u firmy. |  |
-| [`server`](#server) | const |  |  |
-| [`CompanyMatch`](api.md#companymatch) | type | Existující firma, která se shoduje s hledanými údaji. | v `@rebar/kontakty/api` |
+| [`person`](schema.md#person) | const | Kontaktní osoba. Jméno se skládá ze `first_name` a `last_name` (`full_name` je generovaný sloupec pro název záznamu, hledání a řazení). E-maily a telefony jsou v `person_contact_point`; hlavní firma je `primary_company_id`, další firmy jsou v `person_company`. | v `@rebar/kontakty/schema` |
+| [`personCompany`](schema.md#personcompany) | const | Další organizace osoby (kromě hlavní, ta je v `person.primary_company_id`) s rolí a pozicí v nich. `is_primary` je vždy `false`; hlavní firma se do této tabulky nezapisuje (dotazy čtou obě místa). | v `@rebar/kontakty/schema` |
+| [`personContactPoint`](schema.md#personcontactpoint) | const | E-mail nebo telefon osoby se štítkem. `value_norm` je normalizovaná hodnota pro porovnání a hledání (e-mail malými písmeny, telefon v E.164). Duplicity mezi osobami se jen hlásí (KON-03), unikátní je údaj jen u jedné osoby a jen jeden údaj daného druhu je hlavní. | v `@rebar/kontakty/schema` |
+| [`personEntity`](#personentity) | const | Kontaktní osoby, volitelně u organizace; e-maily a telefony jsou v `person_contact_point`. |  |
+| [`server`](#server) | const | Serverová část modulu „kontakty“: entity `company` a `person`, příkazy (hledání, ARES, duplicity, rychlé založení, kontaktní údaje, sloučení) a příspěvky pro ostatní moduly (karta klienta, proměnné e-mailů). |  |
 | [`ContactQuery`](api.md#contactquery) | type | Údaje, podle kterých se hledá existující firma nebo osoba. | v `@rebar/kontakty/api` |
 | [`MatchedBy`](api.md#matchedby) | type | V čem se nalezený záznam shoduje s hledaným: IČO, e-mail, telefon. | v `@rebar/kontakty/api` |
-| [`PersonMatch`](api.md#personmatch) | type | Existující osoba, která se shoduje s hledanými údaji. | v `@rebar/kontakty/api` |
 
-### COMPANY_TYPE_LOOKUP
+### discoverReferences
 
-const · `packages/modules/kontakty/src/entities.ts`
+function · `packages/modules/kontakty/src/merge.ts`
 
-Číselníky kontaktů (správa v Nastavení → Číselníky; výchozí položky jsou v manifestu modulu).
+Najde v katalogu databáze všechno, co odkazuje na firmu nebo osobu (viz popis nahoře).
 
 ```ts
-const COMPANY_TYPE_LOOKUP: "company.type"
+async function discoverReferences(db: Executor, entity: MergeEntity): Promise<MergeRefs>
 ```
 
-### PERSON_ROLE_LOOKUP
+### mergeContacts
 
-const · `packages/modules/kontakty/src/entities.ts`
+function · `packages/modules/kontakty/src/merge.ts`
 
-_Bez popisu._
+Sloučí `sourceId` do `targetId` (hlavní záznam): přepojí všechny odkazy (obchody, zakázky, úkoly, poznámky, platby,
+komentáře, soubory…), doplní prázdná pole hlavního záznamu, spojí štítky, služby a kontaktní údaje, zdroj smaže
+(měkce, jde obnovit z koše, ale odkazy se nevrací) a zapíše historii k oběma záznamům. Vše v jedné transakci.
+Oprávnění: příkaz `kontakty.merge` (vlastník) a zápis do obou záznamů (rozsah „jen moje“ platí).
 
 ```ts
-const PERSON_ROLE_LOOKUP: "person.role"
+async function mergeContacts(ctx: Ctx, entity: MergeEntity, sourceId: string, targetId: string): Promise<{ moved: number; targetId: string }>
 ```
 
-### POINT_TYPE_LOOKUP
+### planMerge
 
-const · `packages/modules/kontakty/src/entities.ts`
+function · `packages/modules/kontakty/src/merge.ts`
 
-_Bez popisu._
+Rozhodne, co z mizejícího záznamu přejde do hlavního: prázdná pole se doplní, štítky, služby a vlastní pole se
+spojí, u klienta vyhraje aktivnější stav (a nejstarší „klient od“), u osoby se spojí příznak „rozhoduje“. Rozdílné
+IČO, DIČ, e-mail a telefon zůstanou z hlavního záznamu a uživatel je dostane jako varování. Bez databáze.
 
 ```ts
-const POINT_TYPE_LOOKUP: "contact.point_type"
+function planMerge(entity: MergeEntity, source: Raw, target: Raw): MergePlan
+```
+
+### previewMerge
+
+function · `packages/modules/kontakty/src/merge.ts`
+
+Náhled sloučení: co se přepojí, co se doplní a před čím je potřeba varovat. Nic nemění.
+
+```ts
+async function previewMerge(ctx: Ctx, entity: MergeEntity, sourceId: string, targetId: string): Promise<MergePreview>
 ```
 
 ### TAG_LOOKUP
 
 const · `packages/modules/kontakty/src/entities.ts`
 
-_Bez popisu._
+Společný číselník štítků (core `tag`), nabídka se zužuje na entitu přes `lookupScope`.
 
 ```ts
-const TAG_LOOKUP: "contact.tag"
+const TAG_LOOKUP: "tag"
 ```
 
 ### companyEntity
 
 const · `packages/modules/kontakty/src/entities.ts`
 
-Firmy: klienti, dodavatelé a subdodavatelé v jedné evidenci.
+Organizace: klienti, potenciální klienti, dodavatelé a ostatní firmy v jedné evidenci (klient = `client_status`).
 
 ```ts
 const companyEntity: import("@rebar/core/entities").EntityDef
@@ -93,7 +112,7 @@ const entities: import("@rebar/core/entities").EntityDef[]
 
 const · `packages/modules/kontakty/src/entities.ts`
 
-Kontaktní osoby, volitelně u firmy.
+Kontaktní osoby, volitelně u organizace; e-maily a telefony jsou v `person_contact_point`.
 
 ```ts
 const personEntity: import("@rebar/core/entities").EntityDef
@@ -103,7 +122,8 @@ const personEntity: import("@rebar/core/entities").EntityDef
 
 const · `packages/modules/kontakty/src/server.ts`
 
-_Bez popisu._
+Serverová část modulu „kontakty“: entity `company` a `person`, příkazy (hledání, ARES, duplicity, rychlé založení,
+kontaktní údaje, sloučení) a příspěvky pro ostatní moduly (karta klienta, proměnné e-mailů).
 
 ```ts
 const server: { readonly entities: import("@rebar/core/entities").EntityDef[]; readonly deleteBlockers: import("@rebar/core/entities").DeleteBlocker[]; readonly commands: (import("@rebar/core/module-server").CommandDef<import("zod").ZodObject<{ q: impor…

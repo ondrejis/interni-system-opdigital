@@ -69,7 +69,7 @@ async function loadBalancePayments(
         sql`${payment.jobId} is not null`,
         sql`not ${payment.isPrivate}`,
         sql`${payment.kind} <> 'recurring'`,
-        sql`${payment.status} in (${sql.raw(basis === "paid" ? "'paid'" : "'paid','issued'")})`,
+        inArray(payment.status, basis === "paid" ? ["paid"] : ["paid", "issued"]),
       ),
     );
   const allocs = await loadAllocations(

@@ -1,7 +1,7 @@
 # ADR 017: Fakturace zakázky: zálohy, zádržné, přenesená daňová povinnost, konečné vyúčtování
 
-- Stav: přijato (2026-10-09)
-- Kontext: ADR 015 (zakázka jako kořen), ADR 003 (peníze), ADR 012 (moduly a příkazy), `docs/ZAKAZKA.md` (oblast 5)
+- Stav: v OPSYS se nepoužívá (stavební fakturace odstraněna, viz ADR 028); původně přijato (2026-10-09)
+- Kontext: ADR 015 (zakázka jako kořen), ADR 003 (peníze), ADR 012 (moduly a příkazy), `docs/_archiv/ZAKAZKA.md` (oblast 5)
 
 ## Kontext
 

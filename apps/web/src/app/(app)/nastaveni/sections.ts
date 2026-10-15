@@ -100,7 +100,7 @@ export const SETTINGS_SECTIONS = [
     label: "Pipeline a stavy",
     icon: "workflow",
     group: "Konfigurace",
-    permission: "settings.manage",
+    permission: ["settings.manage", "settings.pipelines"],
   },
   {
     href: "/ukoly/typy",
@@ -130,7 +130,7 @@ export const SETTINGS_SECTIONS = [
     label: "Vlastní pole",
     icon: "fields",
     group: "Konfigurace",
-    permission: "settings.manage",
+    permission: ["settings.manage", "settings.custom_fields"],
   },
   {
     href: "/nastaveni/ciselniky",
@@ -163,7 +163,7 @@ export const SETTINGS_SECTIONS = [
   },
   {
     href: "/nastaveni/ucet",
-    label: "Můj účet",
+    label: "Profil",
     icon: "user",
     group: "Můj účet",
     permission: null,
@@ -203,12 +203,16 @@ export const SETTINGS_SECTIONS = [
   label: string;
   icon: SectionIcon;
   group: string;
-  permission: string | null;
+  /** Klíč oprávnění, pole klíčů (stačí kterékoli) nebo `null` (každý přihlášený). */
+  permission: string | readonly string[] | null;
   /** Sekce patří modulu; bez zapnutého modulu se nenabízí. */
   module?: string;
   /** Sekce patří funkci, kterou lze v konfiguraci klienta vypnout; vypnutá se nenabízí. */
   feature?: SettingsFeature;
 }[];
+
+const canAny = (ctx: Ctx, permission: string | readonly string[]) =>
+  (typeof permission === "string" ? [permission] : permission).some((p) => can(ctx, p));
 
 /** Sekce Nastavení, které aktér smí vidět. Zabezpečení vlastního účtu má každý. */
 export const allowedSections = (
@@ -218,7 +222,7 @@ export const allowedSections = (
 ) =>
   SETTINGS_SECTIONS.filter(
     (s) =>
-      (s.permission === null || can(ctx, s.permission)) &&
+      (s.permission === null || canAny(ctx, s.permission)) &&
       (!("module" in s) || !enabledModules || enabledModules.has(s.module)) &&
       (!("feature" in s) || !disabledFeatures || !disabledFeatures.has(s.feature)),
   );

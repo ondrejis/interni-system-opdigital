@@ -6,9 +6,13 @@
 /** Klíč v `sessionStorage`: hledání se při jednom spuštění aplikace otevře samo jen jednou. */
 export const START_SEARCH_KEY = "opsys.mobile.start";
 
-/** Stránky, na kterých se aplikace „otevře“ (kořen a Přehled); jinak uživatel míří na konkrétní odkaz a nic se mu nevnucuje. */
-const START_PATHS = new Set(["/", "/prehled", "/start"]);
+/**
+ * Stránka, na které se aplikace „otevře“: Přehled (adresa `/` na něj přesměruje a přesměrování je pro prohlížeč nové
+ * načtení, takže na `/` se Hledat neotvírá). Jiná adresa je konkrétní odkaz a nic se uživateli nevnucuje.
+ */
+const START_PATHS = new Set(["/prehled"]);
 
+/** Má se po otevření aplikace samo otevřít Hledat? */
 export function shouldOpenStartSearch(input: {
   pathname: string;
   /** Užší než `md` a dotykové zařízení. */
@@ -18,9 +22,12 @@ export function shouldOpenStartSearch(input: {
   /** Adresa nese `?bez-hledani` (např. odkaz z notifikace nebo testy). */
   suppressed?: boolean;
 }): boolean {
-  return input.phone && !input.alreadyStarted && !input.suppressed && START_PATHS.has(input.pathname);
+  return (
+    input.phone && !input.alreadyStarted && !input.suppressed && START_PATHS.has(input.pathname)
+  );
 }
 
+/** Stav instalace na plochu: nainstalováno, nabídka prohlížeče, návod pro iPhone, nepodporováno. */
 export type InstallState = "installed" | "prompt" | "ios" | "unsupported";
 
 /**

@@ -15,10 +15,9 @@ import { createCipher, parseKeyRing, type Cipher } from "@rebar/core/security";
 import { createSettings } from "@rebar/core/settings";
 import { assertDevEnvironment } from "../clients/opsys/seed/dev/guard";
 import {
-  DEV_CREDENTIALS_FILE,
+  devCredentialsFile,
   DEV_USERS,
   devRolesExist,
-  disableTwoFactorRequirement,
   ensureDevUsers,
 } from "../clients/opsys/seed/dev/users";
 import { seedDevData } from "../clients/opsys/seed/dev/data";
@@ -34,9 +33,9 @@ import { buildRegistry, collectServers } from "../apps/web/src/server/modules-se
  *
  *   pnpm db:migrate && pnpm db:seed && pnpm dev:seed
  *
- * Hesla se generují lokálně a zapíšou do gitignorovaného `.data/dev-credentials.txt` (práva 600); do výpisu ani do repa
- * se nedostanou. Povinné 2FA rolí owner a partner se vypne jen výslovně (`--no-2fa` nebo `DEV_SEED_NO_2FA=1`); další
- * `pnpm db:seed` ho znovu zapne. Vývojová data se zakládají jednou (druhé spuštění nic nepřidá, jen doplní chybějící
+ * Hesla se generují lokálně a zapíšou do gitignorovaného `.data/dev-credentials-<databáze>.txt` (práva 600); do výpisu ani do repa
+ * se nedostanou. 2FA je v OPSYS povinné pro všechny (`twoFactorPolicy: "all"`) a nejde vypnout ani lokálně: vývojový uživatel
+ * si při prvním přihlášení nastaví TOTP (automaticky to dělá `apps/web/e2e-crawl/login.ts`). Vývojová data se zakládají jednou (druhé spuštění nic nepřidá, jen doplní chybějící
  * uživatele); od začátku: `pnpm db:reset && pnpm db:migrate && pnpm db:seed && pnpm dev:seed`.
  */
 
@@ -81,15 +80,12 @@ export async function buildDevRuntime(opts: BuildRuntimeOptions) {
     const cmd = collected.commands.get(name) as CommandDef | undefined;
     if (!cmd) throw new Error(`Příkaz „${name}“ neexistuje (je modul zapnutý?).`);
     try {
-      return await cmd.handler(
-        ctx as never,
-        (cmd.input as { parse: (v: unknown) => never }).parse(input),
-        deps,
-      );
+      return await cmd.handler(ctx as never, cmd.input.parse(input) as never, deps);
     } catch (err) {
       // Drizzle obaluje chyby PostgreSQL do „Failed query“; skutečná příčina je v `cause`.
       const reasons: string[] = [];
-      for (let e: unknown = err; e instanceof Error; e = e.cause) reasons.push(e.message.split("\n")[0]!);
+      for (let e: unknown = err; e instanceof Error; e = e.cause)
+        reasons.push(e.message.split("\n")[0]!);
       throw new Error(`Příkaz ${name} selhal: ${reasons.join(" | ")}`, { cause: err });
     }
   };
@@ -133,14 +129,20 @@ async function main() {
     databaseUrl: env.DATABASE_URL,
     appUrl: env.APP_URL,
   });
-  const noTwoFactor = process.argv.includes("--no-2fa") || process.env.DEV_SEED_NO_2FA === "1";
+  const credentialsFile = devCredentialsFile(env.DATABASE_URL);
+  if (process.argv.includes("--no-2fa") || process.env.DEV_SEED_NO_2FA === "1")
+    console.warn(
+      "Přepínač --no-2fa už neexistuje: 2FA je povinné pro všechny, uživatel si ho nastaví při prvním přihlášení.",
+    );
   const modules = resolveModules(config.modules, ALL_MODULES);
   const cipher = createCipher(parseKeyRing(env));
 
   const { db, close } = createDb(env.DATABASE_URL, { max: 4 });
   try {
     if (!(await devRolesExist(db)))
-      throw new Error("Role owner a partner chybí. Nejdřív spusťte `pnpm db:migrate && pnpm db:seed`.");
+      throw new Error(
+        "Role owner a partner chybí. Nejdřív spusťte `pnpm db:migrate && pnpm db:seed`.",
+      );
     const auth = createAuth({
       db,
       baseURL: env.APP_URL,
@@ -149,17 +151,21 @@ async function main() {
       idleTimeoutMinutes: config.security.idleTimeoutMinutes,
       mailer: { send: async () => {} },
     });
-    const { ids, fresh } = await ensureDevUsers({ db, auth, credentialsFile: DEV_CREDENTIALS_FILE });
+    const { ids, fresh } = await ensureDevUsers({
+      db,
+      auth,
+      credentialsFile,
+    });
     if (fresh.length)
       console.log(
-        `Vývojoví uživatelé (${fresh.map((w) => DEV_USERS[w].email).join(", ")}): hesla jsou v ${path.relative(root, DEV_CREDENTIALS_FILE)}.`,
+        `Vývojoví uživatelé (${fresh.map((w) => DEV_USERS[w].email).join(", ")}): hesla jsou v ${path.relative(root, credentialsFile)}.`,
       );
-    if (noTwoFactor) {
-      await disableTwoFactorRequirement(db);
-      console.log("Povinné 2FA rolí owner a partner je vypnuto (jen tato lokální databáze).");
-    }
     const result = await runDevSeed({ db, modules, cipher, ids, log: console.log });
-    console.log(result.skipped ? "Vývojová data už v databázi jsou, nic se nepřidalo." : "Vývojová data založena.");
+    console.log(
+      result.skipped
+        ? "Vývojová data už v databázi jsou, nic se nepřidalo."
+        : "Vývojová data založena.",
+    );
   } finally {
     await close();
   }

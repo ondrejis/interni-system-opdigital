@@ -30,7 +30,7 @@ export default defineClientConfig({
   // notifications: {
   //   quietHours: { enabled: true, start: "20:00", end: "06:00" },
   //   digestTimes: ["07:00", "16:00"],
-  //   events: { "task.assigned": { title: "Nový úkol od {author}", body: "{title}\nTermín: {due}" } },
+  //   events: { "comment.mention": { title: "{author} vás zmínil", body: "{excerpt}" } },
   // },
 
   // security: { idleTimeoutMinutes: 480, require2faRoles: ["owner", "admin"] },

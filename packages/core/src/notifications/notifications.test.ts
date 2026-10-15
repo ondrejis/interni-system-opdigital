@@ -308,7 +308,7 @@ describe("katalog událostí", () => {
         configureNotifications({
           events: [],
           config: notificationsConfigSchema.parse({
-            events: { "task.assigned": { recipients: ["nikdo"] } },
+            events: { "comment.mention": { recipients: ["nikdo"] } },
           }),
         }),
       ).toThrow(/neexistuje/);

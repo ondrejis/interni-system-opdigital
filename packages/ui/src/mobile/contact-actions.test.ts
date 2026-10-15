@@ -69,7 +69,9 @@ describe("contactActions", () => {
   });
   it("karta kontaktu: jen volání, SMS, WhatsApp a e-mail; bez údaje se akce vynechá", () => {
     expect(
-      contactActions({ phone: "777123456" }, ["call", "sms", "whatsapp", "mail"]).map((a) => a.kind),
+      contactActions({ phone: "777123456" }, ["call", "sms", "whatsapp", "mail"]).map(
+        (a) => a.kind,
+      ),
     ).toEqual(["call", "sms", "whatsapp"]);
   });
   it("Disk jen na https", () => {

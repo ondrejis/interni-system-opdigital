@@ -141,6 +141,8 @@ type AttributeDescriptor = {
   record?: { entityType: string };
   /** Stavy pipeline pro atribut typu `status`. */
   stages?: StageDescriptor[];
+  /** Pole je i v krátkém formuláři „Nový…“ (vlastní pole s `show_in_form`). */
+  showInForm?: boolean;
 };
 ```
 
@@ -158,6 +160,16 @@ type EntityDescriptor = {
   titleKey: string;
   statusKey: string | null;
   attributes: AttributeDescriptor[];
+  /**
+   * Zámek (shared/private): `lockable` = aktér smí záznamy zamykat (`private.read`) a tato entita má vlastní zámek;
+   * `hasLock` = entita zámek má (dítě bez vlastního zámku ho jen dědí).
+   */
+  visibility?: { lockable: boolean; hasLock: boolean };
+  /**
+   * Rychlé předvolby nad seznamem (Moje, Dnes, Po termínu, Bez aktivity, Soukromé): hotový filtr pro přihlášeného
+   * (funkce z `EntityDef.quickFilters` už je vyhodnocená). Jen předvolby, jejichž atributy aktér vidí.
+   */
+  quickFilters?: { key: string; label: string; filter: FilterGroup }[];
   /** Co smí aktér s entitou dělat (jen pro zobrazení; skutečná kontrola je vždy na serveru). */
   can: { create: boolean; write: boolean; delete: boolean; export?: boolean };
 };

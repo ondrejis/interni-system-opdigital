@@ -1,1 +1,0 @@
-CREATE INDEX "time_entry_note_trgm_idx" ON "time_entry" USING gin (lower(f_unaccent("note")) gin_trgm_ops);

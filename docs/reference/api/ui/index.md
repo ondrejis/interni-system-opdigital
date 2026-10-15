@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z toho s popisem 145.
+Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 260, z toho s popisem 176.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
@@ -26,8 +26,9 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z t
 | [`Checkbox`](#checkbox) | function |  |  |
 | [`Chip`](#chip) | function | Barevný štítek (stav, role, typ). Barva nese význam — bez významu zůstává šedá. |  |
 | [`Combobox`](#combobox) | function | Výběr z možností s hledáním (bez diakritiky díky vlastnímu filtru), jedna i více hodnot. |  |
-| [`CommandPalette`](#commandpalette) | function | Cmd/Ctrl+K: hledání záznamů napříč entitami, navigace, akce a nedávné záznamy. `search` vrací výsledky ze serveru (hledání bez diakritiky); statické skupiny filtruje cmdk lokálně. |  |
+| [`CommandPalette`](#commandpalette) | function | Cmd/Ctrl+K (HLE-01…07): bez zadání nedávné záznamy a nejčastější příkazy (`idleGroups`), při psaní nálezy ze serveru seskupené podle typu (`search`) a příkazy, které odpovídají textu. Nálezy naskakují během psaní (bez čekání na pauzu, předchozí výsledky zůstávají, dokud nepřijdou nové). |  |
 | [`ConfirmDialog`](#confirmdialog) | function | Potvrzení nevratné nebo dopadové akce (smazání, deaktivace, změna role). `onConfirm` může být asynchronní; když vrátí `false`, dialog zůstane otevřený. |  |
+| [`ContactActionBar`](#contactactionbar) | function | Velká tlačítka rychlých akcí pro telefon (MOB-03, MOB-04): Zavolat, SMS, WhatsApp, E-mail, Navigovat, Disk. Každé tlačítko má výšku aspoň 48 px; chybí-li údaj, tlačítko se nezobrazí. Na šířce od `sm` se mřížka skryje (počítač má vlastní odkazy v záhlaví a v kartách). |  |
 | [`CreateDialog`](#createdialog) | function | Vytvoření záznamu: jen povinná pole a název, ostatní po rozkliknutí. Cmd/Ctrl+Enter odešle. |  |
 | [`DashboardApiProvider`](#dashboardapiprovider) | function |  |  |
 | [`DashboardGrid`](#dashboardgrid) | function | Mřížka nástěnky (12 sloupců na počítači, na telefonu jeden). V režimu úprav se widgety přetahují (myš, dotyk i klávesnice) a mění se jejich velikost; jinak se jen zobrazují a každý se načítá samostatně. |  |
@@ -35,6 +36,7 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z t
 | [`DashboardView`](#dashboardview) | function | Jedna nástěnka: filtry (období, zakázka, osoba), mřížka widgetů, úpravy (přidat, přesunout, změnit velikost, upravit, odebrat), uložení s kontrolou souběžné změny, klon, sdílení, smazání a exporty (PDF, PNG). Chyba jednoho widgetu nerozbije ostatní. |  |
 | [`DataTable`](#datatable) | function |  |  |
 | [`DatePicker`](#datepicker) | function | Výběr data (hodnota je ISO `RRRR-MM-DD`). |  |
+| [`DesktopOnly`](#desktoponly) | function | Záměrně omezené na mobilu (MOB-09): editor oprávnění, editor šablon, editor struktury Disku a úpravy přehledu (na telefonu jen pořadí widgetů) se na telefonu nezobrazují; místo nich je jasná zpráva. Komponentu obalí vlastník editoru: `<DesktopOnly what="Editor šablon">…editor…</DesktopOnly>`. Na počítači vykreslí obsah beze změny. |  |
 | [`DialogContent`](#dialogcontent) | function |  |  |
 | [`DonutChart`](#donutchart) | function | Koláč / prstenec. Zobrazí nejvýše 8 největších výřezů, zbytek je „Ostatní“. Legenda ukazuje hodnotu a podíl, takže graf lze číst i bez rozlišování barev. Koláč se hodí na podíl celku u pár položek; na porovnání blízkých hodnot je lepší sloupcový graf. |  |
 | [`DropdownMenuCheckboxItem`](#dropdownmenucheckboxitem) | function |  |  |
@@ -56,6 +58,7 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z t
 | [`Icon`](#icon) | function | Ikona podle názvu z manifestu modulu (neznámý název = obecná ikona seznamu). |  |
 | [`IconButton`](#iconbutton) | function | Tlačítko jen s ikonou; `label` je povinný název pro čtečky a tooltip. |  |
 | [`Input`](#input) | function |  |  |
+| [`InstallHint`](#installhint) | function | Pokyn „Přidat OPSYS na plochu“ (MOB-10) pro Nastavení → Vzhled nebo Profil. Android: tlačítko Nainstalovat; iPhone Safari: návod Sdílet → Přidat na plochu; už nainstalováno nebo nepodporováno: nic (komponenta nevykreslí nic). |  |
 | [`Kanban`](#kanban) | function |  |  |
 | [`KanbanInteractive`](#kanbaninteractive) | function | Obal interaktivního prvku na kartě (tlačítko, popover): klik, tah ani klávesa v něm kartu neotevřou ani nepřesunou. Použije ho modul v `footer` karty; sloty `topRight` / `bottomRight` jím jsou obalené samy. |  |
 | [`Kbd`](#kbd) | function |  |  |
@@ -66,17 +69,20 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z t
 | [`NavProvider`](#navprovider) | function | Design system nezná router; aplikace mu ho předá. |  |
 | [`NewBoardDialog`](#newboarddialog) | function | Pojmenování nové nástěnky. |  |
 | [`Notice`](#notice) | function | Zpráva ve formuláři. Chyba se čtečkám oznámí hned (`role="alert"`), ostatní zprávy slušně (`status`). |  |
+| [`OfflineBridge`](#offlinebridge) | function | Nad spodní lištou ukáže „jste offline, jen ke čtení“, zapíše `data-offline` na `<html>` (CSS pak zablokuje odesílací tlačítka), registruje service worker (jen v ostrém provozu) a drží kopii posledních načtených dat v mezipaměti prohlížeče. Po otevření bez spojení se tato data vrátí do paměti dotazů, takže jdou číst. Zápisy se nefrontují. |  |
 | [`OrderDialog`](#orderdialog) | function | Pořadí nástěnek v přepínači (moje osobní řazení; přetažením nebo klávesnicí). |  |
 | [`OtpInput`](#otpinput) | function | Kód o pevném počtu číslic v samostatných polích. Uvnitř je jediný skutečný `<input>` (vložení ze schránky, automatické doplnění z SMS/aplikace i čtečky fungují přirozeně), políčka jsou jen jeho zobrazení. |  |
 | [`PageHeader`](#pageheader) | function | Hlavička stránky: drobečky, přepínač pohledů a akce. |  |
 | [`PageSkeleton`](#pageskeleton) | function | Kostra stránky, která se ukáže hned po kliknutí v navigaci, ještě než dorazí data. Drží stejné rozměry jako skutečná stránka (záhlaví, nástrojová lišta, řádky), takže obsah nepoposkočí. |  |
 | [`PaletteActionsProvider`](#paletteactionsprovider) | function | Drží kontextové akce paletky (Cmd+K), které si registrují zobrazené komponenty (např. otevřený záznam). |  |
+| [`PaletteHost`](#palettehost) | function | Paleta Cmd+K nad daty aplikace: příkazy z `paletteActions` zapnutých modulů (podle oprávnění), „Nový …“ pro entity, které modul nedeklaroval, Přejít na…, Přepnout téma; nálezy ze serveru seskupené podle typu s podtitulkem a akcemi (zavolat, zkopírovat telefon, napsat e-mail, otevřít Disk); bez zadání nedávné záznamy a nejčastější příkazy. |  |
 | [`PasswordField`](#passwordfield) | function | Pole pro heslo se zobrazením/skrytím a upozorněním na zapnutý Caps Lock. |  |
 | [`PasswordStrength`](#passwordstrength) | function | Indikátor síly hesla s kontrolním seznamem požadavků. |  |
 | [`PhotoDialog`](#photodialog) | function | Fotky z terénu: vybrat zakázku (naposledy použitá je předvyplněná), vyfotit nebo vybrat z galerie, zmenšit a odeslat na pozadí. Fotka se nejdřív uloží do zařízení, takže se neztratí ani bez signálu. |  |
 | [`PipelineStepper`](#pipelinestepper) | function | Pás fází jako šipky (chevrony) přes celou dostupnou šířku: šířka se dělí úměrně délce názvu (v mini pásu stejně), hotové fáze jsou zeleně, aktuální v barvě akcentu, budoucí šedě. V detailu (`md`) je v segmentu název a pod ním dny ve fázi; dlouhý název se zkrátí a celý je v tooltipu. Klik přesune záznam do fáze, zamčený přechod ukáže důvod v tooltipu. Na úzkém displeji se pás posouvá do stran uvnitř sebe (stránka se nerozšíří) a aktuální fáze se sama vystředí. |  |
 | [`Placeholder`](#placeholder) | function | Zástupná stránka pro část systému, která se teprve staví (kostra S0). Modul ji vrací z `ui.pages`, dokud nemá skutečný obsah; plný obsah ji nahradí. |  |
 | [`PopoverContent`](#popovercontent) | function |  |  |
+| [`RealtimeBridge`](#realtimebridge) | function | Připojí prohlížeč na `/api/realtime` a při změně u druhého uživatele zneplatní dotazy dotčených entit (`["entity", <klíč>]`), příkazové dotazy modulů (`["command", …]`), koš a historii. Změna je vidět do 2 s bez obnovení stránky. `onChange` slouží k obnově serverově vykreslených stránek (např. `router.refresh()`). |  |
 | [`RecordDialog`](#recorddialog) | function | Detail záznamu v pop-upu, široký až 1280 px (pod ~1300 px obrazovky téměř celou šířku, na telefonu celou obrazovku). Obsah je `RecordView` v režimu `dialog`: hlavička, pás od modulu (`recordHeader`), záložky i akce modulu fungují jako na stránce záznamu. Seznam pod pop-upem se nepřekresluje, takže filtr, hledání i pozice v nástěnce zůstanou. |  |
 | [`RecordView`](#recordview) | function |  |  |
 | [`RelatedRecords`](#relatedrecords) | function | Související záznamy uvnitř detailu (vady zakázky, osoby firmy…): stejný seznam jako jinde (inline editace, panel, vytvoření), jen s pevným filtrem na rodiče a předvyplněným rodičem při vytvoření. |  |
@@ -98,8 +104,10 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z t
 | [`Tooltip`](#tooltip) | function |  |  |
 | [`TooltipProvider`](#tooltipprovider) | function |  |  |
 | [`VatRatesProvider`](#vatratesprovider) | function | Aplikace dodá sazby DPH platné dnes (z Nastavení); moduly je nabízejí u položek dokladů a rozpočtu. |  |
+| [`VisibilityLock`](#visibilitylock) | function | Zámek viditelnosti v hlavičce záznamu (SPOL-12, VID-03). Vlastník (`private.read`) ho přepíná: soukromý záznam a jeho podřízené záznamy (úkoly, poznámky, platby, hodiny) nikdy neuvidí ostatní. U záznamu, který zámek jen dědí (hodiny, fáze), nebo zámek zdědil od nadřazeného záznamu, ukáže stav bez možnosti přepnutí. Ostatním se nezobrazí nic. Moduly s vlastní hlavičkou (`recordHeader`) ho přidají samy. |  |
 | [`WidgetBody`](#widgetbody) | function | Obsah widgetu podle druhu výsledku. Výsledek je už filtrovaný oprávněními na serveru; tady se jen zobrazuje. |  |
 | [`WidgetCard`](#widgetcard) | function | Karta widgetu: záhlaví s nabídkou, načítání, chyba (česká hláška), obsah. Načítá se samostatně a souběžně s ostatními. |  |
+| [`addressText`](#addresstext) | function | Adresa jedním řádkem (prázdné části se vynechají); null, když není z čeho skládat. |  |
 | [`axisTickLabel`](#axisticklabel) | function | Popisek značky osy. Krátký tvar („1,2 mil.“), ale u jemných kroků přesný, aby se hodnoty nezaokrouhlily na stejné číslo. |  |
 | [`brandStyle`](#brandstyle) | function | Akcentová barva klienta do CSS proměnných. Text na akcentu je bílý, nebo tmavý podle toho, který má vyšší kontrast (u středně světlých barev, třeba oranžové, vychází lépe tmavý; bílý by nesplnil WCAG AA 4,5 : 1). |  |
 | [`buildTopTabs`](#buildtoptabs) | function | Složí lištu záložek: skupiny a samostatné záložky seřazené podle `order` (stabilně). |  |
@@ -107,13 +115,17 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z t
 | [`colorFor`](#colorfor) | function | Stabilní barva avataru podle jména. |  |
 | [`completeFilters`](#completefilters) | function | Je podmínka úplná a smí se poslat na server? Nedokončené chipy se z dotazu vynechají. |  |
 | [`compressImage`](#compressimage) | function | Zmenší fotku z telefonu před odesláním (typicky z 5–10 MB na ~300 kB), aby prošla i slabým signálem. Respektuje otočení z EXIF. Cokoli, co zmenšit nejde (jiný formát, chybí podpora prohlížeče), vrátí beze změny. |  |
+| [`contactActions`](#contactactions) | function | Sada akcí pro kartu: pořadí Zavolat, SMS, WhatsApp, E-mail, Navigovat, Disk. Akce bez údaje se vynechá, `only` omezí výběr (karta kontaktu: telefon + e-mail; karta klienta: Zavolat, E-mail, Navigovat, Disk). |  |
 | [`defineModuleUi`](#definemoduleui) | function |  |  |
 | [`elementToPng`](#elementtopng) | function | Uloží prvek stránky jako obrázek PNG (stažení souboru). |  |
 | [`emptyBoard`](#emptyboard) | function | Prázdná definice nové nástěnky. |  |
 | [`errorToast`](#errortoast) | function |  |  |
 | [`findModulePage`](#findmodulepage) | function |  |  |
 | [`initials`](#initials) | function |  |  |
+| [`installState`](#installstate) | function | Jak nabídnout instalaci na plochu (MOB-10): spuštěno jako aplikace = „installed“; prohlížeč nabídl `beforeinstallprompt` = „prompt“ (tlačítko); iPhone/iPad Safari = „ios“ (návod Sdílet → Přidat na plochu). |  |
 | [`isMac`](#ismac) | function |  |  |
+| [`mailHref`](#mailhref) | function | Odkaz `mailto:` pro napsání e-mailu; null u neplatné adresy. |  |
+| [`mapsLink`](#mapslink) | function | Adresa v mapách: univerzální odkaz Google Maps, který telefon nabídne otevřít v aplikaci map. |  |
 | [`mergeModuleUi`](#mergemoduleui) | function | Složí UI oblastí modulu do jednoho `ModuleUi`. Mapy podle klíče entity se spojují (pole se zřetězí; u hlaviček a hlaviček sloupců platí první oblast, která je dodá; karta kanbanu se skládá pole po poli), stránky a příkazy palety se přidají za sebe. |  |
 | [`modKey`](#modkey) | function |  |  |
 | [`niceScale`](#nicescale) | function | Osa s „hezkými“ hodnotami. Zvládá samé nuly, jedinou hodnotu, záporné hodnoty i velké částky v haléřích. |  |
@@ -123,13 +135,18 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z t
 | [`plainValue`](#plainvalue) | function | Text hodnoty pro exporty a hledání (bez formátování komponent). |  |
 | [`readRecordParam`](#readrecordparam) | function | Id záznamu z `?record=` (`null`, když chybí nebo je prázdné). |  |
 | [`runExport`](#runexport) | function | Spustí export na serveru. Malý se rovnou stáhne, velký se zařadí do fronty (odpověď 202) a čeká v „Moje exporty“. |  |
+| [`runLastUndo`](#runlastundo) | function | Provede poslední vratnou akci, pokud je ještě v 10s okně. Vrací, zda se něco vrátilo. |  |
 | [`seriesColor`](#seriescolor) | function | Barva řady podle pořadí (token); od 9. řady neutrální šedá, žádné generované odstíny. |  |
+| [`shouldOpenStartSearch`](#shouldopenstartsearch) | function | Má se po otevření aplikace samo otevřít Hledat? |  |
+| [`smsHref`](#smshref) | function | Odkaz `sms:` pro napsání zprávy; null, když číslo není použitelné. |  |
 | [`successToast`](#successtoast) | function |  |  |
-| [`undoToast`](#undotoast) | function | Toast s tlačítkem „Zpět“ (vratná akce; zpětná změna se provede až po kliknutí). |  |
+| [`telHref`](#telhref) | function | Odkaz `tel:` pro zavolání; null, když číslo není použitelné. |  |
+| [`undoToast`](#undotoast) | function | Toast s tlačítkem „Vrátit“ (vratná akce; zpětná změna se provede až po kliknutí nebo Cmd/Ctrl+Z, do 10 s, R-24). Platí jen poslední vratná akce. |  |
 | [`useCan`](#usecan) | function | Zda má přihlášený uživatel oprávnění (jen pro skrývání prvků UI; server kontroluje vždy). |  |
 | [`useCommandMutation`](#usecommandmutation) | function | Spuštění příkazu modulu; po úspěchu zneplatní uvedené klíče (nebo všechny dotazy příkazů a záznamů). |  |
 | [`useCommandQuery`](#usecommandquery) | function | Dotaz na příkaz modulu (`api.command`) s cache TanStack Query; klíč tvoří jméno a vstup. |  |
 | [`useDashboardApi`](#usedashboardapi) | function | Rozhraní nástěnek z kontextu; mimo `DashboardApiProvider` je to chyba. |  |
+| [`useDensity`](#usedensity) | function | Aktuální hustota řádků: čte `data-density` na `<html>` (nastaví ji `themeScript` při načtení a Nastavení → Vzhled při změně) a sleduje jeho změny, takže se tabulka přepočítá hned po přepnutí. |  |
 | [`useElementWidth`](#useelementwidth) | function | Šířka prvku sledovaná přes ResizeObserver. Vrací `[ref, šířka]`; ref patří na kontejner grafu. Na serveru, při prvním vykreslení a bez ResizeObserveru je to `fallback` (600 px), takže SSR se shoduje s hydratací. |  |
 | [`useEntityApi`](#useentityapi) | function |  |  |
 | [`useEntityDescriptor`](#useentitydescriptor) | function | Popis entity (atributy, stavy, oprávnění); sdílená mezipaměť s `RelatedRecords`, takže se načte jednou. |  |
@@ -137,18 +154,23 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z t
 | [`useEntitySummary`](#useentitysummary) | function | Počet a součty za celou filtrovanou sadu (patička tabulky); nezávisí na tom, kolik řádků je načteno. |  |
 | [`useHotkeys`](#usehotkeys) | function | Globální klávesové zkratky. Klíče: `mod+k` (Cmd na Macu, Ctrl jinde), `?`, `c`, dvoutlačítkové sekvence `g z` (do 900 ms po sobě). Jednoznakové zkratky se při psaní do pole nespouští; `mod+…` a `Escape` fungují vždy. |  |
 | [`useInvalidateEntity`](#useinvalidateentity) | function |  |  |
+| [`useIsMobile`](#useismobile) | function | Zda je obrazovka užší než `md` (768 px). Na serveru a při prvním vykreslení vrací false, pak se opraví. |  |
 | [`useKanbanExtensions`](#usekanbanextensions) | function | Rozšíření kanbanu od zapnutých modulů pro entitu (první nalezené vyhrává, jako u `recordHeader`). |  |
 | [`useModuleUi`](#usemoduleui) | function |  |  |
 | [`useNav`](#usenav) | function |  |  |
+| [`useOnline`](#useonline) | function | Je zařízení připojené? Na serveru a při prvním vykreslení „ano“ (bez bliknutí), pak se opraví. |  |
 | [`usePaletteActions`](#usepaletteactions) | function | Zaregistruje akce do paletky, dokud je komponenta zobrazená. `items` je potřeba zapamatovat (`useMemo`). |  |
 | [`usePendingUploads`](#usependinguploads) | function | Počet fotek, které čekají na odeslání (odznak ve spodní navigaci). |  |
 | [`useRecordDialogExt`](#userecorddialogext) | function | Vlastní podoba pop-upu od zapnutých modulů pro entitu (první nalezená vyhrává). |  |
 | [`useRecordExtensions`](#userecordextensions) | function |  |  |
 | [`useRecordParam`](#userecordparam) | function | Otevřený záznam v adrese (`?record=<id>`). Otevření přidá položku do historie, zavření se vrátí (`history.back()`), takže tlačítko Zpět zavře pop-up a filtr i pozice v seznamu zůstanou, protože stránka se nepřekresluje. Odkaz s `?record=` otevře pop-up rovnou (`initial` z adresy ze serveru brání probliknutí). Router aplikace (`history.pushState` je v Next.js propojený s routerem) se nevolá, stránka se nenačítá znovu. |  |
 | [`useSlotComponents`](#useslotcomponents) | function | Komponenty všech zapnutých modulů pro slot hostitele (v pořadí modulů). Hostitel o přispěvatelích neví; bez přispěvatele je výsledek prázdný. |  |
+| [`useUndoShortcut`](#useundoshortcut) | function | Cmd/Ctrl+Z vrátí poslední vratnou akci (smazání, hromadná změna); v textovém poli zůstává běžné „zpět“. |  |
 | [`useUpdateAttribute`](#useupdateattribute) | function | Inline úprava jednoho atributu. Změna se hned ukáže (optimisticky); když ji server odmítne, vrátí se původní stav a chyba se předá volajícímu (buňka ji ukáže). |  |
 | [`useVatRates`](#usevatrates) | function |  |  |
+| [`useVisualViewportVar`](#usevisualviewportvar) | function | Výška viditelné části okna (bez klávesnice) jako CSS proměnná `--vvh`. iOS Safari při otevřené klávesnici nezmenšuje `100dvh`, takže celoobrazovkové Hledat by schovalo seznam pod klávesnici; styly používají `height: var(--vvh, 100dvh)`. |  |
 | [`vatBpChoices`](#vatbpchoices) | function | Sazby (v setinách procenta) k nabídnutí ve výběru, od nejvyšší. K nabízeným se přidají `extra` (sazby, které už doklad obsahuje, i když dnes neplatí), aby se hodnota řádku neztratila. |  |
+| [`whatsappHref`](#whatsapphref) | function | Odkaz `wa.me` pro WhatsApp (číslo v mezinárodním tvaru); null, když číslo není použitelné. |  |
 | [`withRecordParam`](#withrecordparam) | function | Adresa s nastaveným nebo odebraným `record`. Záložka detailu (`tab`, `sub`) se zahodí, když se mění záznam nebo se zavírá; ostatní parametry (`pohled`, filtry…) zůstanou. `keepTab` zachová záložku (otevření přímým odkazem). |  |
 | [`ApiError`](#apierror) | class | Chyba z `ActionResult` jako výjimka — TanStack Query a toasty s ní umí pracovat. |  |
 | [`AUTH_LINK_BUTTON`](#auth_link_button) | const | Odkaz vzhledem primárního tlačítka (např. „Požádat o nový odkaz“). |  |
@@ -165,12 +187,13 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z t
 | [`PopoverAnchor`](#popoveranchor) | const |  |  |
 | [`PopoverTrigger`](#popovertrigger) | const |  |  |
 | [`RECORD_PARAM`](#record_param) | const | Adresa otevřeného záznamu v pop-upu (`?record=<id>`): čisté funkce bez prohlížeče, aby šly testovat. |  |
+| [`ROW_HEIGHTS`](#row_heights) | const | Výška řádku tabulky podle hustoty (NAS-05): pohodlná 36 px, kompaktní 28 px. |  |
 | [`TYPE_ICONS`](#type_icons) | const | Ikona typu atributu — v záhlaví sloupce, ve filtrech a v panelu atributů. |  |
 | [`Tabs`](#tabs) | const |  |  |
 | [`TabsContent`](#tabscontent) | const |  |  |
 | [`dashKeys`](#dashkeys) | const |  |  |
 | [`entityKeys`](#entitykeys) | const |  |  |
-| [`themeScript`](#themescript) | const | Skript do `<head>`: nastaví téma před vykreslením, aby stránka při načtení nezablikala. |  |
+| [`themeScript`](#themescript) | const | Skript na začátku `<body>`: nastaví téma a hustotu řádků (`data-density`) před vykreslením, aby stránka při načtení nezablikala. |  |
 | [`ActivityResult`](#activityresult) | type |  |  |
 | [`AuthBrand`](#authbrand) | type |  |  |
 | [`BarChartProps`](#barchartprops) | type |  |  |
@@ -184,7 +207,10 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z t
 | [`ChartValueFormat`](#chartvalueformat) | type | Jak se hodnota ukazuje: peníze jsou v haléřích, `minutes` v minutách (7:30 h), `hours` v desetinných hodinách. |  |
 | [`ComboOption`](#combooption) | type |  |  |
 | [`ComboboxProps`](#comboboxprops) | type |  |  |
+| [`ContactAction`](#contactaction) | type | Jedna rychlá akce: popisek, ikona a odkaz. |  |
+| [`ContactActionKind`](#contactactionkind) | type | Druh rychlé akce na kartě kontaktu nebo klienta. |  |
 | [`DashboardApi`](#dashboardapi) | type | Vše, co UI nástěnek potřebuje od serveru. Komponenty nezná server actions ani route handlery; aplikace jim rozhraní dodá (`apps/web/src/lib/dashboard-api.ts`). Chyby se hlásí výjimkou s čitelnou hláškou. |  |
+| [`Density`](#density) | type | Hustota řádků v seznamech a tabulkách (Nastavení → Vzhled). |  |
 | [`DonutChartProps`](#donutchartprops) | type |  |  |
 | [`DonutSliceInput`](#donutsliceinput) | type |  |  |
 | [`EntityApi`](#entityapi) | type | Vše, co data-driven UI potřebuje od serveru. Komponenty ve `@rebar/ui` neznají Next.js ani server actions; aplikace jim tohle rozhraní dodá (server actions, v testech atrapa). Chyby se hlásí výjimkou s čitelnou hláškou. |  |
@@ -195,6 +221,7 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z t
 | [`FileItem`](#fileitem) | type |  |  |
 | [`FilterAttributeGroup`](#filterattributegroup) | type | Skupina atributů v nabídce „Filtr“: modul si ji pro entitu definuje výčtem klíčů (`EntityList` prop `filterGroups`). Atribut, který žádná skupina nezmiňuje, spadne do „Vlastní pole“ (je-li vlastní) nebo do „Ostatní“. |  |
 | [`GaugeProps`](#gaugeprops) | type |  |  |
+| [`InstallState`](#installstate) | type | Stav instalace na plochu: nainstalováno, nabídka prohlížeče, návod pro iPhone, nepodporováno. |  |
 | [`KanbanCardContext`](#kanbancardcontext) | type | Co dostane rozšíření karty kanbanu: řádek, popisky vazeb a výchozí tělo, které může modul doplnit. |  |
 | [`KanbanCardExtension`](#kanbancardextension) | type | Rozšíření karty kanbanu pro jednu entitu. Vše je nepovinné; co modul nedodá, vypadá jako dřív. Komponenty se vykreslují jako prvky Reactu, takže smí používat hooky (dotaz, popover…). Kliky a tažení uvnitř `topRight` / `bottomRight` kartu neotevírají ani nepřesouvají; ve `footer` je to na modulu (interaktivní prvky obalí `KanbanInteractive`), aby šla celá řádka patičky použít i pro text. |  |
 | [`KanbanColumnContext`](#kanbancolumncontext) | type | Co dostane doplňující řádek v hlavičce sloupce kanbanu (vážený součet, počet po termínu…). |  |
@@ -209,7 +236,11 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z t
 | [`NiceScale`](#nicescale) | type |  |  |
 | [`PaletteAction`](#paletteaction) | type | Příkaz do palety (Cmd+K), který modul nabízí („Nový obchod“, „Zapsat hodiny“…). Buď `href` (přejít), nebo `run`. Vykresluje paletu C3; typ je tady, aby moduly mohly akce deklarovat hned. |  |
 | [`PaletteGroup`](#palettegroup) | type |  |  |
+| [`PaletteHit`](#palettehit) | type | Nález hledání ze serveru (`SearchHit` z `@rebar/core/entities`; tvar je tu opsaný, aby UI nezávisel na serveru). |  |
+| [`PaletteHostProps`](#palettehostprops) | type | Vstupy palety Cmd+K: navigace, entity k zakládání, funkce hledání a nedávných záznamů. |  |
 | [`PaletteItem`](#paletteitem) | type |  |  |
+| [`PaletteRecent`](#paletterecent) | type | Naposledy otevřený záznam (z `recent_record`). |  |
+| [`PaletteRowAction`](#paletterowaction) | type | Akce u řádku, která nic neotevírá (zavolat, zkopírovat telefon, napsat e-mail, otevřít Disk). |  |
 | [`PipelineStage`](#pipelinestage) | type | Čistá logika pásu fází (bez Reactu), aby šla testovat samostatně. |  |
 | [`PipelineStepperProps`](#pipelinestepperprops) | type | Vlastnosti `PipelineStepper`. |  |
 | [`QuickCondition`](#quickcondition) | type | Navržená („rychlá“) podmínka: nabídne se v nabídce „Filtr“ ve skupině „Návrhy“ a jedním kliknutím přidá hotovou podmínku (chybí-li jí hodnota, rovnou se otevře její editor). Nabídne se jen tehdy, když atribut existuje a smí se filtrovat. |  |
@@ -229,7 +260,6 @@ Vstupní bod `@rebar/ui` (soubor `packages/ui/src/index.ts`). Exportů: 230, z t
 | [`SourceCatalog`](#sourcecatalog) | type | Zdroje, ze kterých smí uživatel skládat widgety (entity, metriky) a role pro sdílení. |  |
 | [`SparklineProps`](#sparklineprops) | type |  |  |
 | [`StepState`](#stepstate) | type | Stav jedné fáze v pásu vůči aktuální: hotová, aktuální, budoucí. |  |
-| [`TaskItem`](#taskitem) | type |  |  |
 | [`TextFieldProps`](#textfieldprops) | type |  |  |
 | [`TimelineItem`](#timelineitem) | type |  |  |
 | [`TopTab`](#toptab) | type | Záložka v liště detailu: samostatná záložka modulu, nebo skupina záložek s přepínačem. |  |
@@ -426,11 +456,12 @@ function Combobox({ options, load, value, selectedLabels = {}, onChange, multipl
 
 function · `packages/ui/src/components/command-palette.tsx`
 
-Cmd/Ctrl+K: hledání záznamů napříč entitami, navigace, akce a nedávné záznamy.
-`search` vrací výsledky ze serveru (hledání bez diakritiky); statické skupiny filtruje cmdk lokálně.
+Cmd/Ctrl+K (HLE-01…07): bez zadání nedávné záznamy a nejčastější příkazy (`idleGroups`), při psaní nálezy ze serveru
+seskupené podle typu (`search`) a příkazy, které odpovídají textu. Nálezy naskakují během psaní (bez čekání na
+pauzu, předchozí výsledky zůstávají, dokud nepřijdou nové).
 
 ```ts
-function CommandPalette({ open, onOpenChange, groups, search, }: { open: boolean; onOpenChange: (o: boolean) => void; groups: PaletteGroup[]; search?: (q: string) => Promise<PaletteItem[]>; }): import("react").JSX.Element
+function CommandPalette({ open, onOpenChange, groups, idleGroups = [], search, onRun, }: { open: boolean; onOpenChange: (o: boolean) => void; /** Příkazy a navigace: filtruje je cmdk podle zadaného textu. */ groups: PaletteGroup[]; /** Jen při prázdném poli: nedávné záznamy a nejčastější příkazy. */ idleGroups?: PaletteGroup[]; /** Nálezy ze serveru podle textu, už seskupené. */ search?: (q: string) => Promise<PaletteGroup[]>; /** Zavolá se po výběru řádku (např. započítání použití příkazu). */ onRun?: (item: PaletteItem) => void; }): import("react").JSX.Element
 ```
 
 ### ConfirmDialog
@@ -442,6 +473,18 @@ Potvrzení nevratné nebo dopadové akce (smazání, deaktivace, změna role).
 
 ```ts
 function ConfirmDialog({ open, onOpenChange, title, description, confirmLabel = "Potvrdit", cancelLabel = "Zrušit", danger, onConfirm, children, }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; description?: string; confirmLabel?: string; cancelLabel?: string; danger?: boolean; onConfirm: () => void | boolean | Promise<void | boolean>; children?: ReactNode; }): import("react").JSX.Element
+```
+
+### ContactActionBar
+
+function · `packages/ui/src/mobile/contact-action-bar.tsx`
+
+Velká tlačítka rychlých akcí pro telefon (MOB-03, MOB-04): Zavolat, SMS, WhatsApp, E-mail, Navigovat, Disk.
+Každé tlačítko má výšku aspoň 48 px; chybí-li údaj, tlačítko se nezobrazí. Na šířce od `sm` se mřížka skryje
+(počítač má vlastní odkazy v záhlaví a v kartách).
+
+```ts
+function ContactActionBar({ phone, email, address, driveUrl, only, desktop = false, className, }: { phone?: string | null; email?: string | null; address?: string | null; driveUrl?: string | null; only?: readonly ContactActionKind[]; /** Zobrazit i na počítači (výchozí jen pod šířkou `sm`). */ desktop?: boolean; className?: string; }): import("react").JSX.Element | null
 ```
 
 ### CreateDialog
@@ -472,7 +515,7 @@ Mřížka nástěnky (12 sloupců na počítači, na telefonu jeden). V režimu 
 a mění se jejich velikost; jinak se jen zobrazují a každý se načítá samostatně.
 
 ```ts
-function DashboardGrid({ widgets, filters, refreshKey, autoRefreshMs, editing, onChange, onEdit, hideMenu, }: Props): import("react").JSX.Element
+function DashboardGrid({ widgets, filters, refreshKey, autoRefreshMs, editing, reorderOnly, onChange, onEdit, hideMenu, }: Props): import("react").JSX.Element
 ```
 
 ### DashboardSwitcher
@@ -482,7 +525,7 @@ function · `packages/ui/src/dashboards/dashboard-switcher.tsx`
 Přepínač nástěnek na úvodní stránce: klasický Přehled a nástěnky uživatele. Mobil: vodorovný posuvný pruh.
 
 ```ts
-function DashboardSwitcher({ boards, activeId, overviewHref, boardHref, onCreate, onOrder, }: { boards: DashboardSummary[]; /** Id aktivní nástěnky, `null` = klasický Přehled. */ activeId: string | null; overviewHref: string; boardHref: (id: string) => string; onCreate?: (() => void) | undefined; onOrder?: (() => void) | undefined; }): import("react").JSX.Element
+function DashboardSwitcher({ boards, activeId, overviewHref, boardHref, onCreate, createLabel, onOrder, }: { boards: DashboardSummary[]; /** Id aktivní nástěnky, `null` = klasický Přehled. */ activeId: string | null; /** Adresa klasického Přehledu; bez ní se záložka „Přehled“ nezobrazí (OPSYS: každý přehled je nástěnka). */ overviewHref?: string | undefined; boardHref: (id: string) => string; onCreate?: (() => void) | undefined; /** Popisek tlačítka pro založení (výchozí „Nová nástěnka“). */ createLabel?: string | undefined; onOrder?: (() => void) | undefined; }): import("react").JSX.Element
 ```
 
 ### DashboardView
@@ -515,6 +558,18 @@ Výběr data (hodnota je ISO `RRRR-MM-DD`).
 
 ```ts
 function DatePicker({ value, onChange, placeholder = "Vybrat datum", clearable = true, trigger, className, disabled, open: openProp, onOpenChange, }: { value: string | null; onChange: (v: string | null) => void; placeholder?: string; clearable?: boolean; trigger?: ReactNode; className?: string; disabled?: boolean; open?: boolean; onOpenChange?: (o: boolean) => void; }): import("react").JSX.Element
+```
+
+### DesktopOnly
+
+function · `packages/ui/src/mobile/desktop-only.tsx`
+
+Záměrně omezené na mobilu (MOB-09): editor oprávnění, editor šablon, editor struktury Disku a úpravy přehledu
+(na telefonu jen pořadí widgetů) se na telefonu nezobrazují; místo nich je jasná zpráva. Komponentu obalí
+vlastník editoru: `<DesktopOnly what="Editor šablon">…editor…</DesktopOnly>`. Na počítači vykreslí obsah beze změny.
+
+```ts
+function DesktopOnly({ what, children, hint, }: { /** Co se na telefonu nedá dělat („Editor šablon zakázek“). */ what: string; children: ReactNode; /** Doplňující věta (výchozí: otevřít na počítači). */ hint?: string; }): import("react").JSX.Element
 ```
 
 ### DialogContent
@@ -733,6 +788,17 @@ _Bez popisu._
 function Input({ className, ref, ...rest }: InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> }): import("react").JSX.Element
 ```
 
+### InstallHint
+
+function · `packages/ui/src/mobile/install-hint.tsx`
+
+Pokyn „Přidat OPSYS na plochu“ (MOB-10) pro Nastavení → Vzhled nebo Profil. Android: tlačítko Nainstalovat;
+iPhone Safari: návod Sdílet → Přidat na plochu; už nainstalováno nebo nepodporováno: nic (komponenta nevykreslí nic).
+
+```ts
+function InstallHint(): import("react").JSX.Element | null
+```
+
 ### Kanban
 
 function · `packages/ui/src/data/kanban.tsx`
@@ -836,6 +902,18 @@ Zpráva ve formuláři. Chyba se čtečkám oznámí hned (`role="alert"`), osta
 function Notice({ tone = "info", title, children, className, }: { tone?: NoticeTone; title?: string; children?: ReactNode; className?: string; }): import("react").JSX.Element
 ```
 
+### OfflineBridge
+
+function · `packages/ui/src/mobile/offline-bridge.tsx`
+
+Nad spodní lištou ukáže „jste offline, jen ke čtení“, zapíše `data-offline` na `<html>` (CSS pak zablokuje odesílací
+tlačítka), registruje service worker (jen v ostrém provozu) a drží kopii posledních načtených dat v mezipaměti
+prohlížeče. Po otevření bez spojení se tato data vrátí do paměti dotazů, takže jdou číst. Zápisy se nefrontují.
+
+```ts
+function OfflineBridge({ userId, pathname }: { userId: string; pathname: string }): import("react").JSX.Element | null
+```
+
 ### OrderDialog
 
 function · `packages/ui/src/dashboards/board-dialogs.tsx`
@@ -887,6 +965,18 @@ Drží kontextové akce paletky (Cmd+K), které si registrují zobrazené kompon
 
 ```ts
 function PaletteActionsProvider({ children, }: { children: (items: PaletteItem[]) => ReactNode; }): import("react").JSX.Element
+```
+
+### PaletteHost
+
+function · `packages/ui/src/palette/palette-host.tsx`
+
+Paleta Cmd+K nad daty aplikace: příkazy z `paletteActions` zapnutých modulů (podle oprávnění), „Nový …“ pro entity,
+které modul nedeklaroval, Přejít na…, Přepnout téma; nálezy ze serveru seskupené podle typu s podtitulkem a akcemi
+(zavolat, zkopírovat telefon, napsat e-mail, otevřít Disk); bez zadání nedávné záznamy a nejčastější příkazy.
+
+```ts
+function PaletteHost(p: PaletteHostProps): import("react").JSX.Element
 ```
 
 ### PasswordField
@@ -952,6 +1042,18 @@ _Bez popisu._
 
 ```ts
 function PopoverContent({ className, align = "start", sideOffset = 6, ...rest }: ComponentProps<typeof P.Content>): import("react").JSX.Element
+```
+
+### RealtimeBridge
+
+function · `packages/ui/src/realtime/realtime-bridge.tsx`
+
+Připojí prohlížeč na `/api/realtime` a při změně u druhého uživatele zneplatní dotazy dotčených entit
+(`["entity", <klíč>]`), příkazové dotazy modulů (`["command", …]`), koš a historii. Změna je vidět do 2 s bez
+obnovení stránky. `onChange` slouží k obnově serverově vykreslených stránek (např. `router.refresh()`).
+
+```ts
+function RealtimeBridge({ url = "/api/realtime", onChange, }: { url?: string; /** Zavolá se (sloučeně) po každé dávce změn. */ onChange?: () => void; }): null
 ```
 
 ### RecordDialog
@@ -1170,6 +1272,19 @@ Aplikace dodá sazby DPH platné dnes (z Nastavení); moduly je nabízejí u pol
 function VatRatesProvider({ value, children }: { value: VatRates; children: ReactNode }): import("react").JSX.Element
 ```
 
+### VisibilityLock
+
+function · `packages/ui/src/data/record-lock.tsx`
+
+Zámek viditelnosti v hlavičce záznamu (SPOL-12, VID-03). Vlastník (`private.read`) ho přepíná: soukromý záznam
+a jeho podřízené záznamy (úkoly, poznámky, platby, hodiny) nikdy neuvidí ostatní. U záznamu, který zámek jen dědí
+(hodiny, fáze), nebo zámek zdědil od nadřazeného záznamu, ukáže stav bez možnosti přepnutí. Ostatním se nezobrazí nic.
+Moduly s vlastní hlavičkou (`recordHeader`) ho přidají samy.
+
+```ts
+function VisibilityLock({ entity, id, row, }: { entity: EntityDescriptor; id: string; row: RecordRow; }): import("react").JSX.Element | null
+```
+
 ### WidgetBody
 
 function · `packages/ui/src/dashboards/widget-body.tsx`
@@ -1187,7 +1302,17 @@ function · `packages/ui/src/dashboards/widget-card.tsx`
 Karta widgetu: záhlaví s nabídkou, načítání, chyba (česká hláška), obsah. Načítá se samostatně a souběžně s ostatními.
 
 ```ts
-function WidgetCard({ widget, filters, refreshKey, autoRefreshMs, editing, onEdit, onRemove, dragProps, resizeHandle, nodeRef, style, className, hideMenu, }: Props): import("react").JSX.Element
+function WidgetCard({ widget, filters, refreshKey, autoRefreshMs, editing, reorderOnly, onEdit, onRemove, dragProps, resizeHandle, nodeRef, style, className, hideMenu, }: Props): import("react").JSX.Element
+```
+
+### addressText
+
+function · `packages/ui/src/mobile/contact-actions.ts`
+
+Adresa jedním řádkem (prázdné části se vynechají); null, když není z čeho skládat.
+
+```ts
+function addressText(parts: { street?: unknown; city?: unknown; zip?: unknown; country?: unknown; }): string | null
 ```
 
 ### axisTickLabel
@@ -1262,6 +1387,17 @@ Respektuje otočení z EXIF. Cokoli, co zmenšit nejde (jiný formát, chybí po
 async function compressImage(file: File, opts: { maxSide?: number; quality?: number; keepBelowBytes?: number } = {}): Promise<Blob>
 ```
 
+### contactActions
+
+function · `packages/ui/src/mobile/contact-actions.ts`
+
+Sada akcí pro kartu: pořadí Zavolat, SMS, WhatsApp, E-mail, Navigovat, Disk. Akce bez údaje se vynechá, `only`
+omezí výběr (karta kontaktu: telefon + e-mail; karta klienta: Zavolat, E-mail, Navigovat, Disk).
+
+```ts
+function contactActions(data: { phone?: string | null; email?: string | null; address?: string | null; driveUrl?: string | null; }, only?: readonly ContactActionKind[]): ContactAction[]
+```
+
 ### defineModuleUi
 
 function · `packages/ui/src/data/module-ui.tsx`
@@ -1322,6 +1458,17 @@ _Bez popisu._
 function initials(name: string): string
 ```
 
+### installState
+
+function · `packages/ui/src/mobile/start.ts`
+
+Jak nabídnout instalaci na plochu (MOB-10): spuštěno jako aplikace = „installed“; prohlížeč nabídl
+`beforeinstallprompt` = „prompt“ (tlačítko); iPhone/iPad Safari = „ios“ (návod Sdílet → Přidat na plochu).
+
+```ts
+function installState(input: { standalone: boolean; userAgent: string; hasPrompt: boolean; }): InstallState
+```
+
 ### isMac
 
 function · `packages/ui/src/hooks/use-hotkeys.ts`
@@ -1330,6 +1477,26 @@ _Bez popisu._
 
 ```ts
 function isMac(): boolean
+```
+
+### mailHref
+
+function · `packages/ui/src/mobile/contact-actions.ts`
+
+Odkaz `mailto:` pro napsání e-mailu; null u neplatné adresy.
+
+```ts
+function mailHref(email: string | null | undefined): string | null
+```
+
+### mapsLink
+
+function · `packages/ui/src/mobile/contact-actions.ts`
+
+Adresa v mapách: univerzální odkaz Google Maps, který telefon nabídne otevřít v aplikaci map.
+
+```ts
+function mapsLink(address: string | null | undefined): string | null
 ```
 
 ### mergeModuleUi
@@ -1424,6 +1591,16 @@ Spustí export na serveru. Malý se rovnou stáhne, velký se zařadí do fronty
 async function runExport(entityKey: string, req: ExportRequest): Promise<"downloaded" | "queued">
 ```
 
+### runLastUndo
+
+function · `packages/ui/src/components/toast.tsx`
+
+Provede poslední vratnou akci, pokud je ještě v 10s okně. Vrací, zda se něco vrátilo.
+
+```ts
+function runLastUndo(): boolean
+```
+
 ### seriesColor
 
 function · `packages/ui/src/charts/series.ts`
@@ -1432,6 +1609,26 @@ Barva řady podle pořadí (token); od 9. řady neutrální šedá, žádné gen
 
 ```ts
 function seriesColor(index: number): string
+```
+
+### shouldOpenStartSearch
+
+function · `packages/ui/src/mobile/start.ts`
+
+Má se po otevření aplikace samo otevřít Hledat?
+
+```ts
+function shouldOpenStartSearch(input: { pathname: string; /** Užší než `md` a dotykové zařízení. */ phone: boolean; /** Už se při tomto spuštění otevřelo. */ alreadyStarted: boolean; /** Adresa nese `?bez-hledani` (např. odkaz z notifikace nebo testy). */ suppressed?: boolean; }): boolean
+```
+
+### smsHref
+
+function · `packages/ui/src/mobile/contact-actions.ts`
+
+Odkaz `sms:` pro napsání zprávy; null, když číslo není použitelné.
+
+```ts
+function smsHref(phone: string | null | undefined): string | null
 ```
 
 ### successToast
@@ -1444,11 +1641,22 @@ _Bez popisu._
 function successToast(message: string): void
 ```
 
+### telHref
+
+function · `packages/ui/src/mobile/contact-actions.ts`
+
+Odkaz `tel:` pro zavolání; null, když číslo není použitelné.
+
+```ts
+function telHref(phone: string | null | undefined): string | null
+```
+
 ### undoToast
 
 function · `packages/ui/src/components/toast.tsx`
 
-Toast s tlačítkem „Zpět“ (vratná akce; zpětná změna se provede až po kliknutí).
+Toast s tlačítkem „Vrátit“ (vratná akce; zpětná změna se provede až po kliknutí nebo Cmd/Ctrl+Z, do 10 s,
+R-24). Platí jen poslední vratná akce.
 
 ```ts
 function undoToast(message: string, onUndo: () => void | Promise<void>): void
@@ -1492,6 +1700,17 @@ Rozhraní nástěnek z kontextu; mimo `DashboardApiProvider` je to chyba.
 
 ```ts
 function useDashboardApi(): DashboardApi
+```
+
+### useDensity
+
+function · `packages/ui/src/hooks/use-density.ts`
+
+Aktuální hustota řádků: čte `data-density` na `<html>` (nastaví ji `themeScript` při načtení a Nastavení → Vzhled
+při změně) a sleduje jeho změny, takže se tabulka přepočítá hned po přepnutí.
+
+```ts
+function useDensity(): Density
 ```
 
 ### useElementWidth
@@ -1566,6 +1785,16 @@ _Bez popisu._
 function useInvalidateEntity(entity: string): () => Promise<void>
 ```
 
+### useIsMobile
+
+function · `packages/ui/src/hooks/use-media.ts`
+
+Zda je obrazovka užší než `md` (768 px). Na serveru a při prvním vykreslení vrací false, pak se opraví.
+
+```ts
+function useIsMobile(query = "(max-width: 767px)"): boolean
+```
+
 ### useKanbanExtensions
 
 function · `packages/ui/src/data/module-ui.tsx`
@@ -1594,6 +1823,16 @@ _Bez popisu._
 
 ```ts
 function useNav(): NavApi
+```
+
+### useOnline
+
+function · `packages/ui/src/mobile/offline-bridge.tsx`
+
+Je zařízení připojené? Na serveru a při prvním vykreslení „ano“ (bez bliknutí), pak se opraví.
+
+```ts
+function useOnline(): boolean
 ```
 
 ### usePaletteActions
@@ -1660,6 +1899,16 @@ přispěvatele je výsledek prázdný.
 function useSlotComponents<K extends SlotName>(name: K): ComponentType<SlotMap[K]>[]
 ```
 
+### useUndoShortcut
+
+function · `packages/ui/src/components/toast.tsx`
+
+Cmd/Ctrl+Z vrátí poslední vratnou akci (smazání, hromadná změna); v textovém poli zůstává běžné „zpět“.
+
+```ts
+function useUndoShortcut(): void
+```
+
 ### useUpdateAttribute
 
 function · `packages/ui/src/data/hooks.ts`
@@ -1681,6 +1930,18 @@ _Bez popisu._
 function useVatRates(): VatRates
 ```
 
+### useVisualViewportVar
+
+function · `packages/ui/src/mobile/viewport.ts`
+
+Výška viditelné části okna (bez klávesnice) jako CSS proměnná `--vvh`. iOS Safari při otevřené klávesnici
+nezmenšuje `100dvh`, takže celoobrazovkové Hledat by schovalo seznam pod klávesnici; styly používají
+`height: var(--vvh, 100dvh)`.
+
+```ts
+function useVisualViewportVar(): void
+```
+
 ### vatBpChoices
 
 function · `packages/ui/src/data/vat-rates.tsx`
@@ -1690,6 +1951,16 @@ Sazby (v setinách procenta) k nabídnutí ve výběru, od nejvyšší. K nabíz
 
 ```ts
 function vatBpChoices(vat: VatRates, extra: readonly number[] = []): number[]
+```
+
+### whatsappHref
+
+function · `packages/ui/src/mobile/contact-actions.ts`
+
+Odkaz `wa.me` pro WhatsApp (číslo v mezinárodním tvaru); null, když číslo není použitelné.
+
+```ts
+function whatsappHref(phone: string | null | undefined): string | null
 ```
 
 ### withRecordParam
@@ -1855,6 +2126,16 @@ Adresa otevřeného záznamu v pop-upu (`?record=<id>`): čisté funkce bez proh
 const RECORD_PARAM: "record"
 ```
 
+### ROW_HEIGHTS
+
+const · `packages/ui/src/hooks/use-density.ts`
+
+Výška řádku tabulky podle hustoty (NAS-05): pohodlná 36 px, kompaktní 28 px.
+
+```ts
+const ROW_HEIGHTS: Record<Density, number>
+```
+
 ### TYPE_ICONS
 
 const · `packages/ui/src/data/type-icons.ts`
@@ -1909,10 +2190,10 @@ const entityKeys: { all: (entity: string) => readonly ["entity", string]; list: 
 
 const · `packages/ui/src/shell/theme.tsx`
 
-Skript do `<head>`: nastaví téma před vykreslením, aby stránka při načtení nezablikala.
+Skript na začátku `<body>`: nastaví téma a hustotu řádků (`data-density`) před vykreslením, aby stránka při načtení nezablikala.
 
 ```ts
-const themeScript: "try{var t=localStorage.getItem(\"theme\");if(t===\"light\"||t===\"dark\")document.documentElement.setAttribute(\"data-theme\",t)}catch(e){}"
+const themeScript: "try{var r=document.documentElement,t=localStorage.getItem(\"theme\");if(t===\"light\"||t===\"dark\")r.setAttribute(\"data-theme\",t);var d=localStorage.getItem(\"density\");r.setAttribute(\"data-density\",d===\"compact\"?\"compact\":\"com…
 ```
 
 ### ActivityResult
@@ -1922,7 +2203,7 @@ type · `packages/ui/src/data/api.ts`
 _Bez popisu._
 
 ```ts
-type ActivityResult = { timeline: TimelineItem[]; tasks: TaskItem[]; files: FileItem[] };
+type ActivityResult = { timeline: TimelineItem[]; files: FileItem[] };
 ```
 
 ### AuthBrand
@@ -2115,6 +2396,33 @@ type ComboboxProps = {
 };
 ```
 
+### ContactAction
+
+type · `packages/ui/src/mobile/contact-actions.ts`
+
+Jedna rychlá akce: popisek, ikona a odkaz.
+
+```ts
+type ContactAction = {
+  kind: ContactActionKind;
+  label: string;
+  icon: string;
+  href: string;
+  /** Odkaz se otevírá mimo aplikaci (mapy, Disk, WhatsApp). */
+  external: boolean;
+};
+```
+
+### ContactActionKind
+
+type · `packages/ui/src/mobile/contact-actions.ts`
+
+Druh rychlé akce na kartě kontaktu nebo klienta.
+
+```ts
+type ContactActionKind = "call" | "sms" | "whatsapp" | "mail" | "navigate" | "drive";
+```
+
 ### DashboardApi
 
 type · `packages/ui/src/dashboards/api.tsx`
@@ -2150,9 +2458,21 @@ type DashboardApi = {
     filters: DashboardFilters,
     format: "csv" | "xlsx",
   ): Promise<void>;
+  /** Odškrtne úkol přímo ve widgetu (příkaz `ukoly.complete`). */
+  completeTask(id: string): Promise<void>;
   /** Stáhne snímek nástěnky do PDF. */
   exportBoard(boardId: string, filters: DashboardFilters): Promise<void>;
 };
+```
+
+### Density
+
+type · `packages/ui/src/hooks/use-density.ts`
+
+Hustota řádků v seznamech a tabulkách (Nastavení → Vzhled).
+
+```ts
+type Density = "comfortable" | "compact";
 ```
 
 ### DonutChartProps
@@ -2214,6 +2534,8 @@ type EntityApi = {
   ): Promise<RecordResult>;
   remove(entity: string, ids: string[]): Promise<void>;
   restore(entity: string, ids: string[]): Promise<void>;
+  /** Zamkne (soukromé) nebo zveřejní (sdílené) záznamy; smí jen vlastník. Vrací počet změněných i s potomky. */
+  setVisibility(entity: string, ids: string[], isPrivate: boolean): Promise<{ changed: number }>;
   lookups: Lookups;
   /** Adresa záznamu v aplikaci (odkazy mezi záznamy); `null`, když pro daný typ stránka není. */
   hrefFor(entity: string, id: string): string | null;
@@ -2224,12 +2546,6 @@ type EntityApi = {
   activity(entity: string, id: string): Promise<ActivityResult>;
   addComment(entity: string, id: string, body: string): Promise<void>;
   deleteComment(id: string): Promise<void>;
-  addTask(
-    entity: string,
-    id: string,
-    task: { title: string; dueDate?: string | null; assigneeId?: string | null },
-  ): Promise<void>;
-  completeTask(id: string, done: boolean): Promise<void>;
   /** Nahraje soubor k záznamu a vrátí jeho id; `kind` rozlišuje fotky, podpisy a dokumenty. */
   uploadFile(
     entity: string,
@@ -2239,6 +2555,10 @@ type EntityApi = {
   ): Promise<{ id: string }>;
   detachFile(attachmentId: string): Promise<void>;
   /** Šablony exportů; bez nich export dialog šablony nenabízí. */
+  exports?: {
+    templates(entity: string): Promise<ExportTemplateInfo[]>;
+    saveTemplate(t: {
+      name: string;
 // … (zkráceno, celá deklarace je ve zdroji)
 ```
 
@@ -2362,6 +2682,16 @@ type GaugeProps = {
   lowerIsBetter?: boolean;
   className?: string;
 };
+```
+
+### InstallState
+
+type · `packages/ui/src/mobile/start.ts`
+
+Stav instalace na plochu: nainstalováno, nabídka prohlížeče, návod pro iPhone, nepodporováno.
+
+```ts
+type InstallState = "installed" | "prompt" | "ios" | "unsupported";
 ```
 
 ### KanbanCardContext
@@ -2637,6 +2967,52 @@ _Bez popisu._
 type PaletteGroup = { heading: string; items: PaletteItem[] };
 ```
 
+### PaletteHit
+
+type · `packages/ui/src/palette/logic.ts`
+
+Nález hledání ze serveru (`SearchHit` z `@rebar/core/entities`; tvar je tu opsaný, aby UI nezávisel na serveru).
+
+```ts
+type PaletteHit = {
+  entityType: string;
+  id: string;
+  title: string;
+  subtitle: string | null;
+  url: string;
+  label: string;
+  labelMany: string;
+  phone: string | null;
+  email: string | null;
+  driveFolderId: string | null;
+  isPrivate: boolean;
+};
+```
+
+### PaletteHostProps
+
+type · `packages/ui/src/palette/palette-host.tsx`
+
+Vstupy palety Cmd+K: navigace, entity k zakládání, funkce hledání a nedávných záznamů.
+
+```ts
+type PaletteHostProps = {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  /** Položky navigace (Přejít na…). */
+  navItems: { href: string; label: string; icon: string }[];
+  /** Entity, které aktér smí zakládat (příkazy „Nový …“). */
+  creatable: { key: string; label: string; listPath: string }[];
+  /** Akce otevřeného záznamu (registrované přes `usePaletteActions`). */
+  contextual?: PaletteItem[];
+  /** Hledání na serveru (respektuje viditelnost). */
+  search: (q: string) => Promise<PaletteHit[]>;
+  /** Posledních 8 otevřených záznamů. */
+  recent: () => Promise<PaletteRecent[]>;
+  onHelp: () => void;
+};
+```
+
 ### PaletteItem
 
 type · `packages/ui/src/components/command-palette.tsx`
@@ -2648,10 +3024,49 @@ type PaletteItem = {
   id: string;
   label: string;
   hint?: string;
+  /** Podtitulek pod názvem (firma, fáze, telefon). */
+  subtitle?: string;
   icon?: ReactNode;
   keywords?: string;
   shortcut?: string;
+  actions?: PaletteRowAction[];
   onSelect: () => void;
+};
+```
+
+### PaletteRecent
+
+type · `packages/ui/src/palette/palette-host.tsx`
+
+Naposledy otevřený záznam (z `recent_record`).
+
+```ts
+type PaletteRecent = {
+  entityType: string;
+  id: string;
+  title: string;
+  label: string;
+  url: string;
+};
+```
+
+### PaletteRowAction
+
+type · `packages/ui/src/components/command-palette.tsx`
+
+Akce u řádku, která nic neotevírá (zavolat, zkopírovat telefon, napsat e-mail, otevřít Disk).
+
+```ts
+type PaletteRowAction = {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  /** Odkaz (`tel:`, `mailto:`, adresa složky na Disku). */
+  href?: string;
+  /** Otevře odkaz v nové záložce. */
+  external?: boolean;
+  /** Provede se po kliknutí (kopírování); paleta se přitom nezavře. */
+  onRun?: () => void;
 };
 ```
 
@@ -2725,6 +3140,13 @@ type RecordAction = {
   permission?: string | readonly string[];
   primary?: boolean;
   visible?: (row: RecordRow) => boolean;
+  /** Pořadí v hlavičce záznamu (nižší dřív, výchozí 100; stejné pořadí = podle pořadí modulů). */
+  order?: number;
+  /**
+   * Vlastní vykreslení místo statického tlačítka (např. tlačítko, jehož popisek se mění podle stavu). Komponenta
+   * dostane záznam; `run`/`dialog` se pak nepoužijí.
+   */
+  render?: ComponentType<{ entity: EntityDescriptor; id: string; row: RecordRow }>;
   /** Přímá akce. Buď `run`, nebo `dialog` (okno s vlastním obsahem, např. výběr důvodu). */
   run?: (p: RecordActionContext) => void | Promise<void>;
   dialog?: {
@@ -2970,6 +3392,10 @@ type SourceCatalog = {
   entities: { key: string; label: string; module: string }[];
   metrics: MetricInfo[];
   roles: { key: string; name: string }[];
+  /** Hotové widgety, které aktér smí přidat (jen zapnuté moduly a oprávnění). */
+  presets: WidgetPresetInfo[];
+  /** Uložené pohledy použitelné ve widgetech Číslo, Seznam z pohledu a Rychlé odkazy. */
+  views: ViewChoice[];
 };
 ```
 
@@ -2997,23 +3423,6 @@ Stav jedné fáze v pásu vůči aktuální: hotová, aktuální, budoucí.
 
 ```ts
 type StepState = "done" | "current" | "future";
-```
-
-### TaskItem
-
-type · `packages/ui/src/data/api.ts`
-
-_Bez popisu._
-
-```ts
-type TaskItem = {
-  id: string;
-  title: string;
-  dueDate: string | null;
-  priority: string;
-  done: boolean;
-  assigneeId: string | null;
-};
 ```
 
 ### TextFieldProps

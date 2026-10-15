@@ -112,15 +112,30 @@ const GROUPS: { title: string; blurb: string; files: string[] }[] = [
   {
     title: "OPSYS: zadání, rozbor jádra a rozběh",
     blurb:
-      "Pracovní dokumenty projektu OPSYS (interní systém agentury): zadání, analýzy jádra a modulů, digest specifikace, plán a log rozběhu. Specifikace od zadavatele je v `docs/specifikace/`.",
+      "Pracovní dokumenty projektu OPSYS (interní systém agentury): zadání, analýzy jádra a modulů, digest specifikace, plán, kontrakty C1 a C3, log rozběhu, žádosti mezi agenty, otevřené body a specifikace od zadavatele.",
     files: [
       "docs/opsys/00-ZADANI.md",
       "docs/opsys/A-core-inventura.md",
       "docs/opsys/B-audit-modulu.md",
       "docs/opsys/C-digest-specifikace.md",
+      "docs/opsys/C1-viditelnost-a-kos.md",
+      "docs/opsys/C3-realtime-historie-hledani.md",
       "docs/opsys/D-plan-a-kontrakty.md",
       "docs/opsys/E-rozbehovy-log.md",
+      "docs/opsys/F-otevrene-body.md",
+      "docs/opsys/ZADOSTI.md",
+      "docs/specifikace/00-logicka-specifikace-funkci.md",
+      "docs/specifikace/10-prehled-rozhodnuti-faze.md",
+      "docs/specifikace/11-architektura-tech-stack.md",
+      "docs/specifikace/12-datovy-model.md",
+      "docs/specifikace/13-funkcni-specifikace.md",
+      "docs/specifikace/14-design-system.md",
     ],
+  },
+  {
+    title: "Funkce platformy",
+    blurb: "Průřezové funkce: nástěnky, exporty, mobil a PWA, upozornění (OPSYS je nepoužívá).",
+    files: ["docs/DASHBOARDY.md", "docs/EXPORTY.md", "docs/MOBIL.md", "docs/NOTIFICATIONS.md"],
   },
   {
     title: "Provoz a bezpečnost",
@@ -141,13 +156,12 @@ const GROUPS: { title: string; blurb: string; files: string[] }[] = [
   {
     title: "Stav, audity a otevřené otázky",
     blurb: "Pracovní a historické dokumenty.",
-    files: [
-      "docs/AUDIT.md",
-      "docs/OPEN-QUESTIONS.md",
-      "docs/ZAKAZKA.md",
-      "docs/UI-SPACING.md",
-      "CHANGELOG.md",
-    ],
+    files: ["docs/AUDIT.md", "docs/OPEN-QUESTIONS.md", "docs/UI-SPACING.md", "CHANGELOG.md"],
+  },
+  {
+    title: "Archiv",
+    blurb: "Dokumenty původního (stavebního) jádra, které OPSYS nahradil; ponechané jako historie.",
+    files: ["docs/_archiv/CRM.md", "docs/_archiv/ZAKAZKA.md"],
   },
 ];
 

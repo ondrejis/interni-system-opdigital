@@ -44,6 +44,14 @@ const DEFAULTS: { [K in keyof ServiceMap]: ServiceMap[K] } = {
     unpaidCount: async () => 0,
     allocatedByUser: async () => ({}),
   },
+  emailTemplates: {
+    importText: async () => {
+      const id = newId();
+      return { id, href: `/sablony-emailu/${id}` };
+    },
+    exportText: async () => null,
+    remove: async () => {},
+  },
 };
 
 /**

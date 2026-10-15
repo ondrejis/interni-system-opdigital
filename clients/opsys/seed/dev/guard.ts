@@ -44,6 +44,5 @@ export function devSeedProblems(env: DevEnvInput): string[] {
 /** Vyhodí chybu, když prostředí není lokální vývoj. */
 export function assertDevEnvironment(env: DevEnvInput): void {
   const problems = devSeedProblems(env);
-  if (problems.length)
-    throw new Error(`Vývojový seed odmítnut:\n - ${problems.join("\n - ")}`);
+  if (problems.length) throw new Error(`Vývojový seed odmítnut:\n - ${problems.join("\n - ")}`);
 }

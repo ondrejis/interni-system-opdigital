@@ -1,8 +1,9 @@
 #!/bin/sh
-# Ověří „čerstvou instanci“ jako v CI, jen bez Dockeru: nová databáze → migrace → demo data → produkční server
-# (standalone build z `pnpm build`) → procházecí testy (`pnpm test:crawl`) proti němu. Selže na jakékoli chybě.
+# Ověří „čerstvou instanci“ jako v CI, jen bez Dockeru: nová databáze → migrace → seed a vývojová data (`dev:seed`) →
+# produkční server (standalone build z `pnpm build`) → procházení navigace pro vlastníka i partnera
+# (`apps/web/e2e-crawl/routes.crawl.spec.ts`: žádná položka menu nevrací 404 ani chybu). Selže na jakékoli chybě.
 # Použití: pnpm build && sh scripts/fresh-instance-check.sh [soubory crawl specifikací…]
-# Výchozí: celé `pnpm test:crawl`. Vyžaduje `pnpm db:up`. Port serveru: FRESH_PORT (výchozí 3102),
+# Výchozí: jen `routes.crawl` (ostatní crawl specifikace pocházejí z původního jádra a s OPSYS nejsou ověřené). Vyžaduje `pnpm db:up`. Port serveru: FRESH_PORT (výchozí 3102),
 # databáze: FRESH_DB (výchozí rebar_fresh; po skončení se zahodí).
 #
 # Dva průchody (CI `compose-smoke` je má v sobě oba, protože install/compose generuje klíče VAPID a nastaví TZ):
@@ -57,8 +58,11 @@ if [ "$FRESH_VAPID" = "1" ]; then
   [ -n "$VAPID_PUBLIC_KEY" ] && [ -n "$VAPID_PRIVATE_KEY" ] || { echo "Klíče VAPID se nepodařilo vygenerovat"; exit 1; }
 fi
 
-echo "== migrace a demo data"
+echo "== migrace, seed a vývojová data"
 pnpm db:migrate
+OWNER_EMAIL="fresh-owner@opsys.test" OWNER_NAME="Fresh Owner" OWNER_PASSWORD="$(openssl rand -base64 24)" pnpm db:seed
+NODE_ENV=development pnpm dev:seed
+CRED=".data/dev-credentials-$DB.txt"
 
 echo "== server na portu $PORT (VAPID=$FRESH_VAPID)"
 LOG="$(mktemp)"
@@ -75,10 +79,14 @@ done
 
 echo "== procházecí testy proti čerstvé instanci"
 export CRAWL_BASE_URL="http://localhost:$PORT"
-export CRAWL_EMAIL="majitel@demo.opsys.example"
-export CRAWL_PASSWORD="Opsys-demo-2026"
+# vývojoví uživatelé z `dev:seed` (hesla jsou v gitignorovaném souboru; 2FA se při prvním přihlášení nastaví v testu)
+export CRAWL_EMAIL="$(awk '$1=="owner"{print $2}' "$CRED")"
+export CRAWL_PASSWORD="$(awk '$1=="owner"{print $3}' "$CRED")"
+export CRAWL_PARTNER_EMAIL="$(awk '$1=="partner"{print $2}' "$CRED")"
+export CRAWL_PARTNER_PASSWORD="$(awk '$1=="partner"{print $3}' "$CRED")"
 export CRAWL_OUTPUT_DIR="${CRAWL_OUTPUT_DIR:-test-results-fresh}"
 # v CI běží prohlížeč v UTC (runner), server v Europe/Prague; napodobíme to i lokálně (FRESH_BROWSER_TZ přepíše)
+[ $# -gt 0 ] || set -- routes.crawl
 set +e
 TZ="${FRESH_BROWSER_TZ:-UTC}" pnpm test:crawl "$@"
 STATUS=$?

@@ -38,24 +38,33 @@ Proměnné mimo validační schéma aplikace (migrace, seed, testy, výkonové a
 | --- | --- | --- |
 | `BUNDLE_BUDGET_KB` |  | `scripts/bundle-report.mjs` |
 | `CI` |  | `apps/web/playwright.config.ts` |
-| `CLIENT` | Vyber klienta: složka v clients/ (při buildu i za běhu). Image se staví per klient. | `apps/web/next.config.ts`, `apps/web/src/server/bootstrap.ts`, `scripts/db-migrate.ts`, `scripts/db-seed.ts` a dalších 2 |
+| `CLIENT` | Vyber klienta: složka v clients/ (při buildu i za běhu). Image se staví per klient. | `apps/web/next.config.ts`, `apps/web/src/server/bootstrap.ts`, `scripts/db-migrate.ts`, `scripts/db-seed.ts` a dalších 3 |
 | `CRAWL_BASE_URL` |  | `apps/web/e2e-crawl/platforma-prihlaseni.crawl.spec.ts`, `apps/web/e2e-crawl/ucet-heslo.crawl.spec.ts`, `apps/web/playwright.crawl.config.ts` |
-| `CRAWL_EMAIL` |  | `apps/web/e2e-crawl/login.setup.ts` |
+| `CRAWL_EMAIL` |  | `apps/web/e2e-crawl/login.setup.ts`, `apps/web/e2e-crawl/routes.crawl.spec.ts` |
 | `CRAWL_OUTPUT_DIR` |  | `apps/web/playwright.crawl.config.ts` |
-| `CRAWL_PASSWORD` |  | `apps/web/e2e-crawl/login.setup.ts` |
+| `CRAWL_PARTNER_EMAIL` |  | `apps/web/e2e-crawl/routes.crawl.spec.ts` |
+| `CRAWL_PARTNER_PASSWORD` |  | `apps/web/e2e-crawl/routes.crawl.spec.ts` |
+| `CRAWL_PASSWORD` |  | `apps/web/e2e-crawl/login.setup.ts`, `apps/web/e2e-crawl/routes.crawl.spec.ts` |
 | `DATABASE_APP_ROLE` |  | `scripts/db-migrate.ts` |
-| `DATABASE_MIGRATE_URL` | Migrace běží jako samostatný krok pod vlastníkem schématu (pnpm db:migrate), nikdy za běhu aplikace | `scripts/db-migrate.ts` |
-| `E2E_APP_EMAIL` |  | `apps/web/e2e/auth.setup.ts`, `apps/web/e2e/global-setup.ts` |
-| `E2E_APP_PASSWORD` |  | `apps/web/e2e/auth.setup.ts`, `apps/web/e2e/global-setup.ts` |
+| `DATABASE_MIGRATE_URL` | Migrace běží jako samostatný krok pod vlastníkem schématu (pnpm db:migrate), nikdy za běhu aplikace | `apps/web/e2e/reklama.spec.ts`, `scripts/db-migrate.ts` |
+| `DEV_SEED_NO_2FA` |  | `scripts/dev-seed.ts` |
+| `E2E_2FA_EMAIL` |  | `apps/web/e2e/auth-2fa.spec.ts`, `apps/web/e2e/global-setup.ts` |
+| `E2E_2FA_PASSWORD` |  | `apps/web/e2e/auth-2fa.spec.ts`, `apps/web/e2e/global-setup.ts` |
+| `E2E_APP_EMAIL` |  | `apps/web/e2e/auth.setup.ts`, `apps/web/e2e/global-setup.ts`, `apps/web/e2e/kalendar.setup.ts`, `apps/web/e2e/mobil.setup.ts` |
+| `E2E_APP_PASSWORD` |  | `apps/web/e2e/auth.setup.ts`, `apps/web/e2e/global-setup.ts`, `apps/web/e2e/kalendar.setup.ts`, `apps/web/e2e/mobil.setup.ts` |
 | `E2E_EMAIL` |  | `apps/web/e2e/auth.spec.ts`, `apps/web/e2e/global-setup.ts` |
 | `E2E_PASSWORD` |  | `apps/web/e2e/auth.spec.ts`, `apps/web/e2e/global-setup.ts` |
 | `E2E_SHOTS` |  | `apps/web/e2e-crawl/dashboardy-mobil.mobile.spec.ts`, `apps/web/e2e-crawl/dashboardy-sestaveni.crawl.spec.ts`, `apps/web/e2e-crawl/exporty-mobil.mobile.spec.ts`, `apps/web/e2e/entities.spec.ts` a dalších 1 |
 | `E2E_SHUFFLE_READY` |  | `apps/web/playwright.shuffle.config.ts` |
+| `FAKTUROID_MODE` | Opakované faktury v Můj prostor: `fake` = vestavěný Fakturoid bez sítě (jen lokální vývoj a e2e, v provozu nikdy; ostré přístupy se zadávají v Nastavení → Integrace a ukládají se šifrovaně). | `apps/web/e2e/muj-prostor-faktury.spec.ts`, `packages/modules/muj-prostor/src/invoices/fakturoid/index.ts` |
 | `GITHUB_STEP_SUMMARY` |  | `scripts/bundle-report.mjs` |
+| `KALENDAR_FAKE_GOOGLE` |  | `apps/web/e2e/kalendar.spec.ts`, `apps/web/playwright.kalendar.config.ts` |
+| `MOBIL_URL` |  | `apps/web/playwright.mobil.config.ts` |
 | `NEXT_DIST_DIR` |  | `apps/web/next.config.ts`, `scripts/bundle-report.mjs` |
 | `NEXT_RUNTIME` |  | `apps/web/src/instrumentation.ts` |
 | `OWNER_EMAIL` | První uživatel (jen pro pnpm db:seed) | `apps/web/e2e-crawl/login.setup.ts` |
 | `OWNER_PASSWORD` |  | `apps/web/e2e-crawl/login.setup.ts` |
+| `PASSWORD_BREACH_CHECK` | Kontrola uniklých hesel při nastavení hesla (k-anonymní dotaz na api.pwnedpasswords.com, posílá se jen 5 znaků SHA-1). `off` ji vypne (offline pravidla pro sílu hesla běží vždy). | `packages/core/src/auth/password-policy.ts` |
 | `PATH` |  | `tests/backup-restic.int.test.ts`, `tests/backup-tool.int.test.ts` |
 | `PDF_FONTS_DIR` |  | `packages/core/src/pdf/render.ts` |
 | `PERF_ADMIN_URL` |  | `scripts/perf-check.ts` |
@@ -63,7 +72,8 @@ Proměnné mimo validační schéma aplikace (migrace, seed, testy, výkonové a
 | `PERF_DB_HOST` |  | `scripts/perf-check.ts` |
 | `PERF_DB_NAME` |  | `scripts/perf-check.ts` |
 | `PERF_MIGRATE_URL` |  | `scripts/perf-check.ts` |
-| `REBAR_PG_PORT` |  | `scripts/perf-check.ts` |
+| `QASEC_DUMP` |  | `tests/private-paths.int.test.ts` |
+| `REBAR_PG_PORT` | Lokální vývoj: cluster PostgreSQL pro OPSYS (scripts/dev-db.sh; výchozí port 5434, nikdy 5433) | `scripts/perf-check.ts` |
 | `TZ` |  | `packages/core/src/time/dates.test.ts` |
 | `UI_SHOWCASE` |  | `apps/web/src/app/ui/page.tsx` |
 
@@ -86,7 +96,7 @@ Typovaná a validovaná Zodem při startu (`clientConfigSchema`, `defineClientCo
 | `locale.currency` | text | ne |  | délka 3; výchozí `"CZK"` |  |
 | `modules` | pole (enum) | ano | `kontakty`, `klienti`, `disk`, `zakazky`, `obchody`, `ukoly`, `kalendar`, `hodiny`, `finance`, `reklama`, `sablony-emailu`, `muj-prostor`, `prehled` | počet ≥ 1 | Zapnuté moduly. Závislosti kontroluje `resolveModules`. |
 | `security` | objekt | ne |  | výchozí `{}` |  |
-| `security.idleTimeoutMinutes` | celé číslo | ne |  | hodnota 5–1440; výchozí `480` | Odhlášení po neaktivitě (minuty). |
+| `security.idleTimeoutMinutes` | celé číslo | ne |  | hodnota 5–43200; výchozí `480` | Odhlášení po neaktivitě (minuty; relace se při aktivitě prodlužuje). Nejvýše 30 dní. |
 | `security.require2faRoles` | pole (text) | ne |  | výchozí `["owner","admin"]` | Klíče rolí, pro které je 2FA povinné. |
 | `navigation` | objekt | ne |  | výchozí `{}` | Navigace: pořadí sekcí postranního panelu (sekce, které tu nejsou, jdou za nimi v pořadí modulů). |
 | `navigation.groupOrder` | pole (text) | ne |  | výchozí `[]` |  |

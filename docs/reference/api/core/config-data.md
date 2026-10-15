@@ -52,7 +52,7 @@ function · `packages/core/src/config-data/lookups.ts`
 Přidá položku. `value` je stabilní klíč (nejde měnit), `label` jde přejmenovat.
 
 ```ts
-async function addLookupItem(ctx: Ctx, key: string, item: { value: string; label: string; color?: string }): Promise<{ value: string; id: string; label: string; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; active: boolean; color: string | null; position: number; listId: string; }>
+async function addLookupItem(ctx: Ctx, key: string, item: { value: string; label: string; color?: string }): Promise<{ value: string; id: string; label: string; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; deletedBy: string | null; deletedBatch: string | null; active: boolean; color…
 ```
 
 ### addStage
@@ -62,7 +62,7 @@ function · `packages/core/src/config-data/pipelines.ts`
 _Bez popisu._
 
 ```ts
-async function addStage(ctx: Ctx, pipelineId: string, def: StageDef): Promise<{ name: string; id: string; kind: "open" | "won" | "lost" | "done"; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; pipelineId: string; color: string; position: number; …
+async function addStage(ctx: Ctx, pipelineId: string, def: StageDef): Promise<{ name: string; id: string; kind: "open" | "won" | "lost" | "done"; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; deletedBy: string | null; deletedBatch: string | null…
 ```
 
 ### defaultVatRateBp
@@ -122,7 +122,7 @@ function · `packages/core/src/config-data/lookups.ts`
 Položky číselníku v pořadí; ve výchozím stavu jen aktivní.
 
 ```ts
-async function getLookup(db: Executor, key: string, opts: { includeInactive?: boolean } = {}): Promise<{ id: string; value: string; label: string; color: string | null; active: boolean; position: number; }[]>
+async function getLookup(db: Executor, key: string, opts: { includeInactive?: boolean } = {}): Promise<{ id: string; value: string; label: string; color: string | null; active: boolean; position: number; scopes: string[]; }[]>
 ```
 
 ### getPipeline
@@ -132,7 +132,7 @@ function · `packages/core/src/config-data/pipelines.ts`
 Pipeline se stavy v pořadí.
 
 ```ts
-async function getPipeline(db: Executor, entityType: string, key: string): Promise<{ stages: { createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; id: string; pipelineId: string; name: string; color: string; position: number; kind: "open" | "won" | "lost" …
+async function getPipeline(db: Executor, entityType: string, key: string): Promise<{ stages: { createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; deletedBy: string | null; deletedBatch: string | null; id: string; pipelineId: string; name: string; color: s…
 ```
 
 ### getPipelinePhases
@@ -152,7 +152,7 @@ function · `packages/core/src/config-data/vat.ts`
 Všechny sazby včetně vypršelých a budoucích (správa v administraci); nejnovější platnost první.
 
 ```ts
-async function listAllVatRates(db: Executor): Promise<{ createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; id: string; code: string; label: string; rateBp: number; validFrom: string; validTo: string | null; }[]>
+async function listAllVatRates(db: Executor): Promise<{ createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; deletedBy: string | null; deletedBatch: string | null; id: string; code: string; label: string; rateBp: number; validFr…
 ```
 
 ### listLookups
@@ -162,7 +162,7 @@ function · `packages/core/src/config-data/lookups.ts`
 Všechny číselníky s položkami včetně neaktivních (pro správu v administraci).
 
 ```ts
-async function listLookups(db: Executor): Promise<{ id: string; key: string; name: string; items: { id: string; value: string; label: string; color: string | null; active: boolean; position: number; }[]; }[]>
+async function listLookups(db: Executor): Promise<{ id: string; key: string; name: string; items: { id: string; value: string; label: string; color: string | null; active: boolean; position: number; scopes: string[]; }[]; }[]>
 ```
 
 ### listPipelines
@@ -172,7 +172,7 @@ function · `packages/core/src/config-data/pipelines.ts`
 Všechny pipeline se stavy a počtem použití každého stavu (pro správu v administraci).
 
 ```ts
-async function listPipelines(db: Executor): Promise<{ stages: { usage: number; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; id: string; pipelineId: string; name: string; color: string; position: number; kind: "open" | …
+async function listPipelines(db: Executor): Promise<{ stages: { usage: number; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; deletedBy: string | null; deletedBatch: string | null; id: string; pipelineId: string; name: s…
 ```
 
 ### listVatRates
@@ -182,7 +182,7 @@ function · `packages/core/src/config-data/vat.ts`
 Platné sazby DPH k datu (nejnovější platnost první). `rateBp`: 21 % = 2100.
 
 ```ts
-async function listVatRates(db: Executor, at: string): Promise<{ createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; id: string; code: string; label: string; rateBp: number; validFrom: string; validTo: string | null; }[]>
+async function listVatRates(db: Executor, at: string): Promise<{ createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; deletedBy: string | null; deletedBatch: string | null; id: string; code: string; label: string; rateBp: number; validFr…
 ```
 
 ### registerStageUsage
@@ -263,7 +263,7 @@ function · `packages/core/src/config-data/vat.ts`
 _Bez popisu._
 
 ```ts
-async function saveVatRate(ctx: Ctx, raw: z.input<typeof vatInput>): Promise<{ id: string; label: string; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; code: string; rateBp: number; validFrom: string; validTo: string | null; }>
+async function saveVatRate(ctx: Ctx, raw: z.input<typeof vatInput>): Promise<{ id: string; label: string; createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; deletedBy: string | null; deletedBatch: string | null; code: string; rateBp: number; validFr…
 ```
 
 ### setDefaultVatCode

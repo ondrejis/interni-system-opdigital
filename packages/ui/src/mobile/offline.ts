@@ -17,7 +17,9 @@ const VERSION = 1;
 /** Skupiny dotazů, které se ukládají (seznamy, záznamy, příkazy typu „Moje úkoly“, historie). */
 const PERSISTED_ROOTS = new Set(["entity", "command", "history", "trash"]);
 
+/** Uložený výsledek jednoho dotazu (klíč, data a čas načtení). */
 export type SavedQuery = { key: readonly unknown[]; data: unknown; updatedAt: number };
+/** Celý uložený obraz dat pro čtení bez spojení (verze, uživatel, čas uložení a dotazy). */
 export type OfflineSnapshot = { v: number; user: string; savedAt: number; queries: SavedQuery[] };
 
 /** Ukládá se jen to, co je čtení záznamů; hledání v paletě, náhledy a vše ostatní ne. */

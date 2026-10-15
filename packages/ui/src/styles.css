@@ -623,6 +623,8 @@ body {
   }
   [role="dialog"][data-palette] [cmdk-input] {
     font-size: 16px; /* menší písmo by iOS při ťuknutí přiblížilo */
+    outline: none;
+    box-shadow: none;
   }
   [role="dialog"][data-palette] [cmdk-item] {
     min-height: 3rem;

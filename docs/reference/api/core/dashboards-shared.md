@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core/dashboards-shared` (soubor `packages/core/src/dashboards/shared.ts`). Exportů: 59, z toho s popisem 22.
+Vstupní bod `@rebar/core/dashboards-shared` (soubor `packages/core/src/dashboards/shared.ts`). Exportů: 68, z toho s popisem 31.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
@@ -32,7 +32,9 @@ Vstupní bod `@rebar/core/dashboards-shared` (soubor `packages/core/src/dashboar
 | [`COMPARE_MODES`](dashboards.md#compare_modes) | const |  | v `@rebar/core/dashboards` |
 | [`DEFAULT_FILTERS`](dashboards.md#default_filters) | const |  | v `@rebar/core/dashboards` |
 | [`DEFINITION_VERSION`](dashboards.md#definition_version) | const |  | v `@rebar/core/dashboards` |
+| [`MAX_DASHBOARD_WIDGETS`](dashboards.md#max_dashboard_widgets) | const | Nejvíc widgetů na jednom přehledu (každý je dotaz). | v `@rebar/core/dashboards` |
 | [`MAX_WIDGET_HEIGHT`](dashboards.md#max_widget_height) | const |  | v `@rebar/core/dashboards` |
+| [`NO_VIEW_ID`](dashboards.md#no_view_id) | const | Nulové UUID: „pohled ještě není vybrán“ (nově přidaný widget Číslo / Seznam z pohledu; editor ho nenechá uložit). | v `@rebar/core/dashboards` |
 | [`PERIOD_LABELS`](dashboards.md#period_labels) | const |  | v `@rebar/core/dashboards` |
 | [`PERIOD_PRESETS`](dashboards.md#period_presets) | const |  | v `@rebar/core/dashboards` |
 | [`VALUE_FORMATS`](dashboards.md#value_formats) | const | Jak se hodnota ukazuje: peníze jsou v haléřích, `minutes` v minutách (7:30 h), `hours` v desetinných hodinách. | v `@rebar/core/dashboards` |
@@ -41,6 +43,7 @@ Vstupní bod `@rebar/core/dashboards-shared` (soubor `packages/core/src/dashboar
 | [`AggFn`](dashboards.md#aggfn) | type |  | v `@rebar/core/dashboards` |
 | [`Bucket`](dashboards.md#bucket) | type |  | v `@rebar/core/dashboards` |
 | [`BuiltinKind`](dashboards.md#builtinkind) | type |  | v `@rebar/core/dashboards` |
+| [`BuiltinParams`](dashboards.md#builtinparams) | type | Nastavení vestavěného bloku: `tileIds` (jen vybrané dlaždice modulů), `includeDelegated` (Moje úkoly + delegované). | v `@rebar/core/dashboards` |
 | [`BuiltinSource`](dashboards.md#builtinsource) | type |  | v `@rebar/core/dashboards` |
 | [`ChartCategory`](dashboards.md#chartcategory) | type |  | v `@rebar/core/dashboards` |
 | [`ChartKind`](dashboards.md#chartkind) | type |  | v `@rebar/core/dashboards` |
@@ -55,6 +58,8 @@ Vstupní bod `@rebar/core/dashboards-shared` (soubor `packages/core/src/dashboar
 | [`DashboardWidget`](dashboards.md#dashboardwidget) | type | Mřížka má 12 sloupců; `w` je šířka ve sloupcích, `h` výška v řádcích (po 96 px). Pořadí widgetů je pořadí v poli. | v `@rebar/core/dashboards` |
 | [`DateRange`](dashboards.md#daterange) | type |  | v `@rebar/core/dashboards` |
 | [`EntitySource`](dashboards.md#entitysource) | type | Zdroj dat z entity: filtr → agregace → seskupení (hodnota nebo období) → řazení a limit. Žádné ruční SQL. | v `@rebar/core/dashboards` |
+| [`LinksSource`](dashboards.md#linkssource) | type | Rychlé odkazy: vlastní odkazy (jen adresy uvnitř aplikace) a uložené pohledy. | v `@rebar/core/dashboards` |
+| [`ListItem`](dashboards.md#listitem) | type | Položka seznamu (widget „list“, metrika s tvarem „list“). | v `@rebar/core/dashboards` |
 | [`MetricInfo`](dashboards.md#metricinfo) | type |  | v `@rebar/core/dashboards` |
 | [`MetricSource`](dashboards.md#metricsource) | type | Pojmenovaná metrika, kterou dodává modul (`dashboardMetrics`). | v `@rebar/core/dashboards` |
 | [`PeriodPreset`](dashboards.md#periodpreset) | type |  | v `@rebar/core/dashboards` |
@@ -62,9 +67,13 @@ Vstupní bod `@rebar/core/dashboards-shared` (soubor `packages/core/src/dashboar
 | [`SeedWidget`](dashboards.md#seedwidget) | type |  | v `@rebar/core/dashboards` |
 | [`TableColumn`](dashboards.md#tablecolumn) | type |  | v `@rebar/core/dashboards` |
 | [`ValueFormat`](dashboards.md#valueformat) | type |  | v `@rebar/core/dashboards` |
+| [`ViewChoice`](dashboards.md#viewchoice) | type | Uložený pohled nabízený ve widgetech „Číslo“, „Seznam z pohledu“ a „Rychlé odkazy“. | v `@rebar/core/dashboards` |
+| [`ViewSource`](dashboards.md#viewsource) | type | Uložený pohled (`saved_view`) jako zdroj: **Číslo z pohledu** (`kpi`: počet nebo součet pole nad filtrem pohledu) a **Seznam z pohledu** (`table`: prvních `limit` řádků se sloupci a řazením pohledu). Filtr pohledu jde stejnou datovou vrstvou jako seznamy (rozsah „jen moje“, soukromé záznamy), takže sdílený pohled nic neprozradí. | v `@rebar/core/dashboards` |
 | [`WidgetMeta`](dashboards.md#widgetmeta) | type |  | v `@rebar/core/dashboards` |
 | [`WidgetOptions`](dashboards.md#widgetoptions) | type |  | v `@rebar/core/dashboards` |
 | [`WidgetOutcome`](dashboards.md#widgetoutcome) | type | Výsledek jednoho widgetu při načtení: chyba jednoho widgetu nerozbije nástěnku. | v `@rebar/core/dashboards` |
+| [`WidgetPresetDef`](dashboards.md#widgetpresetdef) | type | Hotový widget z katalogu („Přidat widget“): definice bez id a podmínky, za kterých se uživateli nabízí. | v `@rebar/core/dashboards` |
+| [`WidgetPresetInfo`](dashboards.md#widgetpresetinfo) | type | Widget z katalogu v podobě, kterou dostane prohlížeč (bez podmínek dostupnosti). | v `@rebar/core/dashboards` |
 | [`WidgetResult`](dashboards.md#widgetresult) | type |  | v `@rebar/core/dashboards` |
 | [`WidgetSource`](dashboards.md#widgetsource) | type |  | v `@rebar/core/dashboards` |
 | [`WidgetType`](dashboards.md#widgettype) | type |  | v `@rebar/core/dashboards` |

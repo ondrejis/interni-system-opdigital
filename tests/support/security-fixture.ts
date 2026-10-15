@@ -25,7 +25,7 @@ export type Person = { id: string; ctx: Ctx; role: RoleKey; name: string };
 /**
  * Základ pro testy napříč moduly: uživatelé `owner`, `partner` a `external` s oprávněními ze seedu klienta a hotová
  * `ModuleDeps`. Data modulů (klienti, obchody, zakázky, soukromé záznamy…) si staví testy sami, popř. je doplní
- * QA-SEC do `tests/support/fixture.ts` (D §3.1). Dřívější sestava stavebních modulů je v `packages/_donor/tests/security`.
+ * QA-SEC do `tests/support/fixture.ts` (D §3.1). Dřívější sestava stavebních modulů je jen v historii gitu (tag `opsys-s0`).
  */
 export type Fixture = Awaited<ReturnType<typeof buildFixture>>;
 

@@ -8,7 +8,11 @@ import {
   type SavedQuery,
 } from "./offline";
 
-const q = (key: unknown[], data: unknown, updatedAt = 1000): SavedQuery => ({ key, data, updatedAt });
+const q = (key: unknown[], data: unknown, updatedAt = 1000): SavedQuery => ({
+  key,
+  data,
+  updatedAt,
+});
 const NOW = 2_000_000;
 
 describe("offline mezipaměť: co se ukládá", () => {
@@ -21,7 +25,11 @@ describe("offline mezipaměť: co se ukládá", () => {
 
   it("serializace zachová Date a bigint a při návratu je obnoví", () => {
     const when = new Date("2026-10-15T08:00:00.000Z");
-    const raw = serializeSnapshot("u1", [q(["entity", "task"], { due: when, amount: 12345678901234567890n })], NOW);
+    const raw = serializeSnapshot(
+      "u1",
+      [q(["entity", "task"], { due: when, amount: 12345678901234567890n })],
+      NOW,
+    );
     const back = parseSnapshot(raw, "u1", NOW);
     expect(back).toHaveLength(1);
     const data = back[0]!.data as { due: Date; amount: bigint };
@@ -42,9 +50,14 @@ describe("offline mezipaměť: co se ukládá", () => {
 
   it("limit velikosti zahodí příliš velký dotaz, ostatní zůstanou", () => {
     const big = "x".repeat(500);
-    const raw = serializeSnapshot("u1", [q(["entity", "big"], big, 30), q(["entity", "small"], 1, 20)], NOW, {
-      maxBytes: 200,
-    });
+    const raw = serializeSnapshot(
+      "u1",
+      [q(["entity", "big"], big, 30), q(["entity", "small"], 1, 20)],
+      NOW,
+      {
+        maxBytes: 200,
+      },
+    );
     expect(parseSnapshot(raw, "u1", NOW).map((x) => x.key[1])).toEqual(["small"]);
   });
 
@@ -71,7 +84,8 @@ describe("offline mezipaměť: kdy se použije", () => {
     expect(parseSnapshot('{"v":9,"user":"u1","savedAt":1,"queries":[]}', "u1", NOW)).toEqual([]);
   });
   it("klíč mimo povolené skupiny se po načtení zahodí", () => {
-    const bad = '{"v":1,"user":"u1","savedAt":2000000,"queries":[{"key":["palette"],"data":1,"updatedAt":1}]}';
+    const bad =
+      '{"v":1,"user":"u1","savedAt":2000000,"queries":[{"key":["palette"],"data":1,"updatedAt":1}]}';
     expect(parseSnapshot(bad, "u1", NOW)).toEqual([]);
   });
 });

@@ -5,6 +5,7 @@
 */
 export {
   canSeePrivate,
+  isPrivateRecord,
   privateScope,
   syncPrivateRecord as syncPrivate,
 } from "@rebar/core/entities";

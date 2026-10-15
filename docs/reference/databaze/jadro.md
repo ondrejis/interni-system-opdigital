@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (definice tabulek v `packages/core/src/db/schema` (Drizzle) a žurnál migrací). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Tabulky platformy: uživatelé a role, audit, spolupráce (komentáře, úkoly, upozornění), soubory, nastavení, číselníky, pohledy. Počet tabulek: 39. Konvence sloupců (UUID v7, audit sloupce, měkké mazání, peníze v haléřích) popisují [ADR 002](../../adr/002-konvence-datoveho-modelu.md) a [ADR 003](../../adr/003-penize-a-mnozstvi.md).
+Tabulky platformy: uživatelé a role, audit, spolupráce (komentáře, úkoly, upozornění), soubory, nastavení, číselníky, pohledy. Počet tabulek: 44. Konvence sloupců (UUID v7, audit sloupce, měkké mazání, peníze v haléřích) popisují [ADR 002](../../adr/002-konvence-datoveho-modelu.md) a [ADR 003](../../adr/003-penize-a-mnozstvi.md).
 
 ## Schéma audit
 
@@ -21,7 +21,7 @@ Definice: `packages/core/src/db/schema/audit.ts`.
 | --- | --- | --- | --- | --- |
 | `id` | `uuid` | ne | generuje aplikace | PK |
 | `occurred_at` | `timestamp with time zone` | ne | `now()` |  |
-| `actor_kind` | `text` | ne |  | hodnoty: user, system, agency |
+| `actor_kind` | `text` | ne |  | hodnoty: user, system, agency, n8n, google, meta, job |
 | `actor_id` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `action` | `text` | ne |  |  |
 | `entity_type` | `text` | ne |  |  |
@@ -30,16 +30,24 @@ Definice: `packages/core/src/db/schema/audit.ts`.
 | `changes` | `jsonb` | ne | `'[]'::jsonb` |  |
 | `request_id` | `text` | ano |  |  |
 | `ip` | `text` | ano |  |  |
+| `actor_label` | `text` | ano |  |  |
+| `category` | `text` | ne | `'data'` | hodnoty: data, security, integration |
+| `is_private` | `boolean` | ne | `false` |  |
+| `entity_title` | `text` | ano |  |  |
+| `context` | `jsonb` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
 | `audit_log_entity_idx` | `entity_type`, `entity_id`, `occurred_at` |  |
 | `audit_log_actor_idx` | `actor_id`, `occurred_at` |  |
 | `audit_log_time_idx` | `occurred_at` |  |
+| `audit_log_category_idx` | `category`, `occurred_at` |  |
+| `audit_log_private_idx` | `occurred_at` | částečný |
+| `audit_log_title_trgm_idx` | `(výraz)` |  |
 
 ## Schéma collab
 
-Soubor `packages/core/src/db/schema/collab.ts`. Tabulky: `comment`, `task`, `notification`, `notification_delivery`, `notification_pref`, `push_subscription`, `reminder_sent`.
+Soubor `packages/core/src/db/schema/collab.ts`. Tabulky: `comment`, `notification`, `notification_delivery`, `notification_pref`, `push_subscription`, `reminder_sent`.
 
 ### comment
 
@@ -61,38 +69,12 @@ Definice: `packages/core/src/db/schema/collab.ts`.
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
 | `comment_entity_idx` | `entity_type`, `entity_id`, `created_at` |  |
-
-### task
-
-Úkol; volitelně navázaný na záznam. „Moje úkoly“ = `assignee_id`.
-
-Definice: `packages/core/src/db/schema/collab.ts`.
-
-| Sloupec | Typ | Může být prázdný | Výchozí | Poznámka |
-| --- | --- | --- | --- | --- |
-| `id` | `uuid` | ne | generuje aplikace | PK |
-| `title` | `text` | ne |  |  |
-| `description` | `text` | ano |  |  |
-| `assignee_id` | `uuid` | ne |  | → user.id (při smazání: no action) |
-| `due_date` | `date` | ano |  |  |
-| `priority` | `text` | ne | `'normal'` | hodnoty: low, normal, high |
-| `done_at` | `timestamp with time zone` | ano |  |  |
-| `entity_type` | `text` | ano |  |  |
-| `entity_id` | `uuid` | ano |  |  |
-| `created_at` | `timestamp with time zone` | ne | `now()` |  |
-| `updated_at` | `timestamp with time zone` | ne | `now()` |  |
-| `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
-| `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
-| `deleted_at` | `timestamp with time zone` | ano |  |  |
-
-| Index | Sloupce | Druh |
-| --- | --- | --- |
-| `task_assignee_idx` | `assignee_id`, `done_at`, `due_date` |  |
-| `task_entity_idx` | `entity_type`, `entity_id` |  |
 
 ### notification
 
@@ -238,6 +220,8 @@ Definice: `packages/core/src/db/schema/config.ts`.
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -263,6 +247,8 @@ Definice: `packages/core/src/db/schema/config.ts`.
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -284,6 +270,8 @@ Definice: `packages/core/src/db/schema/config.ts`.
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -302,11 +290,14 @@ Definice: `packages/core/src/db/schema/config.ts`.
 | `color` | `text` | ano |  |  |
 | `position` | `integer` | ne | `0` |  |
 | `active` | `boolean` | ne | `true` |  |
+| `scopes` | `text[]` | ne | `'{}'::text[]` |  |
 | `created_at` | `timestamp with time zone` | ne | `now()` |  |
 | `updated_at` | `timestamp with time zone` | ne | `now()` |  |
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -346,6 +337,8 @@ Definice: `packages/core/src/db/schema/config.ts`.
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -363,16 +356,19 @@ Definice: `packages/core/src/db/schema/config.ts`.
 | `entity_type` | `text` | ne |  |  |
 | `key` | `text` | ne |  |  |
 | `label` | `text` | ne |  |  |
-| `type` | `text` | ne |  | hodnoty: text, number, currency, date, select, multiselect, user, record, checkbox, url, phone, email |
+| `type` | `text` | ne |  | hodnoty: text, longtext, number, currency, date, select, multiselect, user, record, checkbox, url, phone, email |
 | `options` | `jsonb` | ne | `'{}'::jsonb` |  |
 | `required` | `boolean` | ne | `false` |  |
 | `position` | `integer` | ne | `0` |  |
 | `show_in_table` | `boolean` | ne | `true` |  |
+| `show_in_form` | `boolean` | ne | `true` |  |
 | `created_at` | `timestamp with time zone` | ne | `now()` |  |
 | `updated_at` | `timestamp with time zone` | ne | `now()` |  |
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -400,6 +396,8 @@ Definice: `packages/core/src/db/schema/config.ts`.
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 ## Schéma dashboards
 
@@ -426,6 +424,8 @@ Definice: `packages/core/src/db/schema/dashboards.ts`.
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -490,6 +490,8 @@ Definice: `packages/core/src/db/schema/exports.ts`.
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -523,6 +525,8 @@ Definice: `packages/core/src/db/schema/exports.ts`.
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -594,6 +598,8 @@ Definice: `packages/core/src/db/schema/files.ts`.
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -620,6 +626,8 @@ Definice: `packages/core/src/db/schema/files.ts`.
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -670,6 +678,8 @@ Definice: `packages/core/src/db/schema/identity.ts`.
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -705,11 +715,18 @@ Definice: `packages/core/src/db/schema/identity.ts`.
 | `two_factor_enabled` | `boolean` | ne | `false` |  |
 | `must_change_password` | `boolean` | ne | `false` |  |
 | `last_login_at` | `timestamp with time zone` | ano |  |  |
+| `short_name` | `text` | ano |  |  |
+| `ico` | `text` | ano |  |  |
+| `billing_tool` | `text` | ano |  |  |
+| `avatar_color` | `text` | ano |  |  |
+| `prefs` | `jsonb` | ne | `'{}'::jsonb` |  |
 | `created_at` | `timestamp with time zone` | ne | `now()` |  |
 | `updated_at` | `timestamp with time zone` | ne | `now()` |  |
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -811,7 +828,7 @@ Definice: `packages/core/src/db/schema/identity.ts`.
 
 ### invitation
 
-Pozvánka do systému. Platí 7 dní; v DB je jen otisk tokenu.
+Pozvánka do systému. Platí 48 hodin; v DB je jen otisk tokenu.
 
 Definice: `packages/core/src/db/schema/identity.ts`.
 
@@ -829,6 +846,8 @@ Definice: `packages/core/src/db/schema/identity.ts`.
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -851,9 +870,116 @@ Definice: `packages/core/src/db/schema/identity.ts`.
 | --- | --- | --- |
 | `login_event_user_idx` | `user_id`, `created_at` |  |
 
+## Schéma integrations
+
+Soubor `packages/core/src/db/schema/integrations.ts`. Tabulky: `webhook_endpoint`, `webhook_delivery`, `inbound_event`, `integration_credential`.
+
+### webhook_endpoint
+
+Odchozí webhook: adresa (n8n), tajemství pro podpis HMAC a odebírané události.
+
+Definice: `packages/core/src/db/schema/integrations.ts`.
+
+| Sloupec | Typ | Může být prázdný | Výchozí | Poznámka |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | ne | generuje aplikace | PK |
+| `name` | `text` | ne |  |  |
+| `url` | `text` | ne |  |  |
+| `secret_enc` | `text` | ne |  |  |
+| `events` | `text[]` | ne | `'{}'::text[]` |  |
+| `include_private` | `boolean` | ne | `false` |  |
+| `active` | `boolean` | ne | `true` |  |
+| `created_at` | `timestamp with time zone` | ne | `now()` |  |
+| `updated_at` | `timestamp with time zone` | ne | `now()` |  |
+| `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
+
+| Index | Sloupce | Druh |
+| --- | --- | --- |
+| `webhook_endpoint_active_idx` | `active` |  |
+
+### webhook_delivery
+
+Doručení jedné události jednomu endpointu: zároveň fronta (outbox) a protokol (5 pokusů, 1 min až 1 h).
+
+Definice: `packages/core/src/db/schema/integrations.ts`.
+
+| Sloupec | Typ | Může být prázdný | Výchozí | Poznámka |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | ne | generuje aplikace | PK |
+| `endpoint_id` | `uuid` | ne |  | → webhook_endpoint.id (při smazání: cascade) |
+| `event_id` | `uuid` | ne |  |  |
+| `event` | `text` | ne |  |  |
+| `payload` | `jsonb` | ne |  |  |
+| `status` | `text` | ne | `'pending'` | hodnoty: pending, delivered, failed |
+| `attempts` | `integer` | ne | `0` |  |
+| `next_attempt_at` | `timestamp with time zone` | ne | `now()` |  |
+| `last_error` | `text` | ano |  |  |
+| `delivered_at` | `timestamp with time zone` | ano |  |  |
+| `created_at` | `timestamp with time zone` | ne | `now()` |  |
+
+| Index | Sloupce | Druh |
+| --- | --- | --- |
+| `webhook_delivery_event_uq` | `endpoint_id`, `event_id` | unikátní |
+| `webhook_delivery_due_idx` | `next_attempt_at` | částečný |
+| `webhook_delivery_failed_idx` | `created_at` | částečný |
+
+### inbound_event
+
+Příchozí událost z `/api/ingest/<source>` (Drive callback, Meta leady). Idempotence: dvojice (`source`, `external_id`) je unikátní, opakované doručení se nezpracuje podruhé; chyba zůstane ve stavu `failed` s důvodem.
+
+Definice: `packages/core/src/db/schema/integrations.ts`.
+
+| Sloupec | Typ | Může být prázdný | Výchozí | Poznámka |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | ne | generuje aplikace | PK |
+| `source` | `text` | ne |  |  |
+| `external_id` | `text` | ne |  |  |
+| `payload` | `jsonb` | ne |  |  |
+| `status` | `text` | ne | `'received'` | hodnoty: received, processed, failed |
+| `error` | `text` | ano |  |  |
+| `entity_type` | `text` | ano |  |  |
+| `entity_id` | `uuid` | ano |  |  |
+| `received_at` | `timestamp with time zone` | ne | `now()` |  |
+| `processed_at` | `timestamp with time zone` | ano |  |  |
+
+| Index | Sloupce | Druh |
+| --- | --- | --- |
+| `inbound_event_uq` | `source`, `external_id` | unikátní |
+| `inbound_event_status_idx` | `status`, `received_at` |  |
+
+### integration_credential
+
+Šifrovaná přihlašovací data poskytovatele (Meta token, Fakturoid klíč…). `user_id` je prázdné u společných přístupů agentury; jinak patří uživateli (osobní propojení). Obsah je zašifrovaný přes `cipher` (`data_enc`).
+
+Definice: `packages/core/src/db/schema/integrations.ts`.
+
+| Sloupec | Typ | Může být prázdný | Výchozí | Poznámka |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | ne | generuje aplikace | PK |
+| `provider` | `text` | ne |  | hodnoty: google, meta, fakturoid |
+| `user_id` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `data_enc` | `text` | ne |  |  |
+| `status` | `text` | ne | `'ok'` | hodnoty: ok, reauth, error |
+| `created_at` | `timestamp with time zone` | ne | `now()` |  |
+| `updated_at` | `timestamp with time zone` | ne | `now()` |  |
+| `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
+
+| Index | Sloupce | Druh |
+| --- | --- | --- |
+| `integration_credential_shared_uq` | `provider` | unikátní, částečný |
+| `integration_credential_user_uq` | `provider`, `user_id` | unikátní, částečný |
+
 ## Schéma views
 
-Soubor `packages/core/src/db/schema/views.ts`. Tabulky: `saved_view`, `view_favorite`, `search_document`.
+Soubor `packages/core/src/db/schema/views.ts`. Tabulky: `saved_view`, `view_favorite`, `search_document`, `private_record`, `recent_record`.
 
 ### saved_view
 
@@ -868,6 +994,7 @@ Definice: `packages/core/src/db/schema/views.ts`.
 | `name` | `text` | ne |  |  |
 | `owner_id` | `uuid` | ne |  | → user.id (při smazání: no action) |
 | `shared` | `boolean` | ne | `false` |  |
+| `pinned` | `boolean` | ne | `false` |  |
 | `position` | `integer` | ne | `0` |  |
 | `config` | `jsonb` | ne |  |  |
 | `created_at` | `timestamp with time zone` | ne | `now()` |  |
@@ -875,6 +1002,8 @@ Definice: `packages/core/src/db/schema/views.ts`.
 | `created_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `updated_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
 | `deleted_at` | `timestamp with time zone` | ano |  |  |
+| `deleted_by` | `uuid` | ano |  | → user.id (při smazání: no action) |
+| `deleted_batch` | `uuid` | ano |  |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
@@ -907,17 +1036,56 @@ Definice: `packages/core/src/db/schema/views.ts`.
 | `title` | `text` | ne |  |  |
 | `subtitle` | `text` | ano |  |  |
 | `search_text` | `text` | ne |  |  |
+| `is_private` | `boolean` | ne | `false` |  |
 | `updated_at` | `timestamp with time zone` | ne | `now()` |  |
 
 | Index | Sloupce | Druh |
 | --- | --- | --- |
+| `search_document_private_idx` | `entity_type` | částečný |
 | `search_document_trgm_idx` | `(výraz)` |  |
 
 Složený primární klíč: `entity_type`, `entity_id`.
 
+### private_record
+
+Soukromé záznamy napříč entitami (D §5.1). Řádek vzniká a zaniká ve stejné transakci jako změna `is_private` (nebo smazání záznamu), takže průřezové dotazy (komentáře, soubory, historie, koš, soukromý přehled) nemusí znát tabulky.
+
+Definice: `packages/core/src/db/schema/views.ts`.
+
+| Sloupec | Typ | Může být prázdný | Výchozí | Poznámka |
+| --- | --- | --- | --- | --- |
+| `entity_type` | `text` | ne |  | PK |
+| `entity_id` | `uuid` | ne |  | PK |
+| `since` | `timestamp with time zone` | ne | `now()` |  |
+
+| Index | Sloupce | Druh |
+| --- | --- | --- |
+| `private_record_id_idx` | `entity_id` |  |
+
+Složený primární klíč: `entity_type`, `entity_id`.
+
+### recent_record
+
+Naposledy otevřené záznamy uživatele (paleta Cmd+K, „Nedávné“; drží se posledních 8, C3).
+
+Definice: `packages/core/src/db/schema/views.ts`.
+
+| Sloupec | Typ | Může být prázdný | Výchozí | Poznámka |
+| --- | --- | --- | --- | --- |
+| `user_id` | `uuid` | ne |  | PK; → user.id (při smazání: cascade) |
+| `entity_type` | `text` | ne |  | PK |
+| `entity_id` | `uuid` | ne |  | PK |
+| `visited_at` | `timestamp with time zone` | ne | `now()` |  |
+
+| Index | Sloupce | Druh |
+| --- | --- | --- |
+| `recent_record_user_idx` | `user_id`, `visited_at` |  |
+
+Složený primární klíč: `user_id`, `entity_type`, `entity_id`.
+
 ## Migrace
 
-Složka `packages/core/drizzle`; pouze dopředné a zpětně kompatibilní (expand → contract, [ADR 009](../../adr/009-fronta-uloh-a-migrace.md)). Počet: 13.
+Složka `packages/core/drizzle`; pouze dopředné a zpětně kompatibilní (expand → contract, [ADR 009](../../adr/009-fronta-uloh-a-migrace.md)). Počet: 15.
 
 | Pořadí | Název | Datum | Obsah |
 | --- | --- | --- | --- |
@@ -934,3 +1102,5 @@ Složka `packages/core/drizzle`; pouze dopředné a zpětně kompatibilní (expa
 | 10 | `0010_dashboards_exports` | 2026-10-09 | CREATE TABLE ×6, ALTER TABLE ×16, CREATE UNIQUE INDEX ×3, CREATE INDEX ×9; tabulky: dashboard, dashboard_pref, dashboard_share, export_run, export_schedule, export_template |
 | 11 | `0011_crm_stage_probability` | 2026-10-13 | ALTER TABLE ×2; tabulky: pipeline_stage |
 | 12 | `0012_drop_terminal_op` | 2026-10-14 | DROP TABLE ×1; tabulky: terminal_op |
+| 13 | `0013_opsys` | 2026-10-14 | CREATE TABLE ×6, ALTER TABLE ×84, DROP INDEX ×2, CREATE INDEX ×12, CREATE UNIQUE INDEX ×4; tabulky: attachment, audit_log, comment, core_task, custom_field_def, dashboard, employee, export_schedule, export_template, file, inbound_event, integration_credential, invitation, lookup_item, lookup_list, pipeline, pipeline_stage, private_record, recent_record, role, saved_view, search_document, task, user, vat_rate, webhook_delivery, webhook_endpoint |
+| 14 | `0014_c1_drop_core_task` | 2026-10-14 | DROP TABLE ×1; tabulky: core_task |

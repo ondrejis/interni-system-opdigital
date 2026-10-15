@@ -5,14 +5,14 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (manifest modulu (`defineModule`), serverová část (`defineModuleServer`), UI modulu a zdrojové soubory). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Události s účastníky, opakováním a připomenutím, zdroje (zasedačky, vybavení) s kontrolou kolizí, vrstvy z ostatních modulů, odběr kalendáře v Google, Apple a Outlooku a import cizích kalendářů jako „obsazeno“.
+Kalendář propojený s Google Kalendářem každého uživatele (obousměrná synchronizace do minuty): pohledy Den, Týden, Měsíc a Agenda, schůzky a hovory z úkolů zapsané do Googlu, vrstvy z ostatních modulů (úkoly s termínem, termíny zakázek), vazby událostí na obchody, klienty a kontakty, cizí soukromé události jako „Obsazeno“.
 
 - **Identifikátor:** `kalendar`, ikona `calendar`
 - **Závisí na:** žádném modulu
 - **Balíček:** `packages/modules/kalendar`
 - **Vyprávěcí dokumentace:** [docs/moduly/kalendar.md](../../moduly/kalendar.md)
-- **Příkazy:** [11 příkazů](../prikazy/kalendar.md)
-- **Entity:** [`event`](../entity/kalendar.md#event), [`calendar_resource`](../entity/kalendar.md#calendar_resource)
+- **Příkazy:** [17 příkazů](../prikazy/kalendar.md)
+- **Entity:** žádné
 - **Databáze:** [tabulky a migrace](../databaze/kalendar.md)
 
 ## Navigace
@@ -33,9 +33,20 @@ Výchozí přidělení rolím je v [opravneni.md](../opravneni.md).
 
 | Klíč | Název | Popis |
 | --- | --- | --- |
-| `kalendar.read` | Vidí kalendář | Rozsah „jen moje“ = události, které vlastním nebo na které jsem pozvaný |
-| `kalendar.write` | Upravuje události | Rozsah „jen moje“ = jen vlastní události |
-| `kalendar.resources` | Spravuje zdroje kalendáře |  |
+| `kalendar.read` | Vidí kalendář | Rozsah „jen moje“ = jen kalendáře mého Google účtu; „vše“ i kalendáře ostatních (jejich soukromé události jako „Obsazeno“) |
+| `kalendar.write` | Upravuje události | Připojení vlastního Google účtu, zakládání a přesouvání schůzek, vazby na klienty a obchody; rozsah „jen moje“ = jen vlastní události |
+
+## Rozšíření uživatelského rozhraní
+
+Modul doplňuje obecný detail záznamu (viz [ARCHITECTURE](../../ARCHITECTURE.md)). Podmíněné záložky a karty se ukazují jen u záznamů, pro které funkce `visible` vrátí `true`.
+
+### paletteActions
+
+_Tato část UI modulu zatím nemá vlastní sekci v generátoru, zobrazeno obecně._
+
+| id | label | keywords | icon | permission | href |
+| --- | --- | --- | --- | --- | --- |
+| `kalendar.new-meeting` | `Nová schůzka` | `schuzka kalendar udalost nova meeting` | `calendar` | `kalendar.write` | `/kalendar?nova=1` |
 
 ## Serverová část
 
@@ -43,29 +54,49 @@ Výchozí přidělení rolím je v [opravneni.md](../opravneni.md).
 
 | Úloha | Plán (cron) | Opakování po chybě | Popis |
 | --- | --- | --- | --- |
-| `kalendar.reminders` | `*/5 * * * *` | 1 |  |
-| `kalendar.sync` | `10 * * * *` | 1 |  |
+| `kalendar.sync` | `* * * * *` | 0 |  |
+| `kalendar.sync.calendar` | jen na požádání | 2 |  |
+| `kalendar.push` | `* * * * *` | 0 |  |
+| `kalendar.watch.renew` | `17 * * * *` | 0 |  |
 
 Souhrn všech úloh: [udalosti-a-ulohy.md](../udalosti-a-ulohy.md).
+
+### Vrstvy kalendáře
+
+| Klíč | Název | Barva |
+| --- | --- | --- |
+| `kalendar` | Kalendář (Google) | `blue` |
 
 ### Poskytovatelé dat
 
 Poskytovatelé jsou funkce, jejichž výstup (položky, dlaždice, hodnoty) závisí na datech a oprávnění uživatele, proto se z kódu nedají vyjmenovat. Počty: dlaždice přehledu: 1 poskytovatelů.
 
-## Další vlastnosti manifestu
+### eventHandlers
 
-### notifications
+_Tento registr zatím nemá vlastní sekci v generátoru, zobrazeno obecně._
 
-| key | label | description | group | severity | recipients | entity | mergeWindowSeconds | debounceSeconds | access | ttlSeconds | snooze | scheduled |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `kalendar.invite` | `Pozvánka na událost` | `Někdo vás přidal mezi účastníky události v kalendáři.` | `Kalendář` | `normal` | `attendee` | `event` |  |  |  |  |  |  |
-| `kalendar.changed` | `Změna termínu události` | `Organizátor přesunul událost, na kterou jste pozvaní. Opakované úpravy se slučují do jednoho upozornění.` | `Kalendář` | `normal` | `attendee` | `event` | `600` | `30` |  |  |  |  |
-| `kalendar.cancelled` | `Zrušená událost` | `Organizátor zrušil událost, na kterou jste byli pozvaní.` | `Kalendář` | `normal` | `attendee` |  |  |  | `kalendar.read` |  |  |  |
-| `kalendar.reminder` | `Připomenutí události` | `Před začátkem události (podle připomenutí u události) dostane upozornění organizátor i všichni pozvaní.` | `Kalendář` | `normal` | `participant` | `event` |  |  |  | `600` | `true` | `true` |
+Počet položek: 1. `pole (1)`
 
-## Tabulky entit
+### privatePaths
 
-| Entita | Tabulka |
+_Tento registr zatím nemá vlastní sekci v generátoru, zobrazeno obecně._
+
+| name | run |
 | --- | --- |
-| `event` | `event` |
-| `calendar_resource` | `calendar_resource` |
+| `kalendar.range.others` | funkce |
+| `kalendar.layer` | funkce |
+| `kalendar.widget.upcoming` | funkce |
+
+## Nastavení
+
+Nastavení uložená v tabulce `setting` (klíč → JSON), která správce mění v administraci. Tajná pole se ukládají šifrovaně.
+
+### google_calendar
+
+Nastavení kalendáře: Google OAuth klient (`clientSecret` je v DB zašifrované) a R-14 — soukromá schůzka se do Googlu zapíše s příznakem „soukromé“ (jinak se do Googlu vůbec nezapisuje). Definice: `packages/modules/kalendar/src/google/env.ts`. Tajná pole: `clientSecret`.
+
+| Pole | Typ | Povinné | Hodnoty | Omezení | Popis | Výchozí hodnota v kódu |
+| --- | --- | --- | --- | --- | --- | --- |
+| `clientId` | text | ano |  |  |  | `""` |
+| `clientSecret` | string \| null | ano |  |  |  | `null` |
+| `privateMeetingsToGoogle` | ano/ne | ano |  |  |  | `true` |

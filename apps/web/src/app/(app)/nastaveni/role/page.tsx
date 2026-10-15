@@ -1,5 +1,6 @@
 import { collectPermissions } from "@rebar/core";
 import { listRoles } from "@rebar/core/admin";
+import { DesktopOnly } from "@rebar/ui";
 import { requireCan } from "@/server/request";
 import { getServices } from "@/server/services";
 import { RolesAdmin } from "./roles-admin";
@@ -23,18 +24,20 @@ export default async function RolesPage() {
       scoped: !!moduleOf(p.key),
     }));
   return (
-    <RolesAdmin
-      catalog={catalog}
-      roles={roles.map((r) => ({
-        id: r.id,
-        key: r.key,
-        name: r.name,
-        description: r.description,
-        isSystem: r.isSystem,
-        require2fa: r.require2fa,
-        userCount: r.userCount,
-        permissions: r.permissions,
-      }))}
-    />
+    <DesktopOnly what="Editor oprávnění">
+      <RolesAdmin
+        catalog={catalog}
+        roles={roles.map((r) => ({
+          id: r.id,
+          key: r.key,
+          name: r.name,
+          description: r.description,
+          isSystem: r.isSystem,
+          require2fa: r.require2fa,
+          userCount: r.userCount,
+          permissions: r.permissions,
+        }))}
+      />
+    </DesktopOnly>
   );
 }

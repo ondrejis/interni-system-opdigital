@@ -21,9 +21,9 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 
 - **Popis z manifestu:** Úkoly (včetně hovorů, schůzek a termínů) s rychlým zadáním, podúkoly a poznámky s formátovaným textem navázané na obchody, klienty, kontakty a zakázky.
 - **Závisí na:** žádném modulu
-- **Entity:** žádné
-- **Příkazy:** žádné
-- **Referenční stránky:** [modul](../reference/moduly/ukoly.md), [databáze](../reference/databaze/ukoly.md)
+- **Entity:** [`task`](../reference/entity/ukoly.md#task), [`note`](../reference/entity/ukoly.md#note), [`task_type`](../reference/entity/ukoly.md#task_type)
+- **Příkazy:** [26 příkazů](../reference/prikazy/ukoly.md)
+- **Referenční stránky:** [modul](../reference/moduly/ukoly.md), [entity](../reference/entity/ukoly.md), [příkazy](../reference/prikazy/ukoly.md), [databáze](../reference/databaze/ukoly.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 
@@ -47,7 +47,9 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 
 <!-- Které výchozí role modul používají, co v něm každá dělá a jaký mají rozsah (vše / moje). Matice oprávnění je v souhrnu výše. -->
 
-TODO: doplnit vyprávění
+- **Vlastník (Ondřej)** smí vše, včetně soukromých úkolů a poznámek; vidí je jen on.
+- **Partner (Patrik)** má `ukoly.read/create/write/delete/types` s rozsahem „vše“: běžná práce se sdílenými úkoly a poznámkami, správa typů aktivit. Soukromé úkoly a poznámky vlastníka nevidí (seznamy, kalendář, přehled, hledání, historie ani počty).
+- **Externí spolupracovník** nemá žádné oprávnění; vlastník mu je přidělí podle potřeby (úkol má rozsah „jen moje“).
 
 ## Hlavní toky krok za krokem
 
@@ -97,7 +99,7 @@ Typy aktivit (`/ukoly/typy`, příkazy `ukoly.type.*`): název, ikona, barva, �
 
 <!-- Co a jak se exportuje (XLSX, CSV, PDF, ISDOC, kalendářový kanál), kdo to smí a co je v souboru. -->
 
-TODO: doplnit vyprávění
+Seznamy úkolů (`/ukoly/vse`) a poznámek se exportují obecným exportem entit (CSV a XLSX) s oprávněním `exports.*`; export respektuje soukromí stejně jako seznam (soukromé záznamy partnerovi nevyjdou). Modul nemá vlastní export.
 
 ## Integrace s jinými moduly
 

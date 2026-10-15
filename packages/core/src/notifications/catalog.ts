@@ -4,90 +4,12 @@ import { defineNotificationEvent, EVENT_KEY } from "./types";
 import { validateRule } from "./validate";
 
 /*
-  Katalog událostí: události jádra (úkoly, komentáře) plus události zapnutých modulů z manifestů.
+  Katalog událostí: události jádra (komentáře) plus události zapnutých modulů z manifestů.
   Registr je na `globalThis`, protože Next.js bundluje route handlery a server actions zvlášť a každý by jinak
   měl vlastní prázdnou kopii.
 */
 
-/** Události platformy. Moduly přidávají své přes `notifications` v manifestu. */
-export const TASK_ASSIGNED = defineNotificationEvent({
-  key: "task.assigned",
-  label: "Přidělen úkol",
-  description: "Někdo vám přidělil úkol (nebo vám ho předal).",
-  group: "Úkoly",
-  severity: "normal",
-  channels: { push: true, bell: true },
-  audiences: { assignee: "Ten, komu je úkol přidělen" },
-  recipients: ["assignee"],
-  params: {
-    title: { label: "Název úkolu", example: "Objednat sádrokarton" },
-    due: { label: "Termín", example: "pátek 16. 10." },
-    author: { label: "Kdo úkol zadal", example: "Petr Mistr" },
-  },
-  template: {
-    title: "Byl vám přidělen úkol",
-    body: "{title}\nTermín: {due}\nOd: {author}",
-    url: "/ukoly",
-  },
-  dedupe: "none",
-  mandatory: false,
-});
-
-export const TASK_DUE_CHANGED = defineNotificationEvent({
-  key: "task.due_changed",
-  label: "Změna termínu úkolu",
-  description: "Někdo změnil termín úkolu, který máte přidělený.",
-  group: "Úkoly",
-  severity: "normal",
-  channels: { push: true, bell: true },
-  audiences: { assignee: "Ten, komu je úkol přidělen" },
-  recipients: ["assignee"],
-  params: {
-    title: { label: "Název úkolu", example: "Objednat sádrokarton" },
-    due: { label: "Nový termín", example: "pondělí 19. 10." },
-    previous: { label: "Původní termín", example: "pátek 16. 10." },
-  },
-  template: {
-    title: "Změna termínu úkolu",
-    body: "{title}\nNový termín: {due}\nPůvodně: {previous}",
-    url: "/ukoly",
-  },
-  mergeWindowSeconds: 600,
-  debounceSeconds: 30,
-});
-
-export const TASK_DONE = defineNotificationEvent({
-  key: "task.done",
-  label: "Úkol splněn",
-  description: "Úkol, který jste zadali jinému, je hotový.",
-  group: "Úkoly",
-  severity: "normal",
-  channels: { push: false, bell: true },
-  audiences: { author: "Ten, kdo úkol zadal" },
-  recipients: ["author"],
-  params: { title: { label: "Název úkolu", example: "Objednat sádrokarton" } },
-  template: { title: "Úkol splněn", body: "{title}", url: "/ukoly" },
-});
-
-export const TASK_DUE_TODAY = defineNotificationEvent({
-  key: "task.due_today",
-  label: "Úkoly na dnešek",
-  description: "Ráno vám přijde přehled úkolů s dnešním termínem a těch, které jsou po termínu.",
-  group: "Úkoly",
-  severity: "normal",
-  channels: { push: true, bell: true },
-  audiences: { assignee: "Ten, komu jsou úkoly přiděleny" },
-  recipients: ["assignee"],
-  params: {
-    summary: { label: "Počty", example: "3 úkoly na dnes, 1 po termínu" },
-    list: { label: "Výčet úkolů", example: "Objednat sádrokarton · Zavolat klientovi" },
-  },
-  template: { title: "Dnes: {summary}", body: "{list}", url: "/ukoly" },
-  dedupe: "day",
-  scheduled: true,
-  snooze: true,
-});
-
+/** Události platformy. Moduly přidávají své přes `notifications` v manifestu (OPSYS žádné nemá, viz `clients/opsys/config.ts`). */
 export const COMMENT_MENTION = defineNotificationEvent({
   key: "comment.mention",
   label: "Zmínka v komentáři",
@@ -126,10 +48,6 @@ export const SYSTEM_TEST = defineNotificationEvent({
 });
 
 export const CORE_NOTIFICATION_EVENTS: readonly AnyEventDef[] = [
-  TASK_ASSIGNED,
-  TASK_DUE_CHANGED,
-  TASK_DONE,
-  TASK_DUE_TODAY,
   COMMENT_MENTION,
   SYSTEM_TEST,
 ] as AnyEventDef[];

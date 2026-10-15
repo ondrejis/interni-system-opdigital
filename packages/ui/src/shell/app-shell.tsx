@@ -316,13 +316,7 @@ function NavGroup({
   return (
     <div>
       <div className="relative">
-        <NavLink
-          item={item}
-          active={own}
-          compact={compact}
-          touch={touch}
-          onNavigate={onNavigate}
-        />
+        <NavLink item={item} active={own} compact={compact} touch={touch} onNavigate={onNavigate} />
         {!compact && (
           <button
             type="button"
@@ -386,7 +380,11 @@ function Sidebar({
   return (
     <div className="flex h-full flex-col">
       <div className={cn("flex h-12 items-center gap-2 px-3", compact && "justify-center px-0")}>
-        <Link href="/" className="flex min-w-0 items-center gap-2" aria-label={brand.name}>
+        <Link
+          href="/"
+          className={cn("flex min-w-0 items-center gap-2", touch && "min-h-11")}
+          aria-label={brand.name}
+        >
           {brand.logoUrl ? (
             <img src={brand.logoUrl} alt="" className="size-6 rounded" />
           ) : (
@@ -502,7 +500,7 @@ function Sidebar({
             {accountHref && (
               <DropdownMenuItem asChild>
                 <Link href={accountHref}>
-                  <UserRound /> Můj účet
+                  <UserRound /> Profil
                 </Link>
               </DropdownMenuItem>
             )}

@@ -71,7 +71,8 @@ export async function deleteTree(
     if (depth > MAX_DEPTH) return;
     for (const link of childLinks(registry, parent.key)) {
       const cc = link.columns;
-      if (!cc.deletedAt) continue; // tabulka bez měkkého mazání (historie fází…) se smaže až při trvalém smazání rodiče
+      // tabulka bez měkkého mazání (historie fází…) nebo bez sloupce `id` (podíly platby: složený klíč) se smaže až při trvalém smazání rodiče
+      if (!cc.deletedAt || !cc.id) continue;
       const rows = (await c.db
         .select()
         .from(link.table)
@@ -178,7 +179,7 @@ export async function restoreTree(
     if (depth > MAX_DEPTH) return;
     for (const link of childLinks(registry, parent.key)) {
       const cc = link.columns;
-      if (!cc.deletedAt || !cc.deletedBatch) continue;
+      if (!cc.deletedAt || !cc.deletedBatch || !cc.id) continue;
       const rows = (await c.db
         .select()
         .from(link.table)

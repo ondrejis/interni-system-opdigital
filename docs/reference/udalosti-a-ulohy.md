@@ -11,15 +11,23 @@
 
 | Úloha | Vlastník | Plán (cron) | Opakování po chybě | Uchování dokončených (s) | Data úlohy | Popis |
 | --- | --- | --- | --- | --- | --- | --- |
+| `core.trash.purge` | jádro | `40 3 * * *` | 2 | 600 |  | Denně v noci: trvale smaže záznamy, které jsou v koši déle než 30 dní (nejdřív podřízené). |
+| `core.webhooks.cleanup` | jádro | `40 3 * * *` | 1 | 600 |  | Denně v noci: smaže stará vyřízená doručení a příchozí události. |
+| `core.webhooks.deliver` | jádro | `* * * * *` | 1 | 120 |  | Každou minutu a navíc hned po `NOTIFY` (worker poslouchá `WEBHOOK_NOTIFY_CHANNEL`): odešle čekající webhooky. |
+| `disk.timeout` | disk | `* * * * *` | 1 | 300 |  | Každou minutu: stavy požadavků na složky (viz `maintainRequests`). |
 | `export.cleanup` | jádro | `50 3 * * *` | 1 | 600 |  |  |
 | `export.schedule.tick` | jádro | `*/5 * * * *` | 0 | 300 |  |  |
 | `files.purge` | jádro | `30 3 * * *` | 2 | výchozí |  | Denně v noci: úklid souborů, které nikdo nepřipojil k záznamu. |
+| `finance.retainer.catchup` | finance | `30 5 * * *` | 3 | výchozí |  | Denní záloha téže úlohy: dožene zameškaný měsíc (výpadek, pozdní spuštění). Výsledek je stejný, nic se nezdvojí. |
+| `finance.retainer.generate` | finance | `0 5 1 * *` | 5 | výchozí |  | Měsíční úloha: každý 1. v 5:00 založí plánované platby „Retainer MM/RRRR“ (ZAK-15); idempotentní. |
 | `health.heartbeat` | jádro | `0 * * * *` | 3 | 600 |  | Každou hodinu: stav instance agentuře (jen verze a stav, bez osobních údajů). |
-| `kalendar.reminders` | kalendar | `*/5 * * * *` | 1 | výchozí |  |  |
-| `kalendar.sync` | kalendar | `10 * * * *` | 1 | výchozí |  |  |
+| `kalendar.push` | kalendar | `* * * * *` | 0 | výchozí |  |  |
+| `kalendar.sync` | kalendar | `* * * * *` | 0 | výchozí |  |  |
+| `kalendar.watch.renew` | kalendar | `17 * * * *` | 0 | výchozí |  |  |
+| `muj-prostor.invoices.prepare` | muj-prostor | `30 5 * * *` | 2 | výchozí |  |  |
 | `notification.cleanup` | jádro | `20 3 * * *` | 1 | 600 |  | Denně v noci: smaže stará upozornění a jejich protokol doručení. |
 | `notification.dispatch` | jádro | `* * * * *` | 1 | 120 |  | Každou minutu a navíc hned po vzniku upozornění (worker poslouchá NOTIFY): odešle upozornění, jejichž čas nadešel (push, e-mail), opakuje selhaná doručení s prodlevou a uvolňuje zdržená po tichých hodinách a shrnutí. |
-| `notification.taskDigest` | jádro | `0 7 * * 1-5` | 2 | 600 |  | Pracovní dny v 7:00 (Europe/Prague): ranní přehled úkolů. |
+| `reklama.sync.daily` | reklama | `0 6 * * *` | 3 | výchozí | `accountId` | Úloha na pozadí: denní synchronizace s Meta Ads. |
 
 ## Úlohy ve frontě bez plánu
 
@@ -27,6 +35,7 @@
 | --- | --- | --- | --- | --- | --- |
 | `export.run` | jádro | 1 | 600 | `runId` |  |
 | `file.thumbnail` | jádro | výchozí | 600 | `fileId` |  |
+| `kalendar.sync.calendar` | kalendar | 2 | výchozí | `calendarId`, `full` |  |
 | `mail.send` | jádro | 5 | 600 | `logId`, `to`, `template`, `varsEnc`, `cc`, `replyTo`, `attachments`, `attachments[].key`, `attachments[].name`, `attachments[].mime` | Úloha „odeslat e-mail“. Opakuje se s prodlevou; stav a poslední chyba jsou v `email_log` (bez těla zprávy). |
 
 ## Druhy upozornění
@@ -44,8 +53,8 @@ Rozšíření v `clients/<slug>/extensions/` reagují jen na tyto události ([CU
 
 | Událost | Data | Popis | Oznamuje se v |
 | --- | --- | --- | --- |
-| `zakazky.created` | `{ id: string }` |  | `packages/modules/zakazky/src/lifecycle/transitions.ts` |
-| `poptavky.converted` | `{ id: string; jobId: string }` | Poptávka byla převedena na zakázku. | `packages/_donor/poptavky/src/server.ts` |
+| `zakazky.created` | `{ id: string }` |  | `packages/modules/zakazky/src/entities.ts` |
+| `poptavky.converted` | `{ id: string; jobId: string }` | Poptávka byla převedena na zakázku. | zatím nikde |
 
 ## Další katalogy nalezené v kódu
 
@@ -55,11 +64,7 @@ Exportované konstanty, jejichž název odpovídá katalogu událostí, upozorn�
 
 Export `@rebar/core/notifications`.
 
-| key | label | description | group | severity | recipients | dedupe | mandatory | mergeWindowSeconds | debounceSeconds | scheduled | snooze | internal | ttlSeconds |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `task.assigned` | `Přidělen úkol` | `Někdo vám přidělil úkol (nebo vám ho předal).` | `Úkoly` | `normal` | `assignee` | `none` | `false` |  |  |  |  |  |  |
-| `task.due_changed` | `Změna termínu úkolu` | `Někdo změnil termín úkolu, který máte přidělený.` | `Úkoly` | `normal` | `assignee` |  |  | `600` | `30` |  |  |  |  |
-| `task.done` | `Úkol splněn` | `Úkol, který jste zadali jinému, je hotový.` | `Úkoly` | `normal` | `author` |  |  |  |  |  |  |  |  |
-| `task.due_today` | `Úkoly na dnešek` | `Ráno vám přijde přehled úkolů s dnešním termínem a těch, které jsou po termínu.` | `Úkoly` | `normal` | `assignee` | `day` |  |  |  | `true` | `true` |  |  |
-| `comment.mention` | `Zmínka v komentáři` | `Někdo vás v komentáři označil pomocí @.` | `Komentáře` | `normal` | `mentioned` |  |  |  |  |  |  |  |  |
-| `system.test` | `Zkušební upozornění` | `Zkouška, že upozornění v tomto zařízení funguje.` | `Systém` | `urgent` | `self` |  | `true` |  |  |  |  | `true` | `300` |
+| key | label | description | group | severity | recipients | mandatory | internal | ttlSeconds |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `comment.mention` | `Zmínka v komentáři` | `Někdo vás v komentáři označil pomocí @.` | `Komentáře` | `normal` | `mentioned` |  |  |  |
+| `system.test` | `Zkušební upozornění` | `Zkouška, že upozornění v tomto zařízení funguje.` | `Systém` | `urgent` | `self` | `true` | `true` | `300` |

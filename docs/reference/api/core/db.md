@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core/db` (soubor `packages/core/src/db/index.ts`). Exportů: 15, z toho s popisem 9.
+Vstupní bod `@rebar/core/db` (soubor `packages/core/src/db/index.ts`). Exportů: 16, z toho s popisem 10.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
@@ -15,6 +15,7 @@ Vstupní bod `@rebar/core/db` (soubor `packages/core/src/db/index.ts`). Exportů
 | [`minor`](#minor) | function | Peněžní částka v haléřích (celé číslo, ADR 003). Sloupec pojmenujte `*_minor`. |  |
 | [`newId`](#newid) | function | Nové ID záznamu: UUID v7 (časově řazené). PostgreSQL 17 `uuidv7()` nemá, generuje aplikace (ADR 002). |  |
 | [`pk`](#pk) | function | Primární klíč: UUID v7 generované aplikací. |  |
+| [`trigramIndex`](#trigramindex) | function | Trigramový index pro hledání bez diakritiky a bez ohledu na velikost písmen (`lower(f_unaccent(sloupec))`), který zrychlí `ILIKE '%…%'` a podobnost. Použití mezi indexy tabulky: `trigramIndex("deal_title_trgm_idx", t.title)`. |  |
 | [`ts`](#ts) | function |  |  |
 | [`visibilityColumns`](#visibilitycolumns) | function | Sloupce viditelnosti shared/private (zámek) pro každou entitu s `EntityDef.visibility` (D §5.1). `is_private` je efektivní (denormalizovaná) hodnota, `visibility_source` říká, zda ji zvolil uživatel (`own`), nebo se zdědila od rodiče (`inherited`). Použití: `...visibilityColumns()` v tabulce a `visibilityIndex("deal_private_idx", t)` mezi indexy. |  |
 | [`visibilityIndex`](#visibilityindex) | function | Částečný index nad soukromými záznamy tabulky (`where is_private`); rychlá filtrace i anti-join. |  |
@@ -84,6 +85,17 @@ Primární klíč: UUID v7 generované aplikací.
 
 ```ts
 function pk(name = "id"): import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").IsPrimaryKey<import("drizzle-orm").NotNull<import("drizzle-orm/pg-core").PgUUIDBuilderInitial<string>>>>>
+```
+
+### trigramIndex
+
+function · `packages/core/src/db/columns.ts`
+
+Trigramový index pro hledání bez diakritiky a bez ohledu na velikost písmen (`lower(f_unaccent(sloupec))`),
+který zrychlí `ILIKE '%…%'` a podobnost. Použití mezi indexy tabulky: `trigramIndex("deal_title_trgm_idx", t.title)`.
+
+```ts
+function trigramIndex(name: string, column: AnyPgColumn): import("drizzle-orm/pg-core").IndexBuilder
 ```
 
 ### ts

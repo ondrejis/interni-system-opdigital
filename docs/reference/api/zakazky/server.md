@@ -5,66 +5,23 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/zakazky/server` (soubor `packages/modules/zakazky/src/server.ts`). Exportů: 12, z toho s popisem 6.
+Vstupní bod `@rebar/zakazky/server` (soubor `packages/modules/zakazky/src/server.ts`). Exportů: 9, z toho s popisem 8.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
-| [`JOB_PIPELINE`](#job_pipeline) | const |  |  |
-| [`LOST_REASON_LOOKUP`](#lost_reason_lookup) | const | Číselník důvodů prohry (seed v manifestu). |  |
-| [`SOURCE_LOOKUP`](#source_lookup) | const | Číselník zdrojů obchodu (odkud zakázka přišla; seed v manifestu). |  |
-| [`commands`](#commands) | const |  |  |
 | [`entities`](#entities) | const |  |  |
-| [`job`](schema.md#job) | const | Zakázka. Číslo se přiděluje z číselné řady `zakazky.cislo` ve stejné transakci jako založení. | v `@rebar/zakazky/schema` |
-| [`jobEntity`](#jobentity) | const | Zakázka. Vedoucí a členové týmu ji vidí i při oprávnění „jen moje“. |  |
-| [`jobMember`](schema.md#jobmember) | const | Tým zakázky. Člen týmu zakázku vidí i při oprávnění „jen moje“. | v `@rebar/zakazky/schema` |
-| [`server`](#server) | const | Základ modulu (zakázka, tým, legacy příkazy) a oblasti ADR 015, každá ve své složce se svým vlastníkem. |  |
-| [`teamAdd`](#teamadd) | const |  |  |
-| [`teamList`](#teamlist) | const |  |  |
-| [`teamRemove`](#teamremove) | const |  |  |
-
-### JOB_PIPELINE
-
-const · `packages/modules/zakazky/src/lifecycle/transitions.ts`
-
-_Bez popisu._
-
-```ts
-const JOB_PIPELINE: { readonly entityType: "job"; readonly key: "default"; }
-```
-
-### LOST_REASON_LOOKUP
-
-const · `packages/modules/zakazky/src/server.ts`
-
-Číselník důvodů prohry (seed v manifestu).
-
-```ts
-const LOST_REASON_LOOKUP: "job.lost_reason"
-```
-
-### SOURCE_LOOKUP
-
-const · `packages/modules/zakazky/src/server.ts`
-
-Číselník zdrojů obchodu (odkud zakázka přišla; seed v manifestu).
-
-```ts
-const SOURCE_LOOKUP: "job.source"
-```
-
-### commands
-
-const · `packages/modules/zakazky/src/commands.ts`
-
-_Bez popisu._
-
-```ts
-const commands: (import("@rebar/core/module-server").CommandDef<z.ZodObject<{ jobId: z.ZodUUID; }, z.core.$strip>, { managerId: string | null; members: { userId: string; role: string | null; name: string; }[]; }> | import("@rebar/core/module-server").Comm…
-```
+| [`job`](schema.md#job) | const | Zakázka. `number` se přiděluje z řady `zakazky.cislo` (`Z-{YYYY}-{NNN}`). Viditelnost: kořen s vlastním zámkem (rodiče nemá; soukromý klient do zakázek nedědí, R-31). Odkazy na organizaci, obchod a aktuální fázi jsou měkké (bez cizího klíče). `drive_*` píše jen modul Disk, `marketing_stage` modul Finance přes `setMarketingStage`. | v `@rebar/zakazky/schema` |
+| [`jobEntity`](#jobentity) | const | Zakázka. Rozsah „jen moje“: vlastník nebo člen týmu. Číslo se přiděluje při založení z řady `zakazky.cislo`. `drive_*` píše modul Disk, `marketing_stage` modul Finance (přes `setMarketingStage`), aktuální fázi mění jen příkazy. |  |
+| [`jobMember`](schema.md#jobmember) | const | Tým zakázky: vedoucí a členové. Člen zakázku vidí i při oprávnění „jen moje“. | v `@rebar/zakazky/schema` |
+| [`jobParticipant`](schema.md#jobparticipant) | const | Další kontakty na zakázce (investor, TDI, projektant…) s rolí na zakázce. | v `@rebar/zakazky/schema` |
+| [`jobPhase`](schema.md#jobphase) | const | Fáze zakázky (z šablony typu, upravitelné). Zdědí viditelnost zakázky (bez vlastního zámku). | v `@rebar/zakazky/schema` |
+| [`jobTemplate`](schema.md#jobtemplate) | const | Šablona zakázky: fáze, úkoly a platby ve verzovaném JSON (`payload`). Archivuje se, nemaže. | v `@rebar/zakazky/schema` |
+| [`jobTemplateEntity`](#jobtemplateentity) | const | Šablona zakázky (fáze, úkoly, platby). Archivuje se, nemaže; správa přes `zakazky.templates`. |  |
+| [`server`](#server) | const | Serverová část modulu „zakazky“: entity plus oblasti `core` (zakázky) a `templates` (šablony), obojí ZAK-A. |  |
 
 ### entities
 
-const · `packages/modules/zakazky/src/server.ts`
+const · `packages/modules/zakazky/src/entities.ts`
 
 _Bez popisu._
 
@@ -74,50 +31,31 @@ const entities: import("@rebar/core/entities").EntityDef[]
 
 ### jobEntity
 
-const · `packages/modules/zakazky/src/server.ts`
+const · `packages/modules/zakazky/src/entities.ts`
 
-Zakázka. Vedoucí a členové týmu ji vidí i při oprávnění „jen moje“.
+Zakázka. Rozsah „jen moje“: vlastník nebo člen týmu. Číslo se přiděluje při založení z řady `zakazky.cislo`.
+`drive_*` píše modul Disk, `marketing_stage` modul Finance (přes `setMarketingStage`), aktuální fázi mění jen příkazy.
 
 ```ts
 const jobEntity: import("@rebar/core/entities").EntityDef
+```
+
+### jobTemplateEntity
+
+const · `packages/modules/zakazky/src/entities.ts`
+
+Šablona zakázky (fáze, úkoly, platby). Archivuje se, nemaže; správa přes `zakazky.templates`.
+
+```ts
+const jobTemplateEntity: import("@rebar/core/entities").EntityDef
 ```
 
 ### server
 
 const · `packages/modules/zakazky/src/server.ts`
 
-Základ modulu (zakázka, tým, legacy příkazy) a oblasti ADR 015, každá ve své složce se svým vlastníkem.
+Serverová část modulu „zakazky“: entity plus oblasti `core` (zakázky) a `templates` (šablony), obojí ZAK-A.
 
 ```ts
 const server: import("@rebar/core/module-server").ModuleServer
-```
-
-### teamAdd
-
-const · `packages/modules/zakazky/src/commands.ts`
-
-_Bez popisu._
-
-```ts
-const teamAdd: import("@rebar/core/module-server").CommandDef<z.ZodObject<{ jobId: z.ZodUUID; userId: z.ZodUUID; role: z.ZodOptional<z.ZodNullable<z.ZodString>>; }, z.core.$strip>, void>
-```
-
-### teamList
-
-const · `packages/modules/zakazky/src/commands.ts`
-
-_Bez popisu._
-
-```ts
-const teamList: import("@rebar/core/module-server").CommandDef<z.ZodObject<{ jobId: z.ZodUUID; }, z.core.$strip>, { managerId: string | null; members: { userId: string; role: string | null; name: string; }[]; }>
-```
-
-### teamRemove
-
-const · `packages/modules/zakazky/src/commands.ts`
-
-_Bez popisu._
-
-```ts
-const teamRemove: import("@rebar/core/module-server").CommandDef<z.ZodObject<{ jobId: z.ZodUUID; userId: z.ZodUUID; }, z.core.$strip>, void>
 ```

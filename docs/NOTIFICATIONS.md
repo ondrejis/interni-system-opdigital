@@ -1,5 +1,7 @@
 # Upozornění: push, zvoneček a e-mail
 
+> **OPSYS tuto platformu nepoužívá.** Spec výslovně žádné notifikace nechce (upozornění jsou jen vizuální: odznaky u položek menu, červené řádky). Moduly OPSYS neregistrují žádné události upozornění, katalog jádra obsahuje jen `comment.mention` (zmínka v komentáři), kterou `clients/opsys/config.ts` vypíná (`enabled: false`), a interní `system.test`. Platformní kód (fronta doručení, push, zvoneček, e-mail, předvolby) zůstává v jádru beze změny pro případ, že by se upozornění později zapnula; text níže popisuje platformu a příklady jsou obecné.
+
 Jak systém upozorňuje lidi na to, co se děje: **co** se hlásí (katalog událostí), **komu** (příjemci podle pravidel firmy a oprávnění), **kudy** (push do telefonu, zvoneček v aplikaci, e-mail),
 **kdy** (ihned, ve shrnutí, mimo tiché hodiny) a **jak je zaručeno, že to dorazí právě jednou**. Rozhodnutí a jejich důvody: [ADR 024](adr/024-katalog-upozorneni.md); původní základ (PWA, Web Push, VAPID): [ADR 013](adr/013-push-a-pwa.md).
 
@@ -45,24 +47,16 @@ flowchart LR
 
 Událost je datový popis (`defineNotificationEvent`): klíč, český název a popis, skupina v nastavení, závažnost (`normal` / `urgent`), výchozí kanály, skupiny příjemců (`audiences`) a výchozí příjemci (`recipients`),
 parametry textu (`params`), šablona (`title`, `body`, `url`), typ záznamu (`entity`) a doplňky (`dedupe`, `mergeWindowSeconds`, `debounceSeconds`, `ttlSeconds`, `mandatory`, `snooze`, `scheduled`).
-Události platformy (úkoly, komentáře) jsou v `packages/core/src/notifications/catalog.ts`; události modulů jsou v manifestu modulu (`notifications` v `src/index.ts`, definice v `src/notifications.ts`), jádro je nezná.
+Události platformy (komentáře) jsou v `packages/core/src/notifications/catalog.ts`; události modulů jsou v manifestu modulu (`notifications` v `src/index.ts`, definice v `src/notifications.ts`), jádro je nezná.
 Katalog zapnutých modulů se skládá při startu (`collectNotificationEvents`) a **ověřuje**: neplatný klíč, neznámý parametr v šabloně nebo příjemce mimo skupiny aplikaci nenastartuje.
 
 Úplný seznam podle skutečného kódu je v Nastavení → Pravidla upozornění; přehled ke dni zápisu (hlídá ho test `tests/notifications-docs.test.ts`, po přidání události ho aktualizuj):
 
 <!-- katalog:start -->
 
-| Klíč                 | Název                  | Komu (výchozí)                      | Kudy           | Příznaky           |
-| -------------------- | ---------------------- | ----------------------------------- | -------------- | ------------------ |
-| `task.assigned`      | Přidělen úkol          | Ten, komu je úkol přidělen          | push, zvoneček |                    |
-| `task.due_changed`   | Změna termínu úkolu    | Ten, komu je úkol přidělen          | push, zvoneček | slučuje            |
-| `task.done`          | Úkol splněn            | Ten, kdo úkol zadal                 | zvoneček       |                    |
-| `task.due_today`     | Úkoly na dnešek        | Ten, komu jsou úkoly přiděleny      | push, zvoneček | plánované, odložit |
-| `comment.mention`    | Zmínka v komentáři     | Označený uživatel                   | push, zvoneček |                    |
-| `kalendar.invite`    | Pozvánka na událost    | Nově pozvaný účastník               | push, zvoneček |                    |
-| `kalendar.changed`   | Změna termínu události | Účastník, který byl pozvaný už dřív | push, zvoneček | slučuje            |
-| `kalendar.cancelled` | Zrušená událost        | Pozvaný účastník                    | push, zvoneček |                    |
-| `kalendar.reminder`  | Připomenutí události   | Organizátor a pozvaní účastníci     | push, zvoneček | plánované, odložit |
+| Klíč              | Název              | Komu (výchozí)    | Kudy           | Příznaky |
+| ----------------- | ------------------ | ----------------- | -------------- | -------- |
+| `comment.mention` | Zmínka v komentáři | Označený uživatel | push, zvoneček |          |
 
 <!-- katalog:end -->
 
@@ -114,7 +108,7 @@ Příznaky: _naléhavé_ prorazí tiché hodiny a shrnutí a má u push služby 
    ```
 
 4. **Plánovaná událost:** úloha modulu (`defineModuleJob` s `cron`, čas v Europe/Prague) volá `notify` s `at: now` a `dedupe: "day"` (nebo vlastním tokenem), aby opakované spuštění nic nezdvojilo (§7).
-5. **Test:** `validateEventDefs([...])` v testu modulu (klíč, parametry, příjemci), integrační test příjemců, obsahu podle oprávnění a odkazu. Vzory: `packages/core/src/notifications/notifications.int.test.ts`, `packages/modules/zakazky/src/notifications.test.ts`.
+5. **Test:** `validateEventDefs([...])` v testu modulu (klíč, parametry, příjemci), integrační test příjemců, obsahu podle oprávnění a odkazu. Vzory: `packages/core/src/notifications/notifications.int.test.ts`.
 6. Doplň řádek do tabulky v §2 (test `tests/notifications-docs.test.ts` hlídá, že tabulka odpovídá katalogu).
 
 Pravidla psaní šablon: parametry jsou hotové řetězce; peníze vždy `sensitive: "money"` a v titulku za oddělovač (`: `, `·`, `—`, `, `, ` (`), aby šly vynechat i s ním; v podtitulku každý údaj raději na vlastní řádek. `{entityId}` (id záznamu) a `{count}` jsou k dispozici vždy.
@@ -130,9 +124,9 @@ notifications: {
   digestTimes: ["07:00", "16:00"], // kdy chodí shrnutí
   events: {
     "approval.request": { mandatory: true }, // nejde vypnout
-    "kalendar.reminder": { channels: { email: false } },
+    "comment.mention": { channels: { email: false } },
     "invoice.overdue": { recipients: ["perm:fakturace.write", "role:owner"], severity: "urgent" },
-    "task.assigned": { title: "Nový úkol od {author}", body: "{title}\nTermín: {due}" }, // vlastní text
+    "comment.mention": { title: "{author} vás zmínil", body: "{excerpt}" }, // vlastní text
   },
 },
 ```
@@ -150,7 +144,7 @@ nebo neznámý parametr v textu je **chyba při startu** i v `pnpm config:check`
 - vidí **doručování za 24 hodin** (počty podle stavu, důvody přeskočení, poslední selhání bez obsahu zpráv).
 
 Uloženo v nastavení `notification_rules` (audit změn jako u jiných nastavení). Příjemce nikdy nedostane upozornění o záznamu, který nesmí číst, ať je v pravidlech cokoli.
-Důsledek: příjemce z `perm:` bez práva číst zakázku (např. účetní bez `zakazky.read`) upozornění o zakázce nedostane; dejte mu právo, nebo událost nastavte na jiné příjemce.
+Důsledek: příjemce z `perm:` bez práva číst zakázku (např. uživatel bez `zakazky.read`) upozornění o záznamu nedostane; dejte mu právo, nebo událost nastavte na jiné příjemce.
 
 ## 5. Předvolby uživatele
 
@@ -187,18 +181,11 @@ Stavy a důvody přeskočení: `user_off` (vypnuto uživatelem), `event_off` (ka
 
 ## 7. Plánované události
 
-| Úloha (worker)                                                                   | Kdy (Europe/Prague)             | Co                                                                                                                   |
-| -------------------------------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `notification.taskDigest`                                                        | pracovní dny 7:00               | `task.due_today`: úkoly na dnes a po termínu                                                                         |
-| `zakazky.starts_today`, `realizace.today`, `realizace.phases`, `realizace.diary` | ráno a odpoledne pracovních dnů | zakázka a fáze dnes začíná, ranní přehled „Dnes na stavbě“, blížící se a zmeškané termíny, chybějící zápis do deníku |
-| `fakturace.overdue`, `fakturace.due_soon`, `fakturace.received.overdue`          | denně                           | faktura po splatnosti a blížící se splatnost                                                                         |
-| `stroje.deadlines`, `stroje.reservations`                                        | denně                           | revize, STK a servis; zítřejší rezervace                                                                             |
-| `kalendar.reminders`                                                             | každých 5 minut                 | událost za X minut                                                                                                   |
+Platforma umí plánované události (úloha modulu s `cron`, `notify` s `dedupe`), ale **OPSYS žádnou neregistruje**: úloha `notification.taskDigest` i `kalendar.reminders` zanikly spolu s událostmi `task.*` a `kalendar.*`. Úlohy OPSYS (Disk, Google Kalendář, retainer, Meta, opakované faktury, úklid koše a webhooků) jsou v `reference/udalosti-a-ulohy.md`.
 
-Přesné časy jsou v kódu úloh (`reference/udalosti-a-ulohy.md`). Všechny jsou **idempotentní** (`dedupe` pro příjemce a den nebo token fáze) a **časové pásmo a změna času** řeší dvě vrstvy: cron běží v Europe/Prague (pg-boss),
+Plánované události jsou **idempotentní** (`dedupe` pro příjemce a den nebo token fáze) a **časové pásmo a změna času** řeší dvě vrstvy: cron běží v Europe/Prague (pg-boss),
 „dnes“ a hranice dne se počítají místním datem (`localParts`, `zonedToUtc`), takže v den změny času (poslední neděle v březnu a v říjnu) nic nevypadne ani se nezdvojí. Konec tichých hodin a časy shrnutí
 se počítají do místního času (nejednoznačná hodina = první výskyt, neexistující se posune dopředu); pokrývá je test `packages/core/src/notifications/notifications.test.ts`.
-O víkendech a státních svátcích se ranní přehledy neposílají.
 
 ## 8. Bezpečnost a soukromí
 

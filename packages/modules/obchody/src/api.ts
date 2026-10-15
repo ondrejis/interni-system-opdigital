@@ -29,7 +29,8 @@ export type { DealResult, DealSource } from "./shared";
 /** Vstup `createDealFromLead`: lead z Meta formuláře a mapování formuláře na pipeline. */
 export type CreateDealFromLeadInput = {
   title: string;
-  companyId: string;
+  /** Firma obchodu; lead z formuláře bez firmy má jen kontakt (sloupec `deal.company_id` je nullable). */
+  companyId: string | null;
   personId: string;
   source: "meta";
   meta: {

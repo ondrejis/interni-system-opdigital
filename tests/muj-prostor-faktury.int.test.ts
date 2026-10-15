@@ -72,7 +72,7 @@ async function newService(over: Record<string, unknown> = {}) {
     invoiceLeadDays: 14,
     ...over,
   });
-  return r.row as { id: string; nextRenewal: string };
+  return r.row as unknown as { id: string; nextRenewal: string };
 }
 
 const prep = () => prepareInvoiceDrafts(sourceCtx(db, "job", "test"), deps, today);

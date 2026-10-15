@@ -115,6 +115,13 @@ export type RecordAction = {
   permission?: string | readonly string[];
   primary?: boolean;
   visible?: (row: RecordRow) => boolean;
+  /** Pořadí v hlavičce záznamu (nižší dřív, výchozí 100; stejné pořadí = podle pořadí modulů). */
+  order?: number;
+  /**
+   * Vlastní vykreslení místo statického tlačítka (např. tlačítko, jehož popisek se mění podle stavu). Komponenta
+   * dostane záznam; `run`/`dialog` se pak nepoužijí.
+   */
+  render?: ComponentType<{ entity: EntityDescriptor; id: string; row: RecordRow }>;
   /** Přímá akce. Buď `run`, nebo `dialog` (okno s vlastním obsahem, např. výběr důvodu). */
   run?: (p: RecordActionContext) => void | Promise<void>;
   dialog?: {
@@ -394,7 +401,11 @@ export function useRecordExtensions(entityKey: string) {
           can,
           row,
         ),
-      actions: actions.filter((a) => can(a.permission)),
+      actions: actions
+        .filter((a) => can(a.permission))
+        .map((a, i) => ({ a, i }))
+        .sort((x, y) => (x.a.order ?? 100) - (y.a.order ?? 100) || x.i - y.i)
+        .map((x) => x.a),
       overviewCards: (row?: RecordRow) =>
         cards
           .filter((c) => can(c.permission) && (!row || !c.visible || c.visible(row)))

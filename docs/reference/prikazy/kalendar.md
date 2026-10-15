@@ -5,112 +5,110 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (registr příkazů (`ModuleServer.commands`) a jejich Zod schémata). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Příkaz je pojmenovaná akce nebo dotaz volaný z UI (`api.command(name, input)`). Vstup se validuje Zodem, oprávnění hlídá jednotný vstupní bod ([ADR 012](../../adr/012-moduly-prikazy-a-poskytovatele.md)). Modul: [Kalendář](../moduly/kalendar.md). Počet příkazů: 11.
+Příkaz je pojmenovaná akce nebo dotaz volaný z UI (`api.command(name, input)`). Vstup se validuje Zodem, oprávnění hlídá jednotný vstupní bod ([ADR 012](../../adr/012-moduly-prikazy-a-poskytovatele.md)). Modul: [Kalendář](../moduly/kalendar.md). Počet příkazů: 17.
 
-### kalendar.event.delete
-
-- **Oprávnění:** `kalendar.write` (stačí kterékoli)
-- **Definice:** `packages/modules/kalendar/src/commands.ts`
-
-| Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
-| --- | --- | --- | --- | --- | --- |
-| `id` | uuid | ano |  |  |  |
-
-### kalendar.event.get
+### kalendar.account
 
 - **Oprávnění:** `kalendar.read` (stačí kterékoli)
-- **Definice:** `packages/modules/kalendar/src/commands.ts`
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
 
-| Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
-| --- | --- | --- | --- | --- | --- |
-| `id` | uuid | ano |  |  |  |
+_Bez vstupních polí._
 
-### kalendar.event.save
+### kalendar.calendars.refresh
 
 - **Oprávnění:** `kalendar.write` (stačí kterékoli)
-- **Definice:** `packages/modules/kalendar/src/commands.ts`
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
+
+_Bez vstupních polí._
+
+### kalendar.connect.start
+
+- **Oprávnění:** `kalendar.write` (stačí kterékoli)
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
 
 | Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
 | --- | --- | --- | --- | --- | --- |
-| `id` | uuid | ne |  |  |  |
-| `title` | text | ano |  | délka 1–200 |  |
-| `type` | enum | ano | `meeting`, `survey`, `handover`, `other` |  |  |
-| `allDay` | ano/ne | ano |  |  |  |
-| `startDate` | datum | ano |  |  |  |
-| `startTime` | text (nebo null) | ne |  | vzor `^([01]\d\|2[0-3]):[0-5]\d$` |  |
-| `endDate` | datum | ano |  |  |  |
-| `endTime` | text (nebo null) | ne |  | vzor `^([01]\d\|2[0-3]):[0-5]\d$` |  |
-| `location` | text (nebo null) | ne |  | délka ≤ 200 |  |
-| `note` | text (nebo null) | ne |  | délka ≤ 2000 |  |
-| `resourceId` | uuid (nebo null) | ne |  |  |  |
+| `returnTo` | text | ne |  | délka ≤ 200, vzor `^\/(?!\/)[A-Za-z0-9/_\-?=&%.]*$` |  |
+
+### kalendar.createMeeting
+
+- **Oprávnění:** `kalendar.write` (stačí kterékoli)
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
+
+| Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
+| --- | --- | --- | --- | --- | --- |
+| `title` | text | ano |  | délka 1–300 |  |
+| `startsAt` | datum a čas | ano |  |  |  |
+| `endsAt` | datum a čas | ano |  |  |  |
+| `allDay` | ano/ne | ne |  |  |  |
+| `place` | text (nebo null) | ne |  | délka ≤ 300 |  |
+| `description` | text (nebo null) | ne |  | délka ≤ 20000 |  |
+| `attendeeEmails` | pole (e-mail) | ne |  | počet ≤ 50 |  |
+| `sendInvites` | ano/ne | ne |  |  |  |
+| `addMeet` | ano/ne | ne |  |  |  |
+| `assigneeId` | uuid (nebo null) | ne |  |  |  |
+| `dealId` | uuid (nebo null) | ne |  |  |  |
+| `companyId` | uuid (nebo null) | ne |  |  |  |
+| `personId` | uuid (nebo null) | ne |  |  |  |
 | `jobId` | uuid (nebo null) | ne |  |  |  |
-| `attendeeIds` | pole (uuid) | ne |  | počet ≤ 50; výchozí `[]` |  |
-| `recurrence` | enum (nebo null) | ne | `daily`, `weekdays`, `weekly`, `monthly` |  |  |
-| `recurrenceUntil` | datum (nebo null) | ne |  |  |  |
-| `reminderMinutes` | libovolné (nebo null) | ne |  |  |  |
+| `isPrivate` | ano/ne | ne |  |  |  |
 
-### kalendar.feed.regenerate
+### kalendar.delete
 
-Nový odkaz: starý přestane fungovat. Token se vrací jen tady, v databázi zůstává otisk.
-
-- **Oprávnění:** `kalendar.read` (stačí kterékoli)
-- **Definice:** `packages/modules/kalendar/src/commands.ts`
-
-_Bez vstupních polí._
-
-### kalendar.feed.status
-
-- **Oprávnění:** `kalendar.read` (stačí kterékoli)
-- **Definice:** `packages/modules/kalendar/src/commands.ts`
-
-_Bez vstupních polí._
-
-### kalendar.import.add
-
-- **Oprávnění:** `kalendar.read` (stačí kterékoli)
-- **Definice:** `packages/modules/kalendar/src/commands.ts`
+- **Oprávnění:** `kalendar.write` (stačí kterékoli)
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
 
 | Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
 | --- | --- | --- | --- | --- | --- |
-| `name` | text | ne |  | délka ≤ 80; výchozí `""` |  |
-| `url` | text | ano |  | délka 1–2000 |  |
+| `eventId` | uuid | ano |  |  |  |
 
-### kalendar.import.delete
+### kalendar.disconnect
 
-- **Oprávnění:** `kalendar.read` (stačí kterékoli)
-- **Definice:** `packages/modules/kalendar/src/commands.ts`
-
-| Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
-| --- | --- | --- | --- | --- | --- |
-| `id` | uuid | ano |  |  |  |
-
-### kalendar.import.list
-
-- **Oprávnění:** `kalendar.read` (stačí kterékoli)
-- **Definice:** `packages/modules/kalendar/src/commands.ts`
+- **Oprávnění:** `kalendar.write` (stačí kterékoli)
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
 
 _Bez vstupních polí._
 
-### kalendar.import.sync
+### kalendar.forRecord
 
 - **Oprávnění:** `kalendar.read` (stačí kterékoli)
-- **Definice:** `packages/modules/kalendar/src/commands.ts`
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
 
 | Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
 | --- | --- | --- | --- | --- | --- |
-| `id` | uuid | ano |  |  |  |
+| `dealId` | uuid | ne |  |  |  |
+| `companyId` | uuid | ne |  |  |  |
+| `personId` | uuid | ne |  |  |  |
+| `limit` | celé číslo | ne |  | hodnota 1–200 |  |
 
-### kalendar.options
+### kalendar.link
 
-- **Oprávnění:** `kalendar.read` (stačí kterékoli)
-- **Definice:** `packages/modules/kalendar/src/commands.ts`
+- **Oprávnění:** `kalendar.write` (stačí kterékoli)
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
 
-_Bez vstupních polí._
+| Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
+| --- | --- | --- | --- | --- | --- |
+| `eventId` | uuid | ano |  |  |  |
+| `dealId` | uuid (nebo null) | ne |  |  |  |
+| `companyId` | uuid (nebo null) | ne |  |  |  |
+| `personId` | uuid (nebo null) | ne |  |  |  |
+
+### kalendar.move
+
+- **Oprávnění:** `kalendar.write` (stačí kterékoli)
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
+
+| Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
+| --- | --- | --- | --- | --- | --- |
+| `eventId` | uuid | ano |  |  |  |
+| `startsAt` | datum a čas | ano |  |  |  |
+| `endsAt` | datum a čas | ano |  |  |  |
+| `allDay` | ano/ne | ne |  |  |  |
 
 ### kalendar.range
 
 - **Oprávnění:** `kalendar.read` (stačí kterékoli)
-- **Definice:** `packages/modules/kalendar/src/commands.ts`
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
 
 | Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
 | --- | --- | --- | --- | --- | --- |
@@ -118,3 +116,63 @@ _Bez vstupních polí._
 | `to` | datum | ano |  |  |  |
 | `who` | enum | ne | `me`, `all` | výchozí `"me"` |  |
 | `layers` | pole (text) | ne |  | počet ≤ 30 |  |
+
+### kalendar.setWriteTarget
+
+- **Oprávnění:** `kalendar.write` (stačí kterékoli)
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
+
+| Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
+| --- | --- | --- | --- | --- | --- |
+| `calendarId` | uuid | ano |  |  |  |
+
+### kalendar.settings.get
+
+- **Oprávnění:** `settings.manage` (stačí kterékoli)
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
+
+_Bez vstupních polí._
+
+### kalendar.settings.save
+
+- **Oprávnění:** `settings.manage` (stačí kterékoli)
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
+
+| Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
+| --- | --- | --- | --- | --- | --- |
+| `clientId` | text | ne |  | délka ≤ 300 |  |
+| `clientSecret` | text | ne |  | délka ≤ 300 |  |
+| `privateMeetingsToGoogle` | ano/ne | ne |  |  |  |
+
+### kalendar.suggestLinks
+
+- **Oprávnění:** `kalendar.read` (stačí kterékoli)
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
+
+| Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
+| --- | --- | --- | --- | --- | --- |
+| `eventId` | uuid | ano |  |  |  |
+
+### kalendar.sync
+
+- **Oprávnění:** `kalendar.write` (stačí kterékoli)
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
+
+_Bez vstupních polí._
+
+### kalendar.test
+
+- **Oprávnění:** `kalendar.write` (stačí kterékoli)
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
+
+_Bez vstupních polí._
+
+### kalendar.toggleCalendar
+
+- **Oprávnění:** `kalendar.write` (stačí kterékoli)
+- **Definice:** `packages/modules/kalendar/src/google/commands.ts`
+
+| Pole | Typ | Povinné | Hodnoty | Omezení | Popis |
+| --- | --- | --- | --- | --- | --- |
+| `calendarId` | uuid | ano |  |  |  |
+| `visible` | ano/ne | ano |  |  |  |

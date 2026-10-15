@@ -28,8 +28,6 @@ Jádro není modul: nemá manifest ani vypnutí. Poskytuje databázi, přihláš
 | `dashboards.manage` | Spravuje nástěnky | Výchozí nástěnky pro role, cizí a sdílené nástěnky (Nastavení → Nástěnky) |
 | `exports.schedule` | Plánuje exporty a sdílí šablony exportů | Plány (denně, týdně, měsíčně) a sdílené šablony; export samotný vyžaduje čtení dat |
 | `exports.manage` | Spravuje exporty všech | Vidí historii exportů všech, zastavuje cizí plány a mění nastavení exportů |
-| `tasks.read` | Vidí úkoly | Rozsah „vše“ = úkoly všech, jinak jen vlastní a zadané |
-| `tasks.assign` | Přiděluje úkoly ostatním |  |
 | `comments.moderate` | Maže cizí komentáře |  |
 | `files.manage` | Spravuje cizí soubory |  |
 | `employees.read` | Vidí údaje zaměstnanců | Včetně hodinového nákladu |
@@ -45,8 +43,10 @@ Jádro není modul: nemá manifest ani vypnutí. Poskytuje databázi, přihláš
 | `files.purge` | `30 3 * * *` | 2 | Denně v noci: úklid souborů, které nikdo nepřipojil k záznamu. |
 | `health.heartbeat` | `0 * * * *` | 3 | Každou hodinu: stav instance agentuře (jen verze a stav, bez osobních údajů). |
 | `notification.dispatch` | `* * * * *` | 1 | Každou minutu a navíc hned po vzniku upozornění (worker poslouchá NOTIFY): odešle upozornění, jejichž čas nadešel (push, e-mail), opakuje selhaná doručení s prodlevou a uvolňuje zdržená po tichých hodinách a shrnutí. |
-| `notification.taskDigest` | `0 7 * * 1-5` | 2 | Pracovní dny v 7:00 (Europe/Prague): ranní přehled úkolů. |
 | `notification.cleanup` | `20 3 * * *` | 1 | Denně v noci: smaže stará upozornění a jejich protokol doručení. |
+| `core.trash.purge` | `40 3 * * *` | 2 | Denně v noci: trvale smaže záznamy, které jsou v koši déle než 30 dní (nejdřív podřízené). |
+| `core.webhooks.deliver` | `* * * * *` | 1 | Každou minutu a navíc hned po `NOTIFY` (worker poslouchá `WEBHOOK_NOTIFY_CHANNEL`): odešle čekající webhooky. |
+| `core.webhooks.cleanup` | `40 3 * * *` | 1 | Denně v noci: smaže stará vyřízená doručení a příchozí události. |
 | `export.run` | jen na požádání | 1 |  |
 | `export.cleanup` | `50 3 * * *` | 1 |  |
 | `export.schedule.tick` | `*/5 * * * *` | 0 |  |

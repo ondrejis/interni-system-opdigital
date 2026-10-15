@@ -14,7 +14,7 @@ import { connectAppDb } from "@rebar/core/testing";
 import { listTrash, purgeExpiredTrash, purgeRecord } from "@rebar/core/trash";
 import { job as jobTable } from "@rebar/zakazky/schema";
 import { note as noteTable } from "@rebar/ukoly/schema";
-import { buildPrivateFixture, type PrivateFixture } from "./support/fixture";
+import { addPayment, buildPrivateFixture, type PrivateFixture } from "./support/fixture";
 import { buildFixture, isolatedDb, type Fixture } from "./support/security-fixture";
 
 /*
@@ -55,13 +55,8 @@ async function tree(ctx: Ctx) {
   const note = (
     await createRecord(ctx, f.registry, await E("note"), { title: "Koš poznámka", job })
   ).row.id;
-  const pay = (
-    await createRecord(ctx, f.registry, await E("payment"), {
-      description: "Koš platba",
-      amount: 100,
-      job,
-    })
-  ).row.id;
+  // platba je `noCreate`: zakládá se příkazem financí
+  const pay = await addPayment(f, ctx, { description: "Koš platba", amountMinor: 100, jobId: job });
   return { job, note, pay };
 }
 const exists = async (key: string, ctx: Ctx, id: string) =>

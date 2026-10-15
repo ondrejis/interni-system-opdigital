@@ -254,7 +254,7 @@ export async function saveContent(
 
 /**
  * Port pro knihovnu e-mailů v Můj prostor (MPR-2, KNI-02): přesun textu mezi soukromou knihovnou a sdílenými
- * šablonami. Služba `emailTemplates` (klíč zatím není v `ServiceMap`, viz ZADOSTI); vše jde přes entitu, takže platí
+ * šablonami. Služba `emailTemplates` (`ServiceMap`); vše jde přes entitu, takže platí
  * oprávnění `sablony-emailu.*`, zámek i audit.
  */
 export function emailTemplatesService(deps: ModuleDeps) {

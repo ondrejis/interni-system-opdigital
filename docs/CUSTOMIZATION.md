@@ -57,7 +57,7 @@ export default defineClientConfig({
   // Zapnuté moduly (závislosti se kontrolují při startu).
   modules: ["kontakty", "zakazky", "kalendar"],
 
-  // notifications: { quietHours: { enabled: true, start: "20:00", end: "06:00" }, events: { "task.assigned": { mandatory: true } } }, // upozornění, viz NOTIFICATIONS.md
+  // notifications: { quietHours: { enabled: true, start: "20:00", end: "06:00" }, events: { "comment.mention": { mandatory: true } } }, // upozornění, viz NOTIFICATIONS.md
   // security: { idleTimeoutMinutes: 480, require2faRoles: ["owner", "admin"] },
   // agency: { serviceAccess: "off" },
 });

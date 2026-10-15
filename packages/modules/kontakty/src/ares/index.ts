@@ -13,4 +13,4 @@ export {
   lookupAres,
   setAresClient,
 } from "./lookup";
-export { isValidIco, normalizeIco as normalizeIcoInput } from "../normalize";
+export { isValidIco, normalizeIco } from "../normalize";

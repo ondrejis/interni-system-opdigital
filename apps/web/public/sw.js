@@ -18,7 +18,8 @@ const STATIC_CACHE = "opsys-static-v1";
 const OFFLINE_URL = "/offline.html";
 const OWN_CACHES = [PAGES_CACHE, STATIC_CACHE, "opsys-data-v1"];
 const NETWORK_WAIT_MS = 4000;
-const NO_CACHE_PAGES = /^\/(prihlaseni|start|overeni|pozvanka|zapomenute-heslo|obnova-hesla|ui|tv)(\/|$)/;
+const NO_CACHE_PAGES =
+  /^\/(prihlaseni|start|overeni|pozvanka|zapomenute-heslo|obnova-hesla|ui|tv)(\/|$)/;
 
 /** Rozhodne, co se s požadavkem stane: "static" (cache-first), "page" (síť, pak kopie) nebo "bypass" (nechat být). */
 function cachePolicy(request) {
@@ -31,7 +32,8 @@ function cachePolicy(request) {
   }
   if (url.origin !== self.location.origin) return "bypass";
   const path = url.pathname;
-  if (path.startsWith("/api/") || path === "/sw.js" || path === "/manifest.webmanifest") return "bypass";
+  if (path.startsWith("/api/") || path === "/sw.js" || path === "/manifest.webmanifest")
+    return "bypass";
   if (path.startsWith("/_next/static/") || path.startsWith("/pwa-icon/")) return "static";
   if (path === OFFLINE_URL) return "static";
   if (NO_CACHE_PAGES.test(path)) return "bypass";
@@ -46,7 +48,12 @@ function cachePolicy(request) {
 
 /** Do mezipaměti jen úspěšná odpověď bez přesměrování (přesměrování na přihlášení se nesmí uložit jako stránka). */
 function cacheable(response) {
-  return !!response && response.status === 200 && !response.redirected && response.type !== "opaqueredirect";
+  return (
+    !!response &&
+    response.status === 200 &&
+    !response.redirected &&
+    response.type !== "opaqueredirect"
+  );
 }
 
 async function clearOwnCaches() {
@@ -292,7 +299,9 @@ self.addEventListener("activate", (event) => {
         Promise.all(
           keys
             .filter(
-              (k) => k.startsWith("terminal-offline-") || (k.startsWith("opsys-") && !OWN_CACHES.includes(k)),
+              (k) =>
+                k.startsWith("terminal-offline-") ||
+                (k.startsWith("opsys-") && !OWN_CACHES.includes(k)),
             )
             .map((k) => caches.delete(k)),
         ),

@@ -5,7 +5,7 @@
 > **Generovaný dokument.** Vzniká přímo z kódu (exporty vstupního bodu balíčku, JSDoc a deklarace ve zdrojích). Neupravuj ho ručně: změň kód a spusť `pnpm docs:generate`.
 > Kontrola, že odpovídá kódu, běží v `pnpm docs:check` a v CI.
 
-Vstupní bod `@rebar/core/jobs` (soubor `packages/core/src/jobs/index.ts`). Exportů: 15, z toho s popisem 10.
+Vstupní bod `@rebar/core/jobs` (soubor `packages/core/src/jobs/index.ts`). Exportů: 14, z toho s popisem 9.
 
 | Export | Druh | Popis | Podrobně |
 | --- | --- | --- | --- |
@@ -18,7 +18,6 @@ Vstupní bod `@rebar/core/jobs` (soubor `packages/core/src/jobs/index.ts`). Expo
 | [`heartbeatJob`](#heartbeatjob) | const | Každou hodinu: stav instance agentuře (jen verze a stav, bez osobních údajů). |  |
 | [`notificationCleanupJob`](#notificationcleanupjob) | const | Denně v noci: smaže stará upozornění a jejich protokol doručení. |  |
 | [`purgeFilesJob`](#purgefilesjob) | const | Denně v noci: úklid souborů, které nikdo nepřipojil k záznamu. |  |
-| [`taskDigestJob`](#taskdigestjob) | const | Pracovní dny v 7:00 (Europe/Prague): ranní přehled úkolů. |  |
 | [`thumbnailJob`](#thumbnailjob) | const |  |  |
 | [`CoreJobDeps`](#corejobdeps) | type |  |  |
 | [`JobDef`](#jobdef) | type | Úloha na pozadí. `name` je název fronty; data se validují Zodem při odeslání i při zpracování. Úlohy deklaruje jádro i moduly, běží ve workeru (samostatný proces téže image, bez Redisu — fronta je v Postgresu). |  |
@@ -115,16 +114,6 @@ Denně v noci: úklid souborů, které nikdo nepřipojil k záznamu.
 
 ```ts
 const purgeFilesJob: JobDef<z.ZodObject<Record<string, never>, z.core.$strip>, CoreJobDeps>
-```
-
-### taskDigestJob
-
-const · `packages/core/src/jobs/core-jobs.ts`
-
-Pracovní dny v 7:00 (Europe/Prague): ranní přehled úkolů.
-
-```ts
-const taskDigestJob: JobDef<z.ZodObject<Record<string, never>, z.core.$strip>, CoreJobDeps>
 ```
 
 ### thumbnailJob

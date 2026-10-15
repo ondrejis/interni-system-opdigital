@@ -46,7 +46,7 @@ export function MobileBottomNav({
     }
     const phone =
       window.matchMedia("(max-width: 767px)").matches &&
-      window.matchMedia("(pointer: coarse)").matches;
+      (window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0);
     const suppressed = new URLSearchParams(window.location.search).has("bez-hledani");
     if (!shouldOpenStartSearch({ pathname, phone, alreadyStarted: started, suppressed })) return;
     try {
@@ -56,7 +56,6 @@ export function MobileBottomNav({
     }
     openSearch();
     // jen první vykreslení; později se Hledat otevírá tlačítkem
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const items: BottomItem[] = [
@@ -66,7 +65,7 @@ export function MobileBottomNav({
   ];
   return (
     <>
-      <OfflineBridge userId={userId} />
+      <OfflineBridge userId={userId} pathname={pathname} />
       <BottomNav items={items} pathname={pathname} />
     </>
   );

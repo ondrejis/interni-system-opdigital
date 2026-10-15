@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 
+/** Hustota řádků v seznamech a tabulkách (Nastavení → Vzhled). */
 export type Density = "comfortable" | "compact";
 
 /** Výška řádku tabulky podle hustoty (NAS-05): pohodlná 36 px, kompaktní 28 px. */
 export const ROW_HEIGHTS: Record<Density, number> = { comfortable: 36, compact: 28 };
 
+/** Hodnotu z `data-density` nebo `localStorage` převede na platnou hustotu (neznámá = pohodlná). */
 export function densityOf(value: string | null | undefined): Density {
   return value === "compact" ? "compact" : "comfortable";
 }

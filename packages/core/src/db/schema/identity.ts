@@ -181,7 +181,7 @@ export const rateLimit = pgTable("rate_limit", {
   lastRequest: bigint("last_request", { mode: "number" }).notNull(),
 });
 
-/** Pozvánka do systému. Platí 7 dní; v DB je jen otisk tokenu. */
+/** Pozvánka do systému. Platí 48 hodin; v DB je jen otisk tokenu. */
 export const invitation = pgTable(
   "invitation",
   {

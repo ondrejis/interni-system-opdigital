@@ -4,7 +4,7 @@ import { defineModuleUi, type RecordOverviewCard, type RecordTab } from "@rebar/
 import { RelatedRecords } from "@rebar/ui";
 import { OWN_OVERVIEW_ORDER, OWN_TAB_ORDER } from "./shared";
 import { ClientContextTab } from "./ui/context-tab";
-import { ClientsPage } from "./ui/clients-page";
+import { ResponsiveClientsPage } from "./mobile/clients-cards";
 import { ClientHeaderBand } from "./ui/header";
 import { mobileCard } from "./ui/mobile";
 import {
@@ -118,7 +118,7 @@ const cards: RecordOverviewCard[] = [
 ];
 
 export const ui = defineModuleUi({
-  pages: [{ path: "/klienti", render: () => <ClientsPage /> }],
+  pages: [{ path: "/klienti", render: () => <ResponsiveClientsPage /> }],
   recordHeader: { company: ClientHeaderBand },
   recordTabs: { company: tabs },
   recordOverview: { company: cards },

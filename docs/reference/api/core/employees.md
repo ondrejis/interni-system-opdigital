@@ -21,7 +21,7 @@ function · `packages/core/src/employees/employees.ts`
 Hodinový náklad firmy vidí jen ten, kdo má `employees.read` — zaměstnanec o něm neví.
 
 ```ts
-async function getEmployee(ctx: Ctx, userId: string): Promise<{ createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; userId: string; employeeNo: string | null; jobTitle: string | null; phone: string | null; employmentType: "hpp" | "dpp"…
+async function getEmployee(ctx: Ctx, userId: string): Promise<{ createdAt: Date; updatedAt: Date; createdBy: string | null; updatedBy: string | null; deletedAt: Date | null; deletedBy: string | null; deletedBatch: string | null; userId: string; employeeNo: string | null; jobTitle: string | nu…
 ```
 
 ### saveEmployee

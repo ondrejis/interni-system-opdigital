@@ -15,13 +15,10 @@ const CLIENT_OVERVIEW_ORDER_DISK = 89;
 /**
  * Akce v hlavičce karty klienta a zakázky. Hlavička jádra kreslí akce jako tlačítka se statickým popiskem, proto je
  * tohle nouzová podoba: po kliknutí zjistí stav a udělá, co by udělalo `DriveButton` (otevře, počká, zopakuje,
- * založí). Plnou podobu s popiskem podle stavu vykreslí hlavička, jakmile podporuje `render` (viz ZADOSTI);
- * tlačítko se stavem je vždy na kartě „Složka na Disku“ na Přehledu.
+ * založí). Plnou podobu s popiskem podle stavu vykreslí hlavička přes `render`; tlačítko se stavem je také na kartě
+ * „Složka na Disku“ na Přehledu.
  */
-function driveAction(entityType: DriveEntityType): RecordAction & {
-  order: number;
-  render: (p: { id: string }) => React.ReactNode;
-} {
+function driveAction(entityType: DriveEntityType): RecordAction {
   return {
     id: "disk",
     label: "Otevřít Disk",

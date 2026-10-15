@@ -177,6 +177,33 @@ export type ServiceMap = {
     unpaidCount(ctx: Ctx, input: { jobId: string }): Promise<number>;
     allocatedByUser(ctx: Ctx, jobId: string): Promise<Record<string, number>>;
   };
+  /** Vlastník: modul `sablony-emailu` (port knihovny e-mailů v Můj prostor pro přesun textů). */
+  emailTemplates: {
+    importText(
+      ctx: Ctx,
+      input: {
+        name: string;
+        category: string | null;
+        language: "cs" | "sk" | "en";
+        subject: string;
+        bodyText: string;
+        bodyJson: Record<string, unknown>;
+        tags: string[];
+      },
+    ): Promise<{ id: string; href: string }>;
+    exportText(
+      ctx: Ctx,
+      id: string,
+    ): Promise<{
+      name: string;
+      category: string | null;
+      subject: string;
+      bodyText: string;
+      bodyJson: Record<string, unknown> | null;
+      tags: string[];
+    } | null>;
+    remove(ctx: Ctx, id: string): Promise<void>;
+  };
 };
 
 /** Klíč služby. */

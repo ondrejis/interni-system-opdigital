@@ -21,9 +21,9 @@ _Tento blok vzniká z kódu (`pnpm docs:generate`); neupravuj ho ručně. Vyprá
 
 - **Popis z manifestu:** Obchodní příležitosti: pipeline s pravděpodobnostmi, board se součty, výhra (založení zakázek) a prohra s důvodem.
 - **Závisí na:** [`kontakty`](kontakty.md), [`zakazky`](zakazky.md)
-- **Entity:** žádné
-- **Příkazy:** žádné
-- **Referenční stránky:** [modul](../reference/moduly/obchody.md), [databáze](../reference/databaze/obchody.md)
+- **Entity:** [`deal`](../reference/entity/obchody.md#deal)
+- **Příkazy:** [24 příkazů](../reference/prikazy/obchody.md)
+- **Referenční stránky:** [modul](../reference/moduly/obchody.md), [entity](../reference/entity/obchody.md), [příkazy](../reference/prikazy/obchody.md), [databáze](../reference/databaze/obchody.md)
 
 **Oprávnění a jejich výchozí přidělení rolím:**
 

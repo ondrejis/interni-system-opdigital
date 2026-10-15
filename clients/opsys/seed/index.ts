@@ -22,5 +22,7 @@ import { ROLES } from "./roles";
  */
 export default defineSeed({
   roles: ROLES,
-  lookups: [{ key: "tag", name: "Štítky", items: [{ value: "meta", label: "Meta", color: "blue" }] }],
+  lookups: [
+    { key: "tag", name: "Štítky", items: [{ value: "meta", label: "Meta", color: "blue" }] },
+  ],
 });

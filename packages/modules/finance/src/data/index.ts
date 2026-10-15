@@ -45,21 +45,17 @@ export const area = defineModuleServer({
     { name: "finance.navBadge.overdue", run: (ctx, deps) => overdueBadge.count(ctx, deps) },
     {
       name: "finance.clientCard.tabCounts",
-      run: async (ctx) => {
+      run: async (ctx, deps) => {
         const rows = (
-          await listPayments(
-            ctx,
-            { registry: undefined as never, settings: undefined as never },
-            {
-              dateField: "effective",
-              overdueOnly: false,
-              includePrivate: true,
-              sort: "createdAt",
-              direction: "desc",
-              limit: 50,
-              offset: 0,
-            },
-          )
+          await listPayments(ctx, deps, {
+            dateField: "effective",
+            overdueOnly: false,
+            includePrivate: true,
+            sort: "createdAt",
+            direction: "desc",
+            limit: 50,
+            offset: 0,
+          })
         ).rows;
         return Promise.all(
           [...new Set(rows.flatMap((r) => (r.companyId ? [r.companyId] : [])))].map((id) =>
