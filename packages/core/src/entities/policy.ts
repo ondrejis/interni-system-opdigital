@@ -1,6 +1,6 @@
 import type { Executor } from "../db/client";
 import { NotFoundError, PermissionError } from "../rbac/errors";
-import { can } from "../rbac/permissions";
+import { can, canSeePrivate } from "../rbac/permissions";
 import type { Ctx } from "../rbac/types";
 
 /**
@@ -14,8 +14,14 @@ export type EntityPolicy = {
   read: string;
   /** Oprávnění k úpravě záznamu (přidání souboru, změna). */
   write: string;
-  /** Vlastníci záznamu pro rozsah `own`; `null`, když záznam neexistuje. */
-  owners(db: Executor, id: string): Promise<{ ownerIds: (string | null)[] } | null>;
+  /**
+   * Vlastníci záznamu pro rozsah `own` a jeho zámek (`isPrivate`, chybí-li, je záznam sdílený); `null`, když záznam
+   * neexistuje.
+   */
+  owners(
+    db: Executor,
+    id: string,
+  ): Promise<{ ownerIds: (string | null)[]; isPrivate?: boolean } | null>;
   /** Odkaz na záznam v aplikaci (pro upozornění). */
   url?: (id: string) => string;
 };
@@ -42,19 +48,22 @@ export function clearEntityPolicies() {
 
 /**
  * Ověří, že aktér smí se záznamem pracovat. Neznámý typ záznamu se odmítne (bezpečné výchozí chování),
- * záznam, který aktér nesmí vidět, se tváří jako neexistující.
+ * záznam, který aktér nesmí vidět (cizí v rozsahu „jen moje“, soukromý bez `private.read`), se tváří jako neexistující.
+ * Vrací politiku a zámek záznamu (`isPrivate`), aby vedlejší záznamy (komentář, soubor) mohly zapsat audit jako soukromý.
  */
 export async function assertEntityAccess(
   ctx: Ctx,
   entityType: string,
   entityId: string,
   mode: "read" | "write" = "read",
-): Promise<EntityPolicy> {
+): Promise<EntityPolicy & { isPrivate: boolean }> {
   const policy = registry.get(entityType);
   if (!policy) throw new PermissionError("Tento typ záznamu není v systému povolen.");
   const found = await policy.owners(ctx.db, entityId);
   if (!found) throw new NotFoundError();
+  const isPrivate = found.isPrivate === true;
+  if (isPrivate && !canSeePrivate(ctx)) throw new NotFoundError();
   if (!can(ctx, policy.read, found)) throw new NotFoundError();
   if (mode === "write" && !can(ctx, policy.write, found)) throw new PermissionError();
-  return policy;
+  return { ...policy, isPrivate };
 }

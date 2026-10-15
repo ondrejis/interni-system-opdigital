@@ -5,12 +5,7 @@ import { generateThumbnail, purgeOrphanFiles, type FilesDeps } from "../files";
 import { getHealth, sendHeartbeat } from "../health/health";
 import { exportJobs, type ExportJobDeps } from "../export/jobs";
 import { sendMailJob, type MailDeps } from "../mail/service";
-import {
-  cleanupNotifications,
-  dispatchDue,
-  sendTaskDigests,
-  type EmailMessage,
-} from "../notifications";
+import { cleanupNotifications, dispatchDue, type EmailMessage } from "../notifications";
 import type { PushSender } from "../push/push";
 import { defineJob, type JobDef } from "./jobs";
 
@@ -84,18 +79,6 @@ export const dispatchJob = defineJob<z.ZodObject<Record<string, never>>, CoreJob
   },
 });
 
-/** Pracovní dny v 7:00 (Europe/Prague): ranní přehled úkolů. */
-export const taskDigestJob = defineJob<z.ZodObject<Record<string, never>>, CoreJobDeps>({
-  name: "notification.taskDigest",
-  schema: z.object({}),
-  cron: "0 7 * * 1-5",
-  retryLimit: 2,
-  keepCompletedSeconds: 600,
-  async handler(deps) {
-    await sendTaskDigests(deps.db);
-  },
-});
-
 /** Denně v noci: smaže stará upozornění a jejich protokol doručení. */
 export const notificationCleanupJob = defineJob<z.ZodObject<Record<string, never>>, CoreJobDeps>({
   name: "notification.cleanup",
@@ -115,7 +98,6 @@ export const coreJobs: readonly JobDef<z.ZodType, CoreJobDeps>[] = [
   purgeFilesJob,
   heartbeatJob,
   dispatchJob,
-  taskDigestJob,
   notificationCleanupJob,
   ...(exportJobs as readonly JobDef<z.ZodType, CoreJobDeps>[]),
 ];

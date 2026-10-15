@@ -73,6 +73,8 @@ export async function addComment(
       entityId: row!.id,
       summary: `Komentář k ${input.entityType}`,
       changes: [{ field: "body", old: null, new: body.slice(0, 200) }],
+      isPrivate: policy.isPrivate,
+      context: { entityType: input.entityType, entityId: input.entityId },
     });
     const [author] = await c.db
       .select({ name: schema.user.name })
@@ -133,7 +135,7 @@ export async function editComment(ctx: Ctx, id: string, body: string) {
   return inTx(ctx, async (c) => {
     const row = await loadOwn(c, id);
     if (row.authorId !== me) throw new PermissionError("Upravit můžete jen vlastní komentář.");
-    await assertEntityAccess(c, row.entityType, row.entityId, "read");
+    const access = await assertEntityAccess(c, row.entityType, row.entityId, "read");
     await c.db
       .update(schema.comment)
       .set({ body: text, editedAt: new Date(), updatedBy: me })
@@ -143,6 +145,8 @@ export async function editComment(ctx: Ctx, id: string, body: string) {
       entityType: "comment",
       entityId: id,
       changes: [{ field: "body", old: row.body.slice(0, 200), new: text.slice(0, 200) }],
+      isPrivate: access.isPrivate,
+      context: { entityType: row.entityType, entityId: row.entityId },
     });
   });
 }
@@ -153,6 +157,8 @@ export async function deleteComment(ctx: Ctx, id: string) {
   await inTx(ctx, async (c) => {
     const row = await loadOwn(c, id);
     if (row.authorId !== me && !can(c, "comments.moderate")) throw new PermissionError();
+    // komentář pod soukromým záznamem smí mazat jen ten, kdo záznam vidí
+    const access = await assertEntityAccess(c, row.entityType, row.entityId, "read");
     await c.db
       .update(schema.comment)
       .set({ deletedAt: new Date(), updatedBy: me })
@@ -162,6 +168,8 @@ export async function deleteComment(ctx: Ctx, id: string) {
       entityType: "comment",
       entityId: id,
       summary: "Komentář smazán",
+      isPrivate: access.isPrivate,
+      context: { entityType: row.entityType, entityId: row.entityId },
     });
   });
 }

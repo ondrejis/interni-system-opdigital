@@ -112,6 +112,9 @@ export function toResult(
     return { ok: false, error: err.message, code: err.code };
   if (isKnown(err, UserError, "UserError"))
     return { ok: false, error: err.message, code: err.code };
+  // soukromý záznam nejde přiřadit uživateli bez `private.read`: UI podle kódu nabídne „Zveřejnit a přiřadit“
+  if (err instanceof Error && (err as { code?: unknown }).code === "private_assign")
+    return { ok: false, error: err.message, code: "private_assign" };
   if (err instanceof ZodError)
     return { ok: false, error: err.issues[0]?.message ?? "Neplatná data.", code: "invalid_input" };
   const dbMessage = DB_MESSAGES[pgErrorCode(err) ?? ""];

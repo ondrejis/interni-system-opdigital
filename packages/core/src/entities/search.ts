@@ -2,9 +2,10 @@ import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { getTableColumns } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { schema, type Executor } from "../db/client";
-import { can, scopeOf } from "../rbac/permissions";
+import { can, canSeePrivate, scopeOf } from "../rbac/permissions";
 import type { Ctx } from "../rbac/types";
 import type { AttributeDef, EntityDef } from "./types";
+import { privateScope } from "./visibility";
 
 const normalize = (s: string) =>
   s
@@ -51,6 +52,7 @@ export async function indexRecord(
       title: doc.title,
       subtitle: doc.subtitle ?? null,
       searchText: text,
+      isPrivate: raw.isPrivate === true,
     })
     .onConflictDoUpdate({
       target: [schema.searchDocument.entityType, schema.searchDocument.entityId],
@@ -58,6 +60,7 @@ export async function indexRecord(
         title: doc.title,
         subtitle: doc.subtitle ?? null,
         searchText: text,
+        isPrivate: raw.isPrivate === true,
         updatedAt: new Date(),
       },
     });
@@ -122,6 +125,7 @@ export async function searchAll(
   const readable = defs.filter((d) => scopeOf(ctx, d.permissions.read));
   if (!readable.length) return [];
 
+  const seePrivate = canSeePrivate(ctx);
   const pattern = "%" + q.replace(/[\\%_]/g, "\\$&") + "%";
   const candidates = await ctx.db
     .select()
@@ -133,6 +137,8 @@ export async function searchAll(
           readable.map((d) => d.key),
         ),
         sql`${schema.searchDocument.searchText} like ${pattern} escape '\\'`,
+        // soukromé záznamy se bez `private.read` nenajdou (ani pořadím výsledků neprozradí)
+        seePrivate ? undefined : sql`not ${schema.searchDocument.isPrivate}`,
       ),
     )
     .orderBy(
@@ -147,6 +153,10 @@ export async function searchAll(
     if (!mine.length) continue;
     const cols = getTableColumns(def.table) as Record<string, AnyPgColumn>;
     const scope = scopeOf(ctx, def.permissions.read);
+    const lock =
+      def.visibility && cols.isPrivate
+        ? privateScope(ctx, { isPrivate: cols.isPrivate })
+        : undefined;
     let allowed: Set<string>;
     if (scope === "all") {
       const rows = await ctx.db
@@ -159,6 +169,7 @@ export async function searchAll(
               mine.map((m) => m.entityId),
             ),
             isNull(cols.deletedAt!),
+            lock,
           ),
         );
       allowed = new Set(rows.map((r) => String(r.id)));
@@ -181,6 +192,7 @@ export async function searchAll(
             ),
             isNull(cols.deletedAt!),
             pred,
+            lock,
           ),
         );
       allowed = new Set(rows.map((r) => String(r.id)));

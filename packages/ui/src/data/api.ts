@@ -40,15 +40,6 @@ export type TimelineItem =
       edited: boolean;
     };
 
-export type TaskItem = {
-  id: string;
-  title: string;
-  dueDate: string | null;
-  priority: string;
-  done: boolean;
-  assigneeId: string | null;
-};
-
 export type FileItem = {
   id: string;
   fileId: string;
@@ -62,7 +53,7 @@ export type FileItem = {
   createdAt: string;
 };
 
-export type ActivityResult = { timeline: TimelineItem[]; tasks: TaskItem[]; files: FileItem[] };
+export type ActivityResult = { timeline: TimelineItem[]; files: FileItem[] };
 
 /**
  * Vše, co data-driven UI potřebuje od serveru. Komponenty ve `@rebar/ui` neznají Next.js ani server actions;
@@ -93,12 +84,6 @@ export type EntityApi = {
   activity(entity: string, id: string): Promise<ActivityResult>;
   addComment(entity: string, id: string, body: string): Promise<void>;
   deleteComment(id: string): Promise<void>;
-  addTask(
-    entity: string,
-    id: string,
-    task: { title: string; dueDate?: string | null; assigneeId?: string | null },
-  ): Promise<void>;
-  completeTask(id: string, done: boolean): Promise<void>;
   /** Nahraje soubor k záznamu a vrátí jeho id; `kind` rozlišuje fotky, podpisy a dokumenty. */
   uploadFile(
     entity: string,

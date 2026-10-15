@@ -129,12 +129,6 @@ export const CORE_PERMISSIONS: readonly PermissionDef[] = [
     label: "Spravuje exporty všech",
     description: "Vidí historii exportů všech, zastavuje cizí plány a mění nastavení exportů",
   },
-  {
-    key: "tasks.read",
-    label: "Vidí úkoly",
-    description: "Rozsah „vše“ = úkoly všech, jinak jen vlastní a zadané",
-  },
-  { key: "tasks.assign", label: "Přiděluje úkoly ostatním" },
   { key: "comments.moderate", label: "Maže cizí komentáře" },
   { key: "files.manage", label: "Spravuje cizí soubory" },
   {

@@ -140,7 +140,7 @@ export function RecordView({
   });
 
   const ext = useRecordExtensions(entity.key);
-  // Lišta záložek: Přehled, záložky a skupiny modulů, základní Aktivita/Úkoly/Soubory (podle `order`).
+  // Lišta záložek: Přehled, záložky a skupiny modulů, základní Aktivita/Soubory (podle `order`); úkoly a poznámky přidává modul `ukoly`.
   const tops = useMemo<TopTab[]>(() => {
     const core: TopTab[] = [
       { id: "prehled", label: "Přehled", order: 0, tabs: [] },
@@ -151,12 +151,11 @@ export function RecordView({
         order: 800,
         tabs: [],
       },
-      { id: "ukoly", label: "Úkoly", icon: "check-square", order: 810, tabs: [] },
       { id: "soubory", label: "Soubory", icon: "paperclip", order: 820, tabs: [] },
     ].filter(
       (t) =>
         !ext.hiddenCore.has(
-          (t.id === "aktivita" ? "activity" : t.id === "ukoly" ? "tasks" : "files") as never,
+          (t.id === "aktivita" ? "activity" : "files") as never,
         ) || t.id === "prehled",
     );
     return [...core, ...ext.topTabs(row)]
@@ -551,7 +550,6 @@ export function RecordView({
                 <div className="min-w-0 space-y-4 lg:order-1" data-testid="overview-main">
                   {overview}
                   {mainCards.map(renderCard)}
-                  <UpcomingTasks entity={entity.key} id={id} />
                   {activityHidden && (
                     <Card aria-label="Aktivita" data-testid="overview-activity">
                       <CardHeader title="Aktivita" />
@@ -603,9 +601,6 @@ export function RecordView({
           </TabsContent>
           <TabsContent value="aktivita" className="p-4 outline-none sm:p-5">
             <ActivityTab entity={entity.key} id={id} />
-          </TabsContent>
-          <TabsContent value="ukoly" className="p-4 outline-none sm:p-5">
-            <TasksTab entity={entity.key} id={id} />
           </TabsContent>
           <TabsContent value="soubory" className="p-4 outline-none sm:p-5">
             <FilesTab entity={entity.key} id={id} canWrite={entity.can.write} />
@@ -735,83 +730,21 @@ function RecentActivity({
   showEmpty?: boolean;
 }) {
   const a = useActivity(entity, id);
-  const open = (a.data?.tasks ?? []).filter((t) => !t.done).slice(0, 3);
   const recent = (a.data?.timeline ?? []).slice(0, 4);
-  if (!open.length && !recent.length)
+  if (!recent.length)
     return showEmpty ? (
       <div>
         <h3 className="mb-2 text-sm font-semibold">Poslední dění</h3>
-        <p className="text-sm text-muted">Zatím tu nic není. Úkoly a změny se objeví tady.</p>
+        <p className="text-sm text-muted">Zatím tu nic není. Změny se objeví tady.</p>
       </div>
     ) : null;
   return (
     <section aria-label="Poslední dění" className="space-y-4">
-      {open.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-sm font-medium text-muted">Otevřené úkoly</h3>
-          <ul className="space-y-1">
-            {open.map((t) => (
-              <li key={t.id} className="flex items-center gap-2">
-                <CheckSquare className="size-4 text-faint" />
-                <span>{t.title}</span>
-                {t.dueDate && (
-                  <span className="ml-auto text-sm text-muted tabular">
-                    {formatDate(t.dueDate)}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
       {recent.length > 0 && (
         <div>
           <h3 className="mb-2 text-sm font-medium text-muted">Poslední aktivita</h3>
           <Timeline items={recent} />
         </div>
-      )}
-    </section>
-  );
-}
-
-/** Nejbližší úkoly záznamu (Přehled zakázky): otevřené úkoly podle termínu, bez termínu na konci. */
-function UpcomingTasks({ entity, id }: { entity: string; id: string }) {
-  const a = useActivity(entity, id);
-  const open = (a.data?.tasks ?? [])
-    .filter((t) => !t.done)
-    .sort((x, y) => (x.dueDate ?? "9999").localeCompare(y.dueDate ?? "9999"))
-    .slice(0, 5);
-  const today = new Date().toISOString().slice(0, 10);
-  return (
-    <section
-      aria-label="Nejbližší úkoly"
-      className="rounded-lg border border-line p-4"
-      data-testid="overview-tasks"
-    >
-      <h3 className="mb-2 text-sm font-semibold">Nejbližší úkoly</h3>
-      {a.isLoading ? (
-        <Skeleton className="h-10" />
-      ) : open.length === 0 ? (
-        <p className="text-sm text-muted">Žádné otevřené úkoly. Přidáte je v záložce Úkoly.</p>
-      ) : (
-        <ul className="space-y-1">
-          {open.map((t) => (
-            <li key={t.id} className="flex items-center gap-2">
-              <CheckSquare className="size-4 shrink-0 text-faint" />
-              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{t.title}</span>
-              {t.dueDate && (
-                <span
-                  className={cn(
-                    "shrink-0 text-sm tabular",
-                    t.dueDate < today ? "text-danger" : "text-muted",
-                  )}
-                >
-                  {formatDate(t.dueDate)}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
       )}
     </section>
   );
@@ -1009,91 +942,6 @@ function ActivityTab({ entity, id }: { entity: string; id: string }) {
         />
       ) : (
         <p className="text-muted">Zatím tu nic není.</p>
-      )}
-    </div>
-  );
-}
-
-function TasksTab({ entity, id }: { entity: string; id: string }) {
-  const api = useEntityApi();
-  const qc = useQueryClient();
-  const a = useActivity(entity, id);
-  const [title, setTitle] = useState("");
-  const [due, setDue] = useState<string | null>(null);
-  const [assignee, setAssignee] = useState<string | null>(null);
-  const refresh = () => qc.invalidateQueries({ queryKey: keys.activity(entity, id) });
-  const add = useMutation({
-    mutationFn: () => api.addTask(entity, id, { title, dueDate: due, assigneeId: assignee }),
-    onSuccess: () => {
-      setTitle("");
-      setDue(null);
-      void refresh();
-    },
-    onError: (e: Error) => errorToast(e.message),
-  });
-  const done = useMutation({
-    mutationFn: (v: { id: string; done: boolean }) => api.completeTask(v.id, v.done),
-    onSuccess: () => void refresh(),
-    onError: (e: Error) => errorToast(e.message),
-  });
-  return (
-    <div className="space-y-4">
-      <form
-        className="flex flex-wrap items-center gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (title.trim().length >= 2) add.mutate();
-        }}
-      >
-        <Input
-          aria-label="Nový úkol"
-          placeholder="Co je potřeba udělat?"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="min-w-48 flex-1"
-        />
-        <div className="w-36">
-          <DatePicker value={due} onChange={setDue} placeholder="Termín" />
-        </div>
-        <div className="w-40">
-          <Combobox
-            load={api.lookups.users}
-            value={assignee}
-            onChange={(v) => setAssignee(v as string | null)}
-            placeholder="Přidělit sobě"
-            clearable
-          />
-        </div>
-        <Button
-          type="submit"
-          variant="primary"
-          loading={add.isPending}
-          disabled={title.trim().length < 2}
-        >
-          Přidat
-        </Button>
-      </form>
-      {a.isLoading ? (
-        <Skeleton className="h-16" />
-      ) : !a.data?.tasks.length ? (
-        <p className="text-muted">Žádné úkoly.</p>
-      ) : (
-        <ul className="divide-y divide-line rounded-lg border border-line">
-          {a.data.tasks.map((t) => (
-            <li key={t.id} className="flex items-center gap-3 px-3 py-2">
-              <Checkbox
-                aria-label={`Hotovo: ${t.title}`}
-                checked={t.done}
-                onCheckedChange={(v) => done.mutate({ id: t.id, done: !!v })}
-              />
-              <span className={cn("flex-1", t.done && "text-faint line-through")}>{t.title}</span>
-              {t.priority === "high" && <Chip color="red">Vysoká</Chip>}
-              {t.dueDate && (
-                <span className="text-sm text-muted tabular">{formatDate(t.dueDate)}</span>
-              )}
-            </li>
-          ))}
-        </ul>
       )}
     </div>
   );

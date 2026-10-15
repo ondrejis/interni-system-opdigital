@@ -5,6 +5,7 @@ import { createCtx } from "../rbac/context";
 import { UserError } from "../rbac/errors";
 import type { Auth } from "./create-auth";
 import { MIN_PASSWORD_LENGTH } from "./password";
+import { deriveShortName } from "./user-fields";
 
 /**
  * Založí prvního uživatele (majitele) při instalaci. Idempotentní: když uživatel s e-mailem už je, nedělá nic.
@@ -43,6 +44,10 @@ export async function bootstrapOwner(
     accountId: user.id,
     password: await bac.password.hash(input.password),
   });
+  await db
+    .update(schema.user)
+    .set({ shortName: deriveShortName(input.name) })
+    .where(eq(schema.user.id, user.id));
   await recordAudit(
     createCtx(db, {
       kind: "system",

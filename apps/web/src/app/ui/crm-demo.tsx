@@ -243,8 +243,6 @@ function makeApi(rows: Deal[]): EntityApi {
     activity: async () => ({ timeline: [], tasks: [], files: [] }),
     addComment: nothing,
     deleteComment: nothing,
-    addTask: nothing,
-    completeTask: nothing,
     uploadFile: nothing,
     detachFile: nothing,
     views: {

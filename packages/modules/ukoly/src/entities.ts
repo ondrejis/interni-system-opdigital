@@ -1,30 +1,11 @@
-import { eq, or, sql } from "drizzle-orm";
 import { defineEntity, type Choice } from "@rebar/core/entities";
 import { todayIso } from "@rebar/core/time";
-import {
-  type TASK_PRIORITIES,
-  type TASK_STATUSES,
-  note,
-  task,
-  taskAttendee,
-  taskType,
-} from "./schema";
+import { note, task, taskAttendee, taskType } from "./schema";
+import { taskHooks, typeHooks } from "./tasks/hooks";
+import { ownTaskScope } from "./tasks/scope";
+import { OPEN_STATUSES, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "./tasks/constants";
 
-/** Popisky stavů úkolu. */
-export const TASK_STATUS_LABELS: Record<(typeof TASK_STATUSES)[number], string> = {
-  todo: "K udělání",
-  in_progress: "Rozpracovaný",
-  done: "Hotovo",
-  canceled: "Zrušeno",
-};
-/** Popisky priorit úkolu. */
-export const TASK_PRIORITY_LABELS: Record<(typeof TASK_PRIORITIES)[number], string> = {
-  none: "Bez priority",
-  low: "Nízká",
-  medium: "Střední",
-  high: "Vysoká",
-  urgent: "Urgentní",
-};
+export { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS };
 
 const choices = <K extends string>(
   labels: Record<K, string>,
@@ -36,7 +17,7 @@ const choices = <K extends string>(
     color: colors[value],
   }));
 
-const OPEN = ["todo", "in_progress"] as const;
+const OPEN = OPEN_STATUSES;
 
 /**
  * Úkol a aktivita (hovor, schůzka, e-mail, termín jsou typy). Rozsah „jen moje“: přidělený nebo vlastní. Výsledek
@@ -56,12 +37,9 @@ export const taskEntity = defineEntity({
     delete: "ukoly.delete",
   },
   ownerColumns: [task.assigneeId, task.createdBy],
-  scope: (ctx) => {
-    const me = ctx.actor.userId;
-    if (!me) return sql`false`;
-    return or(eq(task.assigneeId, me), eq(task.createdBy, me))!;
-  },
+  scope: ownTaskScope,
   ownerDefaults: (ctx) => ({ assignee: ctx.actor.userId }),
+  ...taskHooks,
   visibility: {
     parents: [
       { entityType: "deal", column: "dealId" },
@@ -239,6 +217,29 @@ export const taskEntity = defineEntity({
       width: 130,
     },
     {
+      key: "parent",
+      label: "Nadřazený úkol",
+      type: "record",
+      field: "parentId",
+      record: { entityType: "task" },
+      width: 200,
+    },
+    { key: "jobPhase", label: "Fáze zakázky", type: "text", field: "jobPhaseId", width: 160 },
+    {
+      key: "sendInvites",
+      label: "Poslat pozvánky",
+      type: "checkbox",
+      field: "sendInvites",
+      width: 120,
+    },
+    {
+      key: "sourceTemplateTask",
+      label: "Z šablony",
+      type: "text",
+      field: "sourceTemplateTask",
+      width: 160,
+    },
+    {
       key: "tags",
       label: "Štítky",
       type: "multiselect",
@@ -366,6 +367,7 @@ export const taskTypeEntity = defineEntity({
     create: "ukoly.types",
     delete: "ukoly.types",
   },
+  ...typeHooks,
   attributes: [
     {
       key: "name",

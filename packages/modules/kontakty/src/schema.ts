@@ -135,6 +135,14 @@ export const person = pgTable(
     primaryCompanyId: uuid("primary_company_id").references(() => company.id),
     linkedin: text("linkedin"),
     isDecisionMaker: boolean("is_decision_maker").notNull().default(false),
+    /**
+     * Hlavní e-mail a telefon osoby tak, jak je zapsal uživatel (denormalizace z `person_contact_point` pro seznam,
+     * hledání a rychlé volání). Zdroj pravdy jsou kontaktní údaje; sloupce udržují `points.ts` a háčky entity.
+     */
+    primaryEmail: text("primary_email"),
+    primaryPhone: text("primary_phone"),
+    /** Poslední dokončená aktivita u osoby (hovor, schůzka…); píše modul Úkoly přes `writeSystemFields`. */
+    lastActivityAt: ts("last_activity_at"),
     ownerId: uuid("owner_id").references(() => user.id),
     ...visibilityColumns(),
     tags: text("tags")
@@ -151,6 +159,8 @@ export const person = pgTable(
     check("person_last_name_chk", sql`btrim(${t.lastName}) <> ''`),
     trigramIndex("person_full_name_trgm_idx", t.fullName),
     trigramIndex("person_position_trgm_idx", t.position),
+    trigramIndex("person_primary_email_trgm_idx", t.primaryEmail),
+    trigramIndex("person_primary_phone_trgm_idx", t.primaryPhone),
     index("person_primary_company_idx").on(t.primaryCompanyId),
     index("person_owner_idx").on(t.ownerId),
     index("person_decision_idx")
@@ -200,7 +210,10 @@ export const personContactPoint = pgTable(
   ],
 );
 
-/** Další organizace osoby (kromě hlavní) s rolí a pozicí v nich. */
+/**
+ * Další organizace osoby (kromě hlavní, ta je v `person.primary_company_id`) s rolí a pozicí v nich. `is_primary` je
+ * vždy `false`; hlavní firma se do této tabulky nezapisuje (dotazy čtou obě místa).
+ */
 export const personCompany = pgTable(
   "person_company",
   {

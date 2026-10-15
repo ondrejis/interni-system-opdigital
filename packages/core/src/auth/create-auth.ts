@@ -1,13 +1,15 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { twoFactor } from "better-auth/plugins";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { schema, type Db } from "../db/client";
 import { newId } from "../db/ids";
-import { clientIp } from "./ip";
 import type { Mailer } from "./mailer";
 import { hashPassword, MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, verifyPassword } from "./password";
+import type { PasswordCheckOptions } from "./password-policy";
+import { DEFAULT_TWO_FACTOR_POLICY, type TwoFactorPolicy } from "./policy";
+import { onPasswordResetDone, securityPlugin } from "./security-plugin";
+import { TRUSTED_DEVICE_DAYS } from "./trusted-devices";
 
 export type AuthOptions = {
   db: Db;
@@ -21,12 +23,16 @@ export type AuthOptions = {
   idleTimeoutMinutes: number;
   mailer: Mailer;
   trustedOrigins?: string[];
+  /** Komu je druhý faktor povinný: výchozí všem (OPSYS), `roles` jen rolím s příznakem `require_2fa`. */
+  twoFactorPolicy?: TwoFactorPolicy;
+  /** Pravidla pro nová hesla při obnově z odkazu (jen testy; výchozí viz `assertPasswordAcceptable`). */
+  passwordCheck?: PasswordCheckOptions;
 };
 
 /**
- * Autentizace: e-mail + heslo (argon2id), 2FA (TOTP), sessions v DB, rate limit v DB,
- * žádná veřejná registrace (účty vznikají jen pozvánkou). Role a oprávnění jsou naše
- * (`rbac`), Better Auth řeší jen identitu.
+ * Autentizace: e-mail + heslo (argon2id), povinné 2FA (TOTP s 10 záložními kódy, důvěryhodné zařízení na 30 dní),
+ * sessions v DB, omezení přihlašování 5 pokusů / 15 min, bezpečnostní události do historie, žádná veřejná registrace
+ * (účty vznikají jen pozvánkou). Role a oprávnění jsou naše (`rbac`), Better Auth řeší jen identitu.
  */
 export function createAuth(opts: AuthOptions) {
   const { db } = opts;
@@ -70,6 +76,9 @@ export function createAuth(opts: AuthOptions) {
       password: { hash: hashPassword, verify: verifyPassword },
       resetPasswordTokenExpiresIn: 60 * 60,
       revokeSessionsOnPasswordReset: true,
+      onPasswordReset: async ({ user }, request) => {
+        await onPasswordResetDone(db, user, request);
+      },
       sendResetPassword: async ({ user, url }) => {
         await opts.mailer.send({
           to: user.email,
@@ -107,7 +116,19 @@ export function createAuth(opts: AuthOptions) {
         "/two-factor/disable": { window: 60, max: 5 },
       },
     },
-    plugins: [twoFactor({ issuer: opts.appName })],
+    plugins: [
+      twoFactor({
+        issuer: opts.appName,
+        // zařízení se po ověření kódem nechá označit jako důvěryhodné; platnost se při každém přihlášení z něj obnoví
+        trustDeviceMaxAge: TRUSTED_DEVICE_DAYS * 86_400,
+        backupCodeOptions: { amount: 10 },
+      }),
+      securityPlugin({
+        db,
+        twoFactorPolicy: opts.twoFactorPolicy ?? DEFAULT_TWO_FACTOR_POLICY,
+        passwordCheck: opts.passwordCheck,
+      }),
+    ],
     databaseHooks: {
       session: {
         create: {
@@ -119,80 +140,8 @@ export function createAuth(opts: AuthOptions) {
               .where(eq(schema.user.id, session.userId));
             if (!u || !u.active || u.deletedAt) return false;
           },
-          after: async (session) => {
-            await db.insert(schema.loginEvent).values({
-              userId: session.userId,
-              outcome: "success",
-              ipAddress: session.ipAddress ?? null,
-              userAgent: session.userAgent ?? null,
-            });
-            await db
-              .update(schema.user)
-              .set({ lastLoginAt: new Date() })
-              .where(eq(schema.user.id, session.userId));
-          },
         },
       },
-    },
-    hooks: {
-      // Role s povinným dvoufázovým ověřením si ho nemůže vypnout (jinak by obešla omezenou relaci).
-      before: createAuthMiddleware(async (ctx) => {
-        if (ctx.path !== "/two-factor/disable") return;
-        const session = await getSessionFromCtx(ctx).catch(() => null);
-        if (!session) return;
-        const [r] = await db
-          .select({ required: schema.role.require2fa })
-          .from(schema.user)
-          .innerJoin(schema.role, eq(schema.user.roleId, schema.role.id))
-          .where(eq(schema.user.id, session.user.id));
-        if (r?.required)
-          throw new APIError("FORBIDDEN", {
-            message: "Pro vaši roli je dvoufázové ověření povinné, nejde vypnout.",
-            code: "TWO_FACTOR_REQUIRED_FOR_ROLE",
-          });
-      }),
-      after: createAuthMiddleware(async (ctx) => {
-        // Nové záložní kódy a vypnutí dvoufázového ověření do auditu (bez hodnot kódů).
-        if (
-          (ctx.path === "/two-factor/generate-backup-codes" ||
-            ctx.path === "/two-factor/disable") &&
-          !(ctx.context.returned instanceof APIError)
-        ) {
-          const session =
-            ctx.context.newSession ?? (await getSessionFromCtx(ctx).catch(() => null));
-          if (session)
-            await db.insert(schema.auditLog).values({
-              actorKind: "user",
-              actorId: session.user.id,
-              action:
-                ctx.path === "/two-factor/disable" ? "disable_2fa" : "regenerate_backup_codes",
-              entityType: "user",
-              entityId: session.user.id,
-              summary:
-                ctx.path === "/two-factor/disable"
-                  ? "Vypnuto dvoufázové ověření"
-                  : "Vygenerovány nové záložní kódy, staré přestaly platit",
-              requestId: ctx.request?.headers.get("x-request-id") ?? null,
-              ip: ctx.request ? clientIp(ctx.request.headers) : null,
-            });
-          return;
-        }
-        // Neúspěšné přihlášení heslem do historie přihlášení (jen pro existující účty).
-        if (ctx.path !== "/sign-in/email" || !(ctx.context.returned instanceof APIError)) return;
-        const email = typeof ctx.body?.email === "string" ? ctx.body.email : null;
-        if (!email) return;
-        const [u] = await db
-          .select({ id: schema.user.id })
-          .from(schema.user)
-          .where(sql`lower(${schema.user.email}) = lower(${email})`);
-        if (!u) return;
-        await db.insert(schema.loginEvent).values({
-          userId: u.id,
-          outcome: "failed",
-          ipAddress: ctx.request ? clientIp(ctx.request.headers) : null,
-          userAgent: ctx.request?.headers.get("user-agent") ?? null,
-        });
-      }),
     },
   });
 }

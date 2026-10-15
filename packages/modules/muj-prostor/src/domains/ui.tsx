@@ -1,6 +1,12 @@
 "use client";
 
 import { defineModuleUi } from "@rebar/ui";
+import { DomainsPage } from "./domains-page";
 
-/** UI oblasti „domains“ modulu „muj-prostor“ (MPR-1: hromadné vložení, barvy expirace); zapojuje ji `ui.tsx` přes `mergeModuleUi`. Seznam dodává generická trasa entity `web_domain`. */
-export const areaUi = defineModuleUi({});
+/**
+ * UI oblasti „domains“ modulu „muj-prostor“ (MPR-1): stránka Domény s barvami expirace, hromadným vložením a přiřazením
+ * klienta. Zapojuje ji `ui.tsx` přes `mergeModuleUi`. Generický seznam s filtry a exportem je na `/muj-prostor/domeny/vse`.
+ */
+export const areaUi = defineModuleUi({
+  pages: [{ path: "/muj-prostor/domeny", render: () => <DomainsPage /> }],
+});

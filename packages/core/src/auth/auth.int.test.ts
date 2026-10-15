@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, like, notLike } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { schema } from "../db/client";
 import { newId } from "../db/ids";
@@ -109,7 +109,11 @@ describe("pozvánky", () => {
       .where(eq(schema.invitation.email, email));
     expect(inv!.tokenHash).not.toContain(token);
     expect(inv!.tokenHash).toMatch(/^[0-9a-f]{64}$/);
-    expect(inv!.expiresAt.getTime() - Date.now()).toBeGreaterThan(6.9 * 86_400_000);
+    // pozvánka platí 48 hodin (AUT-02)
+    const left = inv!.expiresAt.getTime() - Date.now();
+    expect(left).toBeGreaterThan(47.9 * 3_600_000);
+    expect(left).toBeLessThanOrEqual(48 * 3_600_000);
+    expect(mail.vars.expiresIn).toBe("48 hodin");
 
     const audit = await app.db
       .select()
@@ -215,19 +219,33 @@ describe("pozvánky", () => {
 });
 
 describe("přihlášení", () => {
-  it("po přijetí pozvánky se uživatel přihlásí a kontext má oprávnění jeho role", async () => {
+  it("po přijetí pozvánky se uživatel přihlásí; bez druhého faktoru je kontext omezený, s ním má oprávnění role", async () => {
     const role = await makeRole({ perms: ["zakazky.read"] });
     const { email, userId } = await onboard(role.id);
     const { cookies, response } = await signIn(email);
     expect("twoFactorRedirect" in response).toBe(false);
 
-    const ctx = await resolveCtx({ auth, db: app.db, headers: cookies, catalog });
-    expect(ctx?.actor.userId).toBe(userId);
+    // povinné 2FA platí pro každou roli, i bez příznaku `require_2fa`
+    const restricted = await resolveCtx({ auth, db: app.db, headers: cookies, catalog });
+    expect(restricted?.actor.userId).toBe(userId);
+    expect(restricted?.actor.restriction).toBe("2fa_setup");
+    expect(can(restricted!, "zakazky.read")).toBe(false);
+
+    const enabled = await enableTotp(cookies);
+    const verified = await auth.api.verifyTOTP({
+      body: { code: totpCode(secretFromTotpUri(enabled.totpURI)) },
+      headers: cookies,
+      returnHeaders: true,
+    });
+    const full = cookieHeader(verified.headers, cookies.get("cookie") ?? "");
+    const ctx = await resolveCtx({ auth, db: app.db, headers: full, catalog });
+    expect(ctx?.actor.restriction).toBeNull();
     expect(can(ctx!, "zakazky.read")).toBe(true);
     expect(can(ctx!, "users.manage")).toBe(false);
 
     const [u] = await app.db.select().from(schema.user).where(eq(schema.user.id, userId));
     expect(u?.lastLoginAt).toBeInstanceOf(Date);
+    expect(u?.shortName).toBe("JN");
     const events = await app.db
       .select()
       .from(schema.loginEvent)
@@ -273,7 +291,7 @@ describe("přihlášení", () => {
     const { cookies } = await signIn(email);
     await app.db
       .update(schema.session)
-      .set({ createdAt: new Date(Date.now() - 31 * 86_400_000) })
+      .set({ createdAt: new Date(Date.now() - 91 * 86_400_000) })
       .where(eq(schema.session.userId, userId));
     expect(await resolveCtx({ auth, db: app.db, headers: cookies, catalog })).toBeNull();
   });
@@ -290,24 +308,66 @@ describe("přihlášení", () => {
     expect(await resolveCtx({ auth, db: app.db, headers: cookies, catalog })).toBeNull();
   });
 
-  it("omezení počtu pokusů: po osmi chybných přihláštních vrátí 429 (počítadlo v DB)", async () => {
+  it("omezení počtu pokusů: po pěti chybných pokusech za 15 minut se šestý zablokuje (429), i se správným heslem", async () => {
+    const role = await makeRole();
+    const { email, userId } = await onboard(role.id);
+    const ip = `198.51.100.${Math.floor(Math.random() * 250) + 1}`;
+    const attempt = (password: string, from = ip) =>
+      auth.handler(
+        new Request(`${baseURL}/api/auth/sign-in/email`, {
+          method: "POST",
+          headers: { "content-type": "application/json", origin: baseURL, "x-forwarded-for": from },
+          body: JSON.stringify({ email, password }),
+        }),
+      );
+    const statuses: number[] = [];
+    for (let i = 0; i < 5; i++) statuses.push((await attempt("špatné-heslo-123")).status);
+    expect(statuses).toEqual([401, 401, 401, 401, 401]);
+    expect((await attempt(PASSWORD)).status).toBe(429);
+    expect((await attempt("špatné-heslo-123")).status).toBe(429);
+    const blocked = await (await attempt(PASSWORD)).json();
+    expect(blocked).toMatchObject({ code: "TOO_MANY_LOGIN_ATTEMPTS" });
+
+    // jiná adresa stejného účtu zablokovaná není (omezení je na dvojici účet + IP)
+    const other = `203.0.113.${Math.floor(Math.random() * 250) + 1}`;
+    expect((await attempt(PASSWORD, other)).status).toBe(200);
+
+    // do historie: pět neúspěšných pokusů a jedno zablokování (jen první)
+    const events = await app.db
+      .select({ action: schema.auditLog.action, category: schema.auditLog.category })
+      .from(schema.auditLog)
+      .where(and(eq(schema.auditLog.entityType, "user"), eq(schema.auditLog.entityId, userId)));
+    expect(events.filter((e) => e.action === "login_failed")).toHaveLength(5);
+    expect(events.filter((e) => e.action === "login_blocked")).toHaveLength(1);
+    expect(
+      events.filter((e) => e.action === "login_failed").every((e) => e.category === "security"),
+    ).toBe(true);
+  });
+
+  it("po vypršení okna se počítadlo vynuluje a úspěšné přihlášení smaže neúspěšné pokusy", async () => {
     const role = await makeRole();
     const { email } = await onboard(role.id);
-    const ip = `198.51.100.${Math.floor(Math.random() * 250) + 1}`;
-    const attempt = () =>
+    const ip = `192.0.2.${Math.floor(Math.random() * 250) + 1}`;
+    const post = (password: string) =>
       auth.handler(
         new Request(`${baseURL}/api/auth/sign-in/email`, {
           method: "POST",
           headers: { "content-type": "application/json", origin: baseURL, "x-forwarded-for": ip },
-          body: JSON.stringify({ email, password: "špatné-heslo-123" }),
+          body: JSON.stringify({ email, password }),
         }),
       );
-    const statuses: number[] = [];
-    for (let i = 0; i < 10; i++) statuses.push((await attempt()).status);
-    expect(statuses.slice(0, 8).every((s) => s === 401)).toBe(true);
-    expect(statuses.slice(8)).toEqual([429, 429]);
-    const rows = await app.db.select().from(schema.rateLimit);
-    expect(rows.length).toBeGreaterThan(0);
+    for (let i = 0; i < 4; i++) expect((await post("špatné-heslo-123")).status).toBe(401);
+    expect((await post(PASSWORD)).status).toBe(200); // čtvrtý neúspěch + správné heslo: povoleno, počítadlo pryč
+    // vlastní omezení knihovny (8 / min na adresu) tu nesmí překážet: testuje se jen omezení OPSYS
+    await app.db.delete(schema.rateLimit).where(notLike(schema.rateLimit.key, "app:%"));
+    for (let i = 0; i < 5; i++) expect((await post("špatné-heslo-123")).status).toBe(401);
+    expect((await post(PASSWORD)).status).toBe(429);
+    // simulace uplynutí 15 minut: okno počítadla je pevné od prvního neúspěchu
+    await app.db
+      .update(schema.rateLimit)
+      .set({ lastRequest: Date.now() - 16 * 60_000 })
+      .where(like(schema.rateLimit.key, "app:login:%"));
+    expect((await post(PASSWORD)).status).toBe(200);
   });
 });
 

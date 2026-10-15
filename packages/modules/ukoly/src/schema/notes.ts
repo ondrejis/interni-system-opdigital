@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, index, jsonb, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, index, integer, jsonb, pgTable, text, uuid } from "drizzle-orm/pg-core";
 import { audit, pk, trigramIndex, visibilityColumns, visibilityIndex } from "@rebar/core/db";
 
 /**
@@ -15,6 +15,11 @@ export const note = pgTable(
     bodyJson: jsonb("body_json").$type<Record<string, unknown>>(),
     bodyText: text("body_text").notNull().default(""),
     pinned: boolean("pinned").notNull().default(false),
+    /**
+     * Verze textu: roste o 1 při každé uložené změně obsahu (`body_json`). Autosave ji posílá jako `baseVersion`, takže
+     * zápis ze zastaralého okna se nepřepíše mlčky (UKO-N).
+     */
+    version: integer("version").notNull().default(1),
     dealId: uuid("deal_id"),
     companyId: uuid("company_id"),
     personId: uuid("person_id"),
@@ -27,6 +32,7 @@ export const note = pgTable(
     ...audit(),
   },
   (t) => [
+    check("note_version_chk", sql`${t.version} >= 1`),
     check(
       "note_single_link_chk",
       sql`num_nonnulls(${t.dealId}, ${t.companyId}, ${t.personId}, ${t.jobId}) <= 1`,

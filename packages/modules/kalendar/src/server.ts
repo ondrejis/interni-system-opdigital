@@ -6,4 +6,4 @@ import { area as google } from "./google";
 /** Serverová část modulu „kalendar“: společné entity a příkazy plus oblast `google` (synchronizace s Google Kalendářem). */
 export const server = mergeServers(defineModuleServer({ entities, commands }), google);
 
-export { calendarAccount, calendar, calendarEvent } from "./schema";
+export { calendarAccount, calendar, calendarEvent, calendarPush } from "./schema";

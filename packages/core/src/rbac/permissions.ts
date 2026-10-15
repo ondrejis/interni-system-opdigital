@@ -25,6 +25,14 @@ export function can(ctx: Ctx, key: string, record?: OwnedRecord): boolean {
   return !!me && record.ownerIds.includes(me);
 }
 
+/**
+ * Smí aktér vidět soukromé záznamy (zámek)? Jen s oprávněním `private.read`, které má vlastník (role `owner`) a které
+ * nejde přidělit jiné roli. Partner nikdy; systémový aktér (úlohy, n8n) ano.
+ */
+export function canSeePrivate(ctx: Ctx): boolean {
+  return scopeOf(ctx, "private.read") !== null;
+}
+
 export function assertCan(ctx: Ctx, key: string, record?: OwnedRecord): void {
   if (!can(ctx, key, record)) throw new PermissionError();
 }

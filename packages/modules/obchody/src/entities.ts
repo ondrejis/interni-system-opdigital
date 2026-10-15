@@ -1,31 +1,17 @@
 import { defineEntity, type Choice } from "@rebar/core/entities";
+import { deal, dealParticipant, dealStageHistory } from "./schema";
 import {
-  type DEAL_RESULTS,
-  type DEAL_SOURCES,
-  deal,
-  dealParticipant,
-  dealStageHistory,
-} from "./schema";
+  DEAL_PIPELINE,
+  DEAL_RESULT_LABELS,
+  DEAL_SOURCE_LABELS,
+  LOST_REASON_LOOKUP,
+  type DealResult,
+  type DealSource,
+} from "./shared";
+import { dealHooks } from "./deals/hooks";
 
-/** Číselník důvodů prohry obchodu (seed v manifestu). */
-export const LOST_REASON_LOOKUP = "deal.lost_reason";
-/** Pipeline obchodů (`pipeline.entity_type = "deal"`, klíč `default`). */
-export const DEAL_PIPELINE = { entityType: "deal", key: "default" } as const;
+export { DEAL_PIPELINE, DEAL_RESULT_LABELS, DEAL_SOURCE_LABELS, LOST_REASON_LOOKUP };
 
-/** Popisky výsledků obchodu. */
-export const DEAL_RESULT_LABELS: Record<(typeof DEAL_RESULTS)[number], string> = {
-  open: "Otevřený",
-  won: "Vyhraný",
-  lost: "Prohraný",
-};
-/** Popisky zdrojů obchodu. */
-export const DEAL_SOURCE_LABELS: Record<(typeof DEAL_SOURCES)[number], string> = {
-  manual: "Ručně",
-  meta: "Meta (formulář)",
-  web_form: "Webový formulář",
-  referral: "Doporučení",
-  other: "Jiný",
-};
 const SERVICES: Choice[] = [
   { value: "web", label: "Web" },
   { value: "marketing", label: "Marketing" },
@@ -180,7 +166,7 @@ export const dealEntity = defineEntity({
       label: "Výsledek",
       type: "select",
       field: "result",
-      choices: (Object.keys(DEAL_RESULT_LABELS) as (typeof DEAL_RESULTS)[number][]).map((v) => ({
+      choices: (Object.keys(DEAL_RESULT_LABELS) as DealResult[]).map((v) => ({
         value: v,
         label: DEAL_RESULT_LABELS[v],
         color: { open: "blue", won: "green", lost: "red" }[v],
@@ -194,7 +180,7 @@ export const dealEntity = defineEntity({
       label: "Zdroj",
       type: "select",
       field: "source",
-      choices: (Object.keys(DEAL_SOURCE_LABELS) as (typeof DEAL_SOURCES)[number][]).map((v) => ({
+      choices: (Object.keys(DEAL_SOURCE_LABELS) as DealSource[]).map((v) => ({
         value: v,
         label: DEAL_SOURCE_LABELS[v],
       })),
@@ -263,6 +249,7 @@ export const dealEntity = defineEntity({
     title: String(r.title),
     ...(r.sourceDetail ? { subtitle: String(r.sourceDetail) } : {}),
   }),
+  ...dealHooks,
   url: (id) => `/obchody/${id}`,
 });
 

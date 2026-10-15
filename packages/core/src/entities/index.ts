@@ -51,4 +51,20 @@ export { setDeleteBlockers, deleteBlockMessage, countActive } from "./delete-blo
 export type { DeleteBlocker } from "./delete-blockers";
 export type { PhaseTransitionHook, PhaseTransition, StageChange } from "./phase-hooks";
 export { getRecordActivity } from "./activity";
+export {
+  canSeePrivate,
+  privateScope,
+  notPrivateRecord,
+  isPrivateRecord,
+  setVisibility,
+  assertAssignable,
+  PrivateAssignmentError,
+  visibilityForInsert,
+  hasPrivateParent,
+  syncPrivateRecord,
+  PRIVATE_LABEL,
+} from "./visibility";
+export { setActiveRegistry, getActiveRegistry, findActiveRegistry } from "./active-registry";
+export { childLinks, parentLinks, hasVisibility } from "./links";
+export type { ChildLink, ParentLink } from "./links";
 export type { TimelineItem } from "./activity";

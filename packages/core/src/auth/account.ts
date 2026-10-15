@@ -1,11 +1,14 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import "../zod-locale";
 import { auditChange } from "../audit/audit";
 import { schema } from "../db/client";
 import { inTx } from "../rbac/context";
-import { NotFoundError, PermissionError } from "../rbac/errors";
+import { NotFoundError, PermissionError, UserError } from "../rbac/errors";
 import type { Ctx } from "../rbac/types";
+import { DEFAULT_TWO_FACTOR_POLICY } from "./policy";
+import { readAppearance, type Appearance } from "./prefs";
+import { avatarColorField, deriveShortName, shortNameField } from "./user-fields";
 
 /** Údaje přihlášeného uživatele pro hlavičku, stránku Můj účet a zabezpečení. Každý vidí jen sebe. */
 export async function getAccount(ctx: Ctx) {
@@ -20,13 +23,25 @@ export async function getAccount(ctx: Ctx) {
       twoFactorEnabled: schema.user.twoFactorEnabled,
       twoFactorRequired: schema.role.require2fa,
       phone: schema.employee.phone,
+      shortName: schema.user.shortName,
+      avatarColor: schema.user.avatarColor,
+      ico: schema.user.ico,
+      billingTool: schema.user.billingTool,
+      prefs: schema.user.prefs,
     })
     .from(schema.user)
     .innerJoin(schema.role, eq(schema.user.roleId, schema.role.id))
     .leftJoin(schema.employee, eq(schema.employee.userId, schema.user.id))
     .where(eq(schema.user.id, id));
   if (!row) throw new NotFoundError();
-  return row;
+  const { prefs, shortName, ...rest } = row;
+  return {
+    ...rest,
+    twoFactorRequired: DEFAULT_TWO_FACTOR_POLICY === "all" || rest.twoFactorRequired,
+    /** Zkratka uložená u uživatele, jinak odvozená z jména. */
+    shortName: shortName ?? deriveShortName(rest.name),
+    appearance: readAppearance(prefs) satisfies Appearance,
+  };
 }
 
 /** Telefon: prázdný = bez telefonu; jinak číslice, mezery a `+ - ( ) / .` s 7 až 15 číslicemi. */
@@ -44,12 +59,17 @@ const phoneField = z
 export const profileInput = z.object({
   name: z.string().trim().min(2, "Vyplňte jméno.").max(100, "Jméno je příliš dlouhé."),
   phone: phoneField,
+  /** Zkratka do avatarů a rozpisů (2 až 4 znaky); prázdná = odvodí se z jména. Neuvedená = beze změny. */
+  shortName: shortNameField.optional(),
+  /** Barva avataru; `null` = podle jména. Neuvedená = beze změny. */
+  avatarColor: avatarColorField.optional(),
 });
 
 /**
- * Úprava vlastního profilu: jméno (`user.name`) a telefon (`employee.phone`). E-mail si uživatel nemění sám, protože je to
- * přihlašovací jméno a cíl odkazů pro obnovu hesla; mění se přes správce uživatelů nebo novou pozvánku.
- * Jméno i telefon se čtou ze stejných tabulek všude jinde (záznamy, aktivita, docházka), takže se změna projeví hned všude.
+ * Úprava vlastního profilu: jméno (`user.name`), telefon (`employee.phone`), zkratka a barva avataru. E-mail si uživatel
+ * nemění sám, protože je to přihlašovací jméno a cíl odkazů pro obnovu hesla; mění se přes správce uživatelů nebo novou
+ * pozvánku. IČO a fakturační nástroj mění jen správce uživatelů. Jméno i telefon se čtou ze stejných tabulek všude jinde
+ * (záznamy, aktivita, docházka), takže se změna projeví hned všude.
  */
 export async function updateOwnProfile(ctx: Ctx, raw: z.input<typeof profileInput>) {
   const id = ctx.actor.userId;
@@ -57,7 +77,12 @@ export async function updateOwnProfile(ctx: Ctx, raw: z.input<typeof profileInpu
   const input = profileInput.parse(raw);
   await inTx(ctx, async (c) => {
     const [before] = await c.db
-      .select({ name: schema.user.name, phone: schema.employee.phone })
+      .select({
+        name: schema.user.name,
+        phone: schema.employee.phone,
+        shortName: schema.user.shortName,
+        avatarColor: schema.user.avatarColor,
+      })
       .from(schema.user)
       .leftJoin(schema.employee, eq(schema.employee.userId, schema.user.id))
       .where(eq(schema.user.id, id));
@@ -75,6 +100,31 @@ export async function updateOwnProfile(ctx: Ctx, raw: z.input<typeof profileInpu
         after: { name: input.name },
         summary: "Změna jména v profilu",
       });
+    }
+
+    if (input.shortName !== undefined || input.avatarColor !== undefined) {
+      const next = {
+        shortName:
+          input.shortName === undefined
+            ? before.shortName
+            : (input.shortName ?? deriveShortName(input.name)),
+        avatarColor: input.avatarColor === undefined ? before.avatarColor : input.avatarColor,
+      };
+      if (next.shortName && next.shortName !== before.shortName)
+        await assertShortNameFree(c, next.shortName, id);
+      if (next.shortName !== before.shortName || next.avatarColor !== before.avatarColor) {
+        await c.db
+          .update(schema.user)
+          .set({ shortName: next.shortName, avatarColor: next.avatarColor, updatedBy: id })
+          .where(eq(schema.user.id, id));
+        await auditChange(c, {
+          entityType: "user",
+          entityId: id,
+          before: { shortName: before.shortName, avatarColor: before.avatarColor },
+          after: next,
+          summary: "Změna zkratky nebo avataru v profilu",
+        });
+      }
     }
 
     const oldPhone = before.phone ?? null;
@@ -96,4 +146,20 @@ export async function updateOwnProfile(ctx: Ctx, raw: z.input<typeof profileInpu
       });
     }
   });
+}
+
+/** Zkratka musí být mezi aktivními uživateli jedinečná (rozlišuje je v rozpisech a avatarech); bez ohledu na velikost písmen. */
+export async function assertShortNameFree(ctx: Ctx, shortName: string, exceptUserId: string) {
+  const [taken] = await ctx.db
+    .select({ id: schema.user.id })
+    .from(schema.user)
+    .where(
+      and(
+        sql`lower(${schema.user.shortName}) = lower(${shortName})`,
+        ne(schema.user.id, exceptUserId),
+        isNull(schema.user.deletedAt),
+        eq(schema.user.active, true),
+      ),
+    );
+  if (taken) throw new UserError(`Zkratku ${shortName} už používá jiný uživatel.`);
 }

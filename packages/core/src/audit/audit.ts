@@ -1,5 +1,6 @@
+import { sql } from "drizzle-orm";
 import { schema } from "../db/client";
-import type { AuditChange } from "../db/schema/audit";
+import type { AuditCategory, AuditChange } from "../db/schema/audit";
 import type { Ctx } from "../rbac/types";
 
 /** Pole, která se do auditu nikdy neukládají v čitelné podobě. */
@@ -72,21 +73,63 @@ export type AuditEntry = {
   entityId: string;
   summary?: string;
   changes?: AuditChange[];
+  /** Kategorie záznamu v historii; bez ní se určí z typu záznamu (`auditCategoryOf`). */
+  category?: AuditCategory;
+  /**
+   * Soukromá změna: kopie viditelnosti záznamu v době změny, která zůstane i po jeho zveřejnění (R-33). Bez zadání se
+   * zjistí z `private_record`. Záznam o vedlejší věci soukromého záznamu (komentář, soubor) ji musí předat výslovně.
+   */
+  isPrivate?: boolean;
+  /** Název záznamu v době změny (R-34): historie dává smysl i po přejmenování nebo smazání záznamu. */
+  entityTitle?: string | null;
+  /** Kontext pro filtrování a odkazy: `{ entityType, entityId, dealId, jobId, companyId… }`. */
+  context?: Record<string, unknown>;
 };
+
+const SECURITY_TYPES = new Set(["user", "invitation", "role", "role_permission", "session"]);
+const INTEGRATION_TYPES = new Set([
+  "setting",
+  "webhook_endpoint",
+  "webhook_delivery",
+  "integration_credential",
+  "inbound_event",
+]);
+
+/**
+ * Kategorie historie podle typu záznamu: uživatelé, pozvánky a role jsou `security`, nastavení a integrace
+ * `integration`, vše ostatní `data`. Přihlášení a neúspěšné pokusy zapisuje auth s `category: "security"`.
+ */
+export function auditCategoryOf(entityType: string): AuditCategory {
+  if (SECURITY_TYPES.has(entityType)) return "security";
+  if (INTEGRATION_TYPES.has(entityType)) return "integration";
+  return "data";
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Zapíše auditní záznam. Volat uvnitř téže transakce jako změna (`inTx`), aby změna
  * bez stopy nemohla vzniknout. Při selhání zápisu se vrací celá transakce.
  */
 export async function recordAudit(ctx: Ctx, entry: AuditEntry): Promise<void> {
+  const isPrivate =
+    entry.isPrivate ??
+    (UUID.test(entry.entityId)
+      ? sql<boolean>`exists (select 1 from private_record where entity_type = ${entry.entityType} and entity_id = ${entry.entityId}::uuid)`
+      : false);
   await ctx.db.insert(schema.auditLog).values({
     actorKind: ctx.actor.kind,
     actorId: ctx.actor.userId,
+    actorLabel: ctx.actor.label ?? null,
     action: entry.action,
     entityType: entry.entityType,
     entityId: entry.entityId,
     summary: entry.summary ?? null,
     changes: redactChanges(entry.changes ?? []),
+    category: entry.category ?? auditCategoryOf(entry.entityType),
+    isPrivate,
+    entityTitle: entry.entityTitle ?? null,
+    context: entry.context ?? null,
     requestId: ctx.requestId ?? null,
     ip: ctx.ip ?? null,
   });
@@ -102,6 +145,10 @@ export async function auditChange(
     after: Record<string, unknown>;
     summary?: string;
     ignore?: readonly string[];
+    category?: AuditCategory;
+    isPrivate?: boolean;
+    entityTitle?: string | null;
+    context?: Record<string, unknown>;
   },
 ): Promise<AuditChange[]> {
   const changes = diffRecords(spec.before, spec.after, spec.ignore ? { ignore: spec.ignore } : {});
@@ -112,6 +159,10 @@ export async function auditChange(
     entityId: spec.entityId,
     changes,
     ...(spec.summary ? { summary: spec.summary } : {}),
+    ...(spec.category ? { category: spec.category } : {}),
+    ...(spec.isPrivate !== undefined ? { isPrivate: spec.isPrivate } : {}),
+    ...(spec.entityTitle !== undefined ? { entityTitle: spec.entityTitle } : {}),
+    ...(spec.context ? { context: spec.context } : {}),
   });
   return changes;
 }

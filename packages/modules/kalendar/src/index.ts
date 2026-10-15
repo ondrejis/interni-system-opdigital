@@ -1,11 +1,10 @@
 import { defineModule } from "@rebar/core/manifest";
-import { KALENDAR_NOTIFICATIONS } from "./notifications";
 
 export const manifest = defineModule({
   id: "kalendar",
   name: "Kalendář",
   description:
-    "Kalendář propojený s Google Kalendářem uživatele: pohledy Den, Týden, Měsíc a Agenda, vrstvy z ostatních modulů (úkoly s termínem, termíny zakázek), vazby událostí na obchody a kontakty, cizí soukromé události jako „Obsazeno“.",
+    "Kalendář propojený s Google Kalendářem každého uživatele (obousměrná synchronizace do minuty): pohledy Den, Týden, Měsíc a Agenda, schůzky a hovory z úkolů zapsané do Googlu, vrstvy z ostatních modulů (úkoly s termínem, termíny zakázek), vazby událostí na obchody, klienty a kontakty, cizí soukromé události jako „Obsazeno“.",
   icon: "calendar",
   nav: [
     {
@@ -22,13 +21,14 @@ export const manifest = defineModule({
     {
       key: "kalendar.read",
       label: "Vidí kalendář",
-      description: "Rozsah „jen moje“ = události, které vlastním nebo na které jsem pozvaný",
+      description:
+        "Rozsah „jen moje“ = jen kalendáře mého Google účtu; „vše“ i kalendáře ostatních (jejich soukromé události jako „Obsazeno“)",
     },
     {
       key: "kalendar.write",
       label: "Upravuje události",
-      description: "Rozsah „jen moje“ = jen vlastní události",
+      description:
+        "Připojení vlastního Google účtu, zakládání a přesouvání schůzek, vazby na klienty a obchody; rozsah „jen moje“ = jen vlastní události",
     },
   ],
-  notifications: KALENDAR_NOTIFICATIONS,
 });

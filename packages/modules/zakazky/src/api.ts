@@ -1,51 +1,27 @@
 import {
-  NotImplementedError,
   type BillingModel,
   type JobStatus,
   type MarketingStage,
-  type RetainerSetup,
   type ServiceType,
-  type SplitRuleInput,
 } from "@rebar/core/contracts";
 import type { ModuleDeps } from "@rebar/core/module-server";
 import type { Ctx } from "@rebar/core/rbac";
+import { createJobImpl, createJobsFromWonDealImpl } from "./core/create";
+import { getJobBriefImpl, getJobBriefsImpl } from "./core/briefs";
+import { setMarketingStageImpl } from "./core/marketing";
+import { setCurrentPhaseImpl } from "./core/phases";
+import { completeJobImpl } from "./core/status";
+import { listTemplatesImpl } from "./templates/list";
+import type { CompleteReason } from "./shared";
+import type { CreatedJob, CreateJobInput, JobFromDealRow } from "./contract";
+
+export type { CreateJobInput, JobFromDealRow, CreatedJob } from "./contract";
 
 /**
  * Veřejné funkce modulu „zakázky“ pro jiné moduly (`@rebar/zakazky/api`; smí je importovat jen modul se „zakazky“
- * v `dependsOn`: obchody, finance, hodiny). Podle D §2.4; těla doplní ZAK-A, dokud neexistují, vyhazují
- * `NotImplementedError`.
+ * v `dependsOn`: obchody, finance, hodiny). Podle D §2.4. Funkce běží v transakci volajícího (`ctx.db`), pokud
+ * v ní je; jinak si ji otevřou. Soukromé zakázky aktérovi bez oprávnění `private.read` nikdy nevracejí.
  */
-
-/** Jedna zakázka zakládaná z vyhraného obchodu (řádek dialogu „Založit zakázky“). */
-export type JobFromDealRow = {
-  type: ServiceType;
-  templateId: string | null;
-  title: string;
-  startDate: string;
-  ownerId: string;
-  memberIds: string[];
-  billingModel?: BillingModel;
-  split?: SplitRuleInput[];
-  retainer?: RetainerSetup;
-};
-
-/** Vstup ručního založení zakázky (z šablony nebo bez ní). */
-export type CreateJobInput = {
-  title: string;
-  type: ServiceType;
-  companyId: string;
-  ownerId: string;
-  memberIds?: string[];
-  templateId?: string | null;
-  startDate?: string;
-  dueDate?: string | null;
-  billingModel?: BillingModel;
-  split?: SplitRuleInput[];
-  retainer?: RetainerSetup;
-  dealId?: string | null;
-  description?: string | null;
-  isPrivate?: boolean;
-};
 
 /** Stručný popis zakázky pro jiné moduly (bez soukromých údajů navíc). */
 export type JobBrief = {
@@ -62,73 +38,100 @@ export type JobBrief = {
   marketingStage: MarketingStage | null;
 };
 
-/** Založí zakázky z vyhraného obchodu v jedné transakci (fáze, členové, služby `tasks`/`finance`/`clients`, `project.created`). */
+/** Šablona zakázky ve stručném výpisu pro výběr v dialozích. */
+export type TemplateBrief = {
+  id: string;
+  name: string;
+  type: ServiceType;
+  isDefault: boolean;
+  defaultBilling: BillingModel;
+};
+
+/**
+ * Založí zakázky z vyhraného obchodu v jedné transakci: pro každý řádek zakázku s fázemi ze šablony, členy, úkoly
+ * (služba `tasks`), plánovanými platbami a rozdělením (služba `finance`), službou klienta (služba `clients`)
+ * a událostí `project.created` (pro Disk). Cena: u jediného řádku se předvyplní hodnotou obchodu (R-39). Soukromý
+ * obchod dává soukromé zakázky. Vrací zakázky v pořadí řádků; prázdné `rows` nic nezaloží.
+ */
 export async function createJobsFromWonDeal(
-  _ctx: Ctx,
-  _deps: ModuleDeps,
-  _input: {
+  ctx: Ctx,
+  deps: ModuleDeps,
+  input: {
     dealId: string;
     companyId: string;
     rows: JobFromDealRow[];
     dealValueMinor?: number | null;
   },
-): Promise<{ jobs: { id: string; number: string; type: ServiceType }[] }> {
-  throw new NotImplementedError("zakazky.api.createJobsFromWonDeal");
+): Promise<{ jobs: CreatedJob[] }> {
+  return createJobsFromWonDealImpl(ctx, deps, input);
 }
 
-/** Ruční založení zakázky (z šablony); uvnitř vytvoří fáze, členy, úkoly a platby a vyšle `project.created`. */
+/**
+ * Ruční založení zakázky (z šablony nebo bez ní); uvnitř vytvoří fáze, členy, úkoly a platby, přidá klientovi službu
+ * a vyšle `project.created`.
+ */
 export async function createJob(
-  _ctx: Ctx,
-  _deps: ModuleDeps,
-  _input: CreateJobInput,
+  ctx: Ctx,
+  deps: ModuleDeps,
+  input: CreateJobInput,
 ): Promise<{ id: string; number: string }> {
-  throw new NotImplementedError("zakazky.api.createJob");
+  return createJobImpl(ctx, deps, input);
 }
 
-/** Přepne aktuální fázi zakázky; předchozí fáze se uzavřou (volitelně i jejich otevřené úkoly). */
+/**
+ * Přepne aktuální fázi zakázky; dřívější fáze se dokončí (volitelně i jejich otevřené úkoly), pozdější se vrátí do
+ * stavu Nezahájená. Vyšle `project.phase_changed` a za každou nově dokončenou fázi `project.phase_completed`.
+ */
 export async function setCurrentPhase(
-  _ctx: Ctx,
-  _deps: ModuleDeps,
-  _input: { jobId: string; phaseId: string; completeOpenTasks?: boolean },
+  ctx: Ctx,
+  deps: ModuleDeps,
+  input: { jobId: string; phaseId: string; completeOpenTasks?: boolean },
 ): Promise<{ completedPhaseIds: string[] }> {
-  throw new NotImplementedError("zakazky.api.setCurrentPhase");
+  const out = await setCurrentPhaseImpl(ctx, deps, input);
+  return { completedPhaseIds: out.completedPhaseIds };
 }
 
-/** Dokončí nebo zruší zakázku; vrací, co zůstalo otevřené (úkoly, neuhrazené platby, další aktivní zakázka klienta). */
+/**
+ * Dokončí nebo zruší zakázku (`finished` a `retainer_ended` = Dokončená, `cancelled` = Zrušená); nezablokuje, jen
+ * vrací, co zůstalo otevřené (úkoly, neuhrazené platby, další živá zakázka klienta). Vyšle `project.completed`.
+ */
 export async function completeJob(
-  _ctx: Ctx,
-  _deps: ModuleDeps,
-  _input: { jobId: string; reason: "finished" | "retainer_ended" | "cancelled" },
+  ctx: Ctx,
+  deps: ModuleDeps,
+  input: { jobId: string; reason: CompleteReason },
 ): Promise<{ openTasks: number; unpaidPayments: number; clientHasOtherActiveJob: boolean }> {
-  throw new NotImplementedError("zakazky.api.completeJob");
+  const out = await completeJobImpl(ctx, deps, input);
+  return {
+    openTasks: out.openTasks,
+    unpaidPayments: out.unpaidPayments,
+    clientHasOtherActiveJob: out.clientHasOtherActiveJob,
+  };
 }
 
-/** Nastaví fázi marketingové zakázky (volá finance po vyhodnocení úvodní fáze a po rozhodnutí klienta). */
+/**
+ * Nastaví fázi marketingové zakázky (volá `finance` po vyhodnocení úvodní fáze a po rozhodnutí klienta). Stav `retainer`
+ * přesune zakázku do fáze s rolí `retainer` (dřívější fáze se dokončí); `ended` jen zapíše stav, zakázku pak
+ * ukončí volající přes `completeJob({ reason: "retainer_ended" })`.
+ */
 export async function setMarketingStage(
-  _ctx: Ctx,
-  _jobId: string,
-  _stage: MarketingStage,
+  ctx: Ctx,
+  jobId: string,
+  stage: MarketingStage,
 ): Promise<void> {
-  throw new NotImplementedError("zakazky.api.setMarketingStage");
+  return setMarketingStageImpl(ctx, jobId, stage);
 }
 
 /** Stručný popis zakázky, nebo `null`, když neexistuje nebo ji aktér nesmí vidět. */
-export async function getJobBrief(_ctx: Ctx, _jobId: string): Promise<JobBrief | null> {
-  throw new NotImplementedError("zakazky.api.getJobBrief");
+export async function getJobBrief(ctx: Ctx, jobId: string): Promise<JobBrief | null> {
+  return getJobBriefImpl(ctx, jobId);
 }
 
-/** Šablony zakázek (volitelně jen pro jeden typ). */
-export async function listTemplates(
-  _ctx: Ctx,
-  _type?: ServiceType,
-): Promise<
-  {
-    id: string;
-    name: string;
-    type: ServiceType;
-    isDefault: boolean;
-    defaultBilling: BillingModel;
-  }[]
-> {
-  throw new NotImplementedError("zakazky.api.listTemplates");
+/** Stručné popisy více zakázek najednou (neviditelné a neexistující se vynechají). */
+export async function getJobBriefs(ctx: Ctx, jobIds: string[]): Promise<JobBrief[]> {
+  return getJobBriefsImpl(ctx, jobIds);
+}
+
+/** Šablony zakázek (volitelně jen pro jeden typ); archivované se nevracejí. */
+export async function listTemplates(ctx: Ctx, type?: ServiceType): Promise<TemplateBrief[]> {
+  return listTemplatesImpl(ctx, type);
 }

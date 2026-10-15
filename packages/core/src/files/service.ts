@@ -66,8 +66,9 @@ export async function uploadFile(
   await deps.storage.put(key, body);
   try {
     return await inTx(ctx, async (c) => {
-      if (input.attachTo)
-        await assertEntityAccess(c, input.attachTo.entityType, input.attachTo.entityId, "write");
+      const access = input.attachTo
+        ? await assertEntityAccess(c, input.attachTo.entityType, input.attachTo.entityId, "write")
+        : null;
       const [row] = await c.db
         .insert(schema.file)
         .values({
@@ -113,6 +114,13 @@ export async function uploadFile(
           { field: "name", old: null, new: name },
           { field: "size", old: null, new: body.length },
         ],
+        // soubor u soukromého záznamu je v historii soukromý
+        ...(access ? { isPrivate: access.isPrivate } : {}),
+        ...(input.attachTo
+          ? {
+              context: { entityType: input.attachTo.entityType, entityId: input.attachTo.entityId },
+            }
+          : {}),
       });
       return { file: row!, attachmentId };
     });
@@ -223,7 +231,7 @@ export async function listAttachments(ctx: Ctx, entityType: string, entityId: st
 export async function attachFile(ctx: Ctx, fileId: string, to: AttachTo) {
   const me = actorId(ctx);
   return inTx(ctx, async (c) => {
-    await assertEntityAccess(c, to.entityType, to.entityId, "write");
+    const access = await assertEntityAccess(c, to.entityType, to.entityId, "write");
     const [file] = await c.db
       .select()
       .from(schema.file)
@@ -249,6 +257,8 @@ export async function attachFile(ctx: Ctx, fileId: string, to: AttachTo) {
       entityType: "file",
       entityId: fileId,
       summary: `→ ${to.entityType}`,
+      isPrivate: access.isPrivate,
+      context: { entityType: to.entityType, entityId: to.entityId },
     });
     return att!.id;
   });
@@ -263,7 +273,7 @@ export async function detachAttachment(ctx: Ctx, attachmentId: string) {
       .from(schema.attachment)
       .where(and(eq(schema.attachment.id, attachmentId), isNull(schema.attachment.deletedAt)));
     if (!att) throw new NotFoundError("Příloha nenalezena.");
-    await assertEntityAccess(c, att.entityType, att.entityId, "write");
+    const access = await assertEntityAccess(c, att.entityType, att.entityId, "write");
     await c.db
       .update(schema.attachment)
       .set({ deletedAt: new Date(), updatedBy: me })
@@ -273,6 +283,8 @@ export async function detachAttachment(ctx: Ctx, attachmentId: string) {
       entityType: "file",
       entityId: att.fileId,
       summary: `← ${att.entityType}`,
+      isPrivate: access.isPrivate,
+      context: { entityType: att.entityType, entityId: att.entityId },
     });
   });
 }

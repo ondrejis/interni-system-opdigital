@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
+import { auditReadScope } from "../audit/visibility";
 import { listComments } from "../collab/comments";
-import { listTasks } from "../collab/tasks";
 import { schema } from "../db/client";
 import type { AuditChange } from "../db/schema/audit";
 import { listAttachments } from "../files/service";
@@ -28,6 +28,16 @@ export type TimelineItem =
       body: string;
       edited: boolean;
     };
+
+/** Jak se v časové ose jmenuje aktér, který není uživatel (bez popisku zdroje). */
+const ACTOR_NAMES: Record<string, string> = {
+  system: "Systém",
+  agency: "Agentura",
+  n8n: "n8n",
+  google: "Google",
+  meta: "Meta",
+  job: "Automatická úloha",
+};
 
 /** Částka s měnou v textu (výstup `formatMinor`: „12 500 Kč“, „1 234,50 Kč“, „EUR“). */
 const MONEY_TEXT = /\d[\d\s\u00a0\u202f]*(?:[.,]\d+)?\s*(?:Kč|CZK|EUR|USD|€)/i;
@@ -62,7 +72,7 @@ export function visibleAudit<T extends { summary: string | null; changes: AuditC
 }
 
 /**
- * Vše, co se kolem záznamu děje: časová osa (změny z auditu a komentáře), úkoly a soubory.
+ * Vše, co se kolem záznamu děje: časová osa (změny z auditu a komentáře) a soubory.
  * Smí ji číst ten, kdo záznam vidí. S `def` entity se z auditu vynechají peníze a skryté atributy (viz `visibleAudit`).
  */
 export async function getRecordActivity(
@@ -72,12 +82,13 @@ export async function getRecordActivity(
   def?: Pick<EntityDef, "attributes">,
 ) {
   await assertEntityAccess(ctx, entityType, id, "read");
-  const [audit, comments, tasks, files] = await Promise.all([
+  const [audit, comments, files] = await Promise.all([
     ctx.db
       .select({
         id: schema.auditLog.id,
         at: schema.auditLog.occurredAt,
         actorKind: schema.auditLog.actorKind,
+        actorLabel: schema.auditLog.actorLabel,
         actorName: schema.user.name,
         action: schema.auditLog.action,
         summary: schema.auditLog.summary,
@@ -85,11 +96,16 @@ export async function getRecordActivity(
       })
       .from(schema.auditLog)
       .leftJoin(schema.user, eq(schema.auditLog.actorId, schema.user.id))
-      .where(and(eq(schema.auditLog.entityType, entityType), eq(schema.auditLog.entityId, id)))
+      .where(
+        and(
+          eq(schema.auditLog.entityType, entityType),
+          eq(schema.auditLog.entityId, id),
+          auditReadScope(ctx),
+        ),
+      )
       .orderBy(desc(schema.auditLog.occurredAt))
       .limit(200),
     listComments(ctx, entityType, id),
-    listTasks(ctx, { entityType, entityId: id }),
     listAttachments(ctx, entityType, id),
   ]);
 
@@ -98,7 +114,7 @@ export async function getRecordActivity(
       kind: "audit",
       id: a.id,
       at: a.at.toISOString(),
-      actor: a.actorName ?? (a.actorKind === "system" ? "Systém" : "Neznámý"),
+      actor: a.actorName ?? a.actorLabel ?? ACTOR_NAMES[a.actorKind] ?? "Neznámý",
       action: a.action,
       summary: a.summary,
       changes: a.changes,
@@ -116,14 +132,6 @@ export async function getRecordActivity(
 
   return {
     timeline,
-    tasks: tasks.map((t) => ({
-      id: t.id,
-      title: t.title,
-      dueDate: t.dueDate,
-      priority: t.priority,
-      done: !!t.doneAt,
-      assigneeId: t.assigneeId,
-    })),
     files: files.map((f) => ({
       ...f,
       takenAt: f.takenAt?.toISOString() ?? null,

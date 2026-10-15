@@ -16,6 +16,7 @@ import {
   uniqueEmail,
 } from "../testing";
 import { getAccount, updateOwnProfile } from "./account";
+import { createAuth } from "./create-auth";
 import {
   changeOwnPassword,
   listOwnSessions,
@@ -545,10 +546,28 @@ describe("2FA: záložní kódy a vypnutí", () => {
     for (const c of [...oldCodes, ...fresh.backupCodes]) expect(text).not.toContain(c);
   });
 
-  it("roli s povinným 2FA ho nejde vypnout, ostatním ano (s heslem) a vypnutí je v auditu", async () => {
+  it("výchozí zásada: druhý faktor je povinný pro všechny a nejde vypnout; zásada `roles` ho dovolí rolím bez příznaku", async () => {
     const strict = await withTotp(true);
     await expect(
       auth.api.disableTwoFactor({ body: { password: PASSWORD }, headers: strict.cookies }),
+    ).rejects.toMatchObject({ body: { code: "TWO_FACTOR_REQUIRED_FOR_ROLE" } });
+    const everyone = await withTotp(false);
+    await expect(
+      auth.api.disableTwoFactor({ body: { password: PASSWORD }, headers: everyone.cookies }),
+    ).rejects.toMatchObject({ body: { code: "TWO_FACTOR_REQUIRED_FOR_ROLE" } });
+
+    // původní chování jádra: povinné jen rolím s příznakem
+    const authRoles = createAuth({
+      db: app.db,
+      baseURL,
+      secret: "test-secret-test-secret-test-secret-0123456789",
+      appName: "Testovací systém",
+      idleTimeoutMinutes: 480,
+      mailer,
+      twoFactorPolicy: "roles",
+    });
+    await expect(
+      authRoles.api.disableTwoFactor({ body: { password: PASSWORD }, headers: strict.cookies }),
     ).rejects.toMatchObject({ body: { code: "TWO_FACTOR_REQUIRED_FOR_ROLE" } });
     const [still] = await app.db
       .select({ on: schema.user.twoFactorEnabled })
@@ -559,9 +578,12 @@ describe("2FA: záložní kódy a vypnutí", () => {
 
     const free = await withTotp(false);
     await expect(
-      auth.api.disableTwoFactor({ body: { password: "špatné-heslo-123" }, headers: free.cookies }),
+      authRoles.api.disableTwoFactor({
+        body: { password: "špatné-heslo-123" },
+        headers: free.cookies,
+      }),
     ).rejects.toThrow();
-    await auth.api.disableTwoFactor({ body: { password: PASSWORD }, headers: free.cookies });
+    await authRoles.api.disableTwoFactor({ body: { password: PASSWORD }, headers: free.cookies });
     const [off] = await app.db
       .select({ on: schema.user.twoFactorEnabled })
       .from(schema.user)

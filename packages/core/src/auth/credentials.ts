@@ -1,13 +1,15 @@
 import { and, desc, eq, gt, ne } from "drizzle-orm";
 import { z } from "zod";
 import "../zod-locale";
-import { recordAudit } from "../audit/audit";
 import { schema } from "../db/client";
 import { consumeRateLimit } from "../http";
 import { inTx } from "../rbac/context";
 import { NotFoundError, PermissionError, UserError } from "../rbac/errors";
 import type { Ctx } from "../rbac/types";
 import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, hashPassword, verifyPassword } from "./password";
+import { assertPasswordAcceptable, type BreachCheck } from "./password-policy";
+import { recordSecurityEvent } from "./security-events";
+import { deleteTrustedDevices } from "./trusted-devices";
 import { describeUserAgent, maskIp } from "./user-agent";
 
 /** Pokusů o změnu hesla (správných i špatných) za okno; chrání současné heslo před hádáním z ukradené relace. */
@@ -28,15 +30,17 @@ function me(ctx: Ctx): string {
 }
 
 /**
- * Změna vlastního hesla. Ověří současné heslo (omezení počtu pokusů v databázi), uloží otisk nového hesla,
- * odhlásí ostatní zařízení a zapíše audit bez jakékoli hodnoty hesla; vše v jedné transakci.
+ * Změna vlastního hesla. Ověří současné heslo (omezení počtu pokusů v databázi), nové heslo zkontroluje (délka,
+ * běžná a uniklá hesla), uloží otisk nového hesla, odhlásí ostatní zařízení a zruší důvěryhodná zařízení; do historie
+ * (kategorie bezpečnost) zapíše změnu bez jakékoli hodnoty hesla; vše v jedné transakci.
  *
  * `keepSessionId` je relace, která zůstane přihlášená (obvykle ta, ze které se heslo mění). `null` odhlásí všechny.
+ * `breachCheck` jen pro testy (zdroj uniklých hesel).
  */
 export async function changeOwnPassword(
   ctx: Ctx,
   raw: z.input<typeof changePasswordInput>,
-  opts: { keepSessionId: string | null },
+  opts: { keepSessionId: string | null; breachCheck?: BreachCheck },
 ): Promise<{ revokedSessions: number }> {
   const userId = me(ctx);
   const input = changePasswordInput.parse(raw);
@@ -65,14 +69,25 @@ export async function changeOwnPassword(
 
   const valid = await verifyPassword({ hash: acc.password, password: input.currentPassword });
   if (!valid) {
-    await recordAudit(ctx, {
+    await recordSecurityEvent(ctx.db, {
       action: "change_password_failed",
-      entityType: "user",
-      entityId: userId,
+      userId,
       summary: "Změna hesla zamítnuta: nesprávné současné heslo",
+      ip: ctx.ip ?? null,
+      requestId: ctx.requestId ?? null,
     });
     throw new UserError("Současné heslo není správné.");
   }
+
+  const [who] = await ctx.db
+    .select({ email: schema.user.email, name: schema.user.name })
+    .from(schema.user)
+    .where(eq(schema.user.id, userId));
+  await assertPasswordAcceptable(input.newPassword, {
+    email: who?.email ?? null,
+    name: who?.name ?? null,
+    ...(opts.breachCheck !== undefined ? { breachCheck: opts.breachCheck } : {}),
+  });
 
   const hash = await hashPassword(input.newPassword);
   return inTx(ctx, async (c) => {
@@ -89,14 +104,16 @@ export async function changeOwnPassword(
           : eq(schema.session.userId, userId),
       )
       .returning({ id: schema.session.id });
-    await recordAudit(c, {
+    await deleteTrustedDevices(c.db, userId);
+    await recordSecurityEvent(c.db, {
       action: "change_password",
-      entityType: "user",
-      entityId: userId,
+      userId,
       summary:
         revoked.length > 0
           ? `Změna hesla, odhlášeno ${revoked.length} dalších přihlášení`
           : "Změna hesla",
+      ip: c.ip ?? null,
+      requestId: c.requestId ?? null,
     });
     return { revokedSessions: revoked.length };
   });
@@ -155,14 +172,15 @@ export async function revokeOwnSession(
       .where(and(eq(schema.session.id, sessionId), eq(schema.session.userId, userId)))
       .returning({ id: schema.session.id });
     if (!deleted.length) throw new NotFoundError("Přihlášení nenalezeno, možná už skončilo.");
-    await recordAudit(c, {
+    await recordSecurityEvent(c.db, {
       action: "revoke_session",
-      entityType: "user",
-      entityId: userId,
+      userId,
       summary:
         sessionId === currentSessionId
           ? "Odhlášeno toto zařízení"
           : "Odhlášeno jedno z ostatních zařízení",
+      ip: c.ip ?? null,
+      requestId: c.requestId ?? null,
     });
   });
   return { current: sessionId === currentSessionId };
@@ -180,11 +198,12 @@ export async function revokeOtherOwnSessions(
       .delete(schema.session)
       .where(and(eq(schema.session.userId, userId), ne(schema.session.id, currentSessionId)))
       .returning({ id: schema.session.id });
-    await recordAudit(c, {
+    await recordSecurityEvent(c.db, {
       action: "revoke_sessions",
-      entityType: "user",
-      entityId: userId,
+      userId,
       summary: `Odhlášena ostatní zařízení (${deleted.length})`,
+      ip: c.ip ?? null,
+      requestId: c.requestId ?? null,
     });
     return deleted.length;
   });

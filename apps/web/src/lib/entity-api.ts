@@ -48,18 +48,6 @@ export function makeEntityApi(
     addComment: async (entity, id, body) =>
       void unwrap(await A.addCommentAction({ entity, id, body })),
     deleteComment: async (id) => void unwrap(await A.deleteCommentAction({ id })),
-    addTask: async (entity, id, t) =>
-      void unwrap(
-        await A.createTaskAction({
-          title: t.title,
-          dueDate: t.dueDate ?? null,
-          assigneeId: t.assigneeId ?? null,
-          priority: "normal",
-          entityType: entity,
-          entityId: id,
-        }),
-      ),
-    completeTask: async (id, done) => void unwrap(await A.completeTaskAction({ id, done })),
     uploadFile: async (entity, id, file, opts) => {
       const form = new FormData();
       form.set("file", file);

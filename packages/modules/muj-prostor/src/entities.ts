@@ -1,44 +1,41 @@
 import { defineEntity, type Choice } from "@rebar/core/entities";
+import type { Executor } from "@rebar/core/db";
+import { UserError } from "@rebar/core/rbac";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
+import { normalizeDomain } from "./domains/logic";
 import {
-  type DOMAIN_PAYERS,
-  type INVOICE_STATUSES,
-  type RECURRING_KINDS,
-  type RECURRING_PERIODS,
-  type RECURRING_STATUSES,
-  emailLibraryItem,
-  recurringInvoice,
-  recurringService,
-  webDomain,
-} from "./schema";
+  DOMAIN_PAYER_LABELS,
+  INVOICE_STATUS_LABELS,
+  RECURRING_KIND_LABELS,
+  RECURRING_PERIOD_LABELS,
+  RECURRING_STATUS_LABELS,
+} from "./labels";
+import { emailLibraryItem, recurringInvoice, recurringService, webDomain } from "./schema";
+import { emailLibraryItemEntity } from "./library/entity";
 
-/** Popisky druhů opakované služby. */
-export const RECURRING_KIND_LABELS: Record<(typeof RECURRING_KINDS)[number], string> = {
-  hosting: "Hosting",
-  maintenance: "Údržba",
+export {
+  DOMAIN_PAYER_LABELS,
+  INVOICE_STATUS_LABELS,
+  RECURRING_KIND_LABELS,
+  RECURRING_PERIOD_LABELS,
+  RECURRING_STATUS_LABELS,
 };
-/** Popisky období opakované služby. */
-export const RECURRING_PERIOD_LABELS: Record<(typeof RECURRING_PERIODS)[number], string> = {
-  yearly: "Ročně",
-  monthly: "Měsíčně",
-};
-/** Popisky stavů opakované služby. */
-export const RECURRING_STATUS_LABELS: Record<(typeof RECURRING_STATUSES)[number], string> = {
-  active: "Aktivní",
-  paused: "Pozastavená",
-  canceled: "Zrušená",
-};
-/** Popisky plátců domény. */
-export const DOMAIN_PAYER_LABELS: Record<(typeof DOMAIN_PAYERS)[number], string> = {
-  agency: "Agentura",
-  client: "Klient",
-};
-/** Popisky stavů návrhu opakované faktury. */
-export const INVOICE_STATUS_LABELS: Record<(typeof INVOICE_STATUSES)[number], string> = {
-  draft: "Koncept",
-  approved: "Schváleno",
-  sent_to_fakturoid: "Odesláno do Fakturoidu",
-  canceled: "Zrušeno",
-};
+
+/** Zkontroluje, že doména ještě není v evidenci (mezi nesmazanými, bez ohledu na velikost písmen). */
+async function assertDomainFree(db: Executor, domain: string, exceptId?: string): Promise<void> {
+  const [hit] = await db
+    .select({ id: webDomain.id })
+    .from(webDomain)
+    .where(
+      and(
+        isNull(webDomain.deletedAt),
+        eq(sql`lower(${webDomain.domain})`, domain),
+        exceptId ? ne(webDomain.id, exceptId) : undefined,
+      ),
+    )
+    .limit(1);
+  if (hit) throw new UserError(`Doména ${domain} už je v evidenci.`);
+}
 
 const choices = <K extends string>(labels: Record<K, string>): Choice[] =>
   (Object.keys(labels) as K[]).map((value) => ({ value, label: labels[value] }));
@@ -48,10 +45,13 @@ const choices = <K extends string>(labels: Record<K, string>): Choice[] =>
   která má jen vlastník (D §6, PŘEDPOKLAD). Čtení i zápis hlídá tentýž klíč.
 */
 
-/** Hosting a údržba webů klientů (opakované služby s obnovou). */
+/**
+ * Hosting a údržba webů klientů (opakované služby s obnovou). Stránku `/muj-prostor/hosting` (souhrn, pohledy)
+ * kreslí UI modulu; generický seznam s filtry, exportem a detaily záznamů je na `/muj-prostor/hosting/vse`.
+ */
 export const recurringServiceEntity = defineEntity({
   key: "recurring_service",
-  listPath: "/muj-prostor/hosting",
+  listPath: "/muj-prostor/hosting/vse",
   module: "muj-prostor",
   label: { one: "Hosting / údržba", many: "Hosting a údržba" },
   table: recurringService,
@@ -61,7 +61,27 @@ export const recurringServiceEntity = defineEntity({
     write: "muj-prostor.hosting",
     create: "muj-prostor.hosting",
     delete: "muj-prostor.hosting",
+    export: "muj-prostor.hosting",
   },
+  quickFilters: [
+    {
+      key: "renewal_soon",
+      label: "Obnova do 30 dní",
+      filter: {
+        op: "and",
+        conditions: [
+          { attr: "status", op: "is", value: "active" },
+          {
+            op: "or",
+            conditions: [
+              { attr: "nextRenewal", op: "in_next_days", value: 30 },
+              { attr: "nextRenewal", op: "older_than_days", value: 0 },
+            ],
+          },
+        ],
+      },
+    },
+  ],
   attributes: [
     {
       key: "name",
@@ -155,19 +175,23 @@ export const recurringServiceEntity = defineEntity({
       type: "number",
       field: "invoiceLeadDays",
       min: 0,
+      max: 90,
       default: 14,
       width: 150,
     },
     { key: "note", label: "Poznámka", type: "longtext", field: "note", width: 260 },
   ],
   search: (r) => ({ title: String(r.name), ...(r.web ? { subtitle: String(r.web) } : {}) }),
-  url: (id) => `/muj-prostor/hosting/${id}`,
+  url: (id) => `/muj-prostor/hosting/vse/${id}`,
 });
 
-/** Domény klientů a agentury s expirací a upozorněním (`warn_days`). */
+/**
+ * Domény klientů a agentury s expirací a upozorněním (`warn_days`). Stránku `/muj-prostor/domeny` (barvy expirace,
+ * hromadné vložení) kreslí UI modulu; generický seznam s filtry a exportem je na `/muj-prostor/domeny/vse`.
+ */
 export const webDomainEntity = defineEntity({
   key: "web_domain",
-  listPath: "/muj-prostor/domeny",
+  listPath: "/muj-prostor/domeny/vse",
   module: "muj-prostor",
   label: { one: "Doména", many: "Domény" },
   table: webDomain,
@@ -177,12 +201,37 @@ export const webDomainEntity = defineEntity({
     write: "muj-prostor.domains",
     create: "muj-prostor.domains",
     delete: "muj-prostor.domains",
+    export: "muj-prostor.domains",
+  },
+  /** Doména je evidovaná jednou (bez ohledu na velikost písmen) a ukládá se v normalizovaném tvaru. */
+  beforeCreate: async (ctx, values) => {
+    const raw = String(values.domain ?? "").trim();
+    if (!raw) return values;
+    const domain = normalizeDomain(raw);
+    if (!domain) throw new UserError(`„${raw}“ není platná doména (například firma.cz).`);
+    await assertDomainFree(ctx.db, domain);
+    return { ...values, domain };
+  },
+  beforeUpdate: async (ctx, before, changes) => {
+    if (!("domain" in changes)) return;
+    const raw = String(changes.domain ?? "").trim();
+    if (!raw) return;
+    const domain = normalizeDomain(raw);
+    if (!domain) throw new UserError(`„${raw}“ není platná doména (například firma.cz).`);
+    await assertDomainFree(ctx.db, domain, String(before.id));
+    return { domain };
   },
   quickFilters: [
     {
       key: "expiring",
       label: "Brzy vyprší",
-      filter: { op: "and", conditions: [{ attr: "expiresOn", op: "in_next_days", value: 60 }] },
+      filter: {
+        op: "or",
+        conditions: [
+          { attr: "expiresOn", op: "in_next_days", value: 60 },
+          { attr: "expiresOn", op: "older_than_days", value: 0 },
+        ],
+      },
     },
   ],
   attributes: [
@@ -270,65 +319,7 @@ export const webDomainEntity = defineEntity({
     title: String(r.domain),
     ...(r.registrar ? { subtitle: String(r.registrar) } : {}),
   }),
-  url: (id) => `/muj-prostor/domeny/${id}`,
-});
-
-/** Soukromá e-mailová knihovna vlastníka (texty, které nejsou sdílenými šablonami). */
-export const emailLibraryItemEntity = defineEntity({
-  key: "email_library_item",
-  listPath: "/muj-prostor/knihovna",
-  module: "muj-prostor",
-  label: { one: "Položka knihovny", many: "E-mailová knihovna" },
-  table: emailLibraryItem,
-  titleKey: "title",
-  permissions: {
-    read: "muj-prostor.email_library",
-    write: "muj-prostor.email_library",
-    create: "muj-prostor.email_library",
-    delete: "muj-prostor.email_library",
-  },
-  attributes: [
-    {
-      key: "title",
-      label: "Název",
-      type: "text",
-      field: "title",
-      required: true,
-      width: 260,
-      defaultVisible: true,
-    },
-    {
-      key: "category",
-      label: "Kategorie",
-      type: "text",
-      field: "category",
-      width: 160,
-      defaultVisible: true,
-    },
-    {
-      key: "subject",
-      label: "Předmět",
-      type: "text",
-      field: "subject",
-      width: 280,
-      defaultVisible: true,
-    },
-    {
-      key: "tags",
-      label: "Štítky",
-      type: "multiselect",
-      field: "tags",
-      lookup: "tag",
-      lookupScope: "email_library_item",
-      width: 200,
-    },
-  ],
-  search: (r) => ({
-    title: String(r.title),
-    ...(r.category ? { subtitle: String(r.category) } : {}),
-    extra: `${r.subject ?? ""} ${String(r.bodyText ?? "").slice(0, 2000)}`,
-  }),
-  url: (id) => `/muj-prostor/knihovna/${id}`,
+  url: (id) => `/muj-prostor/domeny/vse/${id}`,
 });
 
 /** Návrhy opakovaných faktur za období služby (v3, odeslání do Fakturoidu po schválení). */
@@ -423,4 +414,5 @@ export const entities = [
   emailLibraryItemEntity,
   recurringInvoiceEntity,
 ];
+export { emailLibraryItemEntity };
 export { recurringService, webDomain, emailLibraryItem, recurringInvoice };

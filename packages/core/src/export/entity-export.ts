@@ -12,7 +12,7 @@ import type { AttributeDescriptor } from "../entities/shared";
 import { formatDate, formatMinor, formatNumberUnit } from "../entities/shared";
 import { inTx } from "../rbac/context";
 import { PermissionError, UserError } from "../rbac/errors";
-import { scopeOf } from "../rbac/permissions";
+import { canSeePrivate, scopeOf } from "../rbac/permissions";
 import { localParts } from "../time/dates";
 import type { Ctx } from "../rbac/types";
 import {
@@ -235,6 +235,8 @@ export async function prepareEntityExport(
         entityType: entity.def.key,
         entityId: first.rows[0]?.id ?? entity.def.key,
         summary: `Export seznamu „${descriptor.label.many}“ (${opts.format.toUpperCase()}): ${total} záznamů`,
+        // počet záznamů vlastníka zahrnuje soukromé, takže stopa po jeho exportu je pro ostatní soukromá
+        isPrivate: canSeePrivate(ctx) && !!entity.def.visibility,
         changes: [
           { field: "formát", old: null, new: opts.format },
           { field: "záznamů", old: null, new: total },

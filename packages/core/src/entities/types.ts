@@ -24,7 +24,13 @@ export const ATTRIBUTE_TYPES = [
 ] as const;
 export type AttributeType = (typeof ATTRIBUTE_TYPES)[number];
 
-export type Choice = { value: string; label: string; color?: string };
+export type Choice = {
+  value: string;
+  label: string;
+  color?: string;
+  /** Položka je archivovaná (štítek, číselník): u záznamů, které ji mají, se zobrazí, ale nenabízí se k novému výběru. */
+  archived?: boolean;
+};
 
 export type AttributeDef = {
   key: string;
@@ -40,7 +46,7 @@ export type AttributeDef = {
   lookup?: string;
   /**
    * Zúžení položek číselníku `lookup` na tuto entitu (štítky: `lookup: "tag"`, `lookupScope: "company"` nabídne jen
-   * štítky, jejichž `lookup_item.scopes` obsahují klíč entity nebo jsou prázdné). Jen typ do C1.
+   * štítky, jejichž `lookup_item.scopes` obsahují klíč entity nebo jsou prázdné).
    */
   lookupScope?: string;
   /** Cílový typ záznamu pro `record`. */
@@ -69,6 +75,8 @@ export type AttributeDef = {
   aggregate?: readonly "sum"[];
   /** Výchozí zobrazení sloupce v tabulce a šířka v pixelech. */
   defaultVisible?: boolean;
+  /** Pole je i v krátkém formuláři „Nový…“ (vlastní pole s `show_in_form`); povinná pole a název tam jsou vždy. */
+  showInForm?: boolean;
   width?: number;
 };
 
@@ -150,7 +158,7 @@ export type EntityDef = {
   listPath: string;
   url: (id: string) => string;
   /**
-   * Viditelnost shared/private (zámek, D §5.1). Jen typ: chování doplní engine v C1. `parents` = rodiče, od kterých
+   * Viditelnost shared/private (zámek, D §5.1); vynucuje engine (`entities/visibility.ts`). `parents` = rodiče, od kterých
    * záznam dědí zámek (platí první nenulový sloupec; bez `parents` je záznam kořen s vlastním zámkem), `ownLock` = dítě
    * smí mít i vlastní zámek (výchozí ano), `defaultPrivate` = výchozí hodnota pro majitele při vytvoření.
    */
@@ -158,13 +166,18 @@ export type EntityDef = {
     parents?: readonly EntityLink[];
     ownLock?: boolean;
     defaultPrivate?: boolean;
+    /**
+     * Záznam, který nemá žádného rodiče (všechny sloupce z `parents` jsou prázdné), je vždy soukromý a zveřejnit
+     * ho nejde (platba bez zakázky, R-12). Engine to platí i pro entitu `payment`, i když příznak nenastaví.
+     */
+    privateWithoutParent?: boolean;
   };
   /**
    * Sloupce (názvy vlastností tabulky), které nepíše uživatel, ale jiný modul nebo úloha přes `writeSystemFields`
-   * (např. `driveFolderId`, `nextActivityAt`). Zapisují se jen touto cestou; C1 je vyřadí z formulářů a z `updateRecord`.
+   * (např. `driveFolderId`, `nextActivityAt`). Zapisují se jen touto cestou; engine je vyřadí z formulářů a z `updateRecord`.
    */
   systemFields?: readonly string[];
-  /** Děti záznamu pro kaskádu koše a obnovy (sloupec dítěte odkazuje na `id` tohoto záznamu). Jen typ do C1. */
+  /** Děti záznamu pro kaskádu zámku, koše a obnovy (sloupec dítěte odkazuje na `id` tohoto záznamu). */
   children?: readonly EntityLink[];
   /** Rychlé předvolby filtru nad seznamem. Jen typ do C3. */
   quickFilters?: readonly QuickFilterDef[];

@@ -10,13 +10,11 @@ import {
   visibilityColumns,
   visibilityIndex,
 } from "@rebar/core/db";
+import { DEAL_RESULTS, DEAL_SOURCES } from "./shared";
 
 const { user, pipelineStage } = schema;
 
-/** Výsledek obchodu: otevřený, vyhraný, prohraný (fáze pipeline jsou jen `open`, výsledek je tady). */
-export const DEAL_RESULTS = ["open", "won", "lost"] as const;
-/** Zdroj obchodu. */
-export const DEAL_SOURCES = ["manual", "meta", "web_form", "referral", "other"] as const;
+export { DEAL_RESULTS, DEAL_SOURCES };
 
 /**
  * Obchod (příležitost). Pipeline `deal/default`: `stage_id` je stav pipeline (atribut `status`), `result` říká, zda je

@@ -53,8 +53,6 @@ export const PARTNER_PERMISSIONS: Record<string, "all" | "own"> = Object.fromEnt
     "settings.tags",
     "dashboards.write",
     "exports.schedule",
-    "tasks.read",
-    "tasks.assign",
   ].map((k) => [k, "all" as const]),
 );
 

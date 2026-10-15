@@ -1,4 +1,5 @@
 import { defineModule } from "@rebar/core/manifest";
+import { MUJ_PROSTOR_VIEWS } from "./seed";
 
 export const manifest = defineModule({
   id: "muj-prostor",
@@ -51,12 +52,23 @@ export const manifest = defineModule({
   ],
   pages: [
     {
+      path: "/muj-prostor/hosting",
+      title: "Hosting a údržba",
+      permission: "muj-prostor.hosting",
+    },
+    {
+      path: "/muj-prostor/domeny",
+      title: "Domény",
+      permission: "muj-prostor.domains",
+    },
+    {
       path: "/muj-prostor/soukrome",
       title: "Soukromé",
       permission: "muj-prostor.private_overview",
     },
   ],
   entities: ["recurring_service", "web_domain", "email_library_item", "recurring_invoice"],
+  seed: { views: MUJ_PROSTOR_VIEWS },
   permissions: [
     { key: "muj-prostor.hosting", label: "Spravuje hosting a údržbu webů" },
     { key: "muj-prostor.domains", label: "Spravuje domény" },

@@ -6,7 +6,6 @@ export {
   purgeFilesJob,
   heartbeatJob,
   dispatchJob,
-  taskDigestJob,
   notificationCleanupJob,
 } from "./core-jobs";
 export type { CoreJobDeps } from "./core-jobs";

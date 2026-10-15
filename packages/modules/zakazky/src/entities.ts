@@ -2,48 +2,24 @@ import { and, eq, or, sql } from "drizzle-orm";
 import { defineEntity, type AttributeDef, type Choice } from "@rebar/core/entities";
 import { emitEvent } from "@rebar/core/module-server";
 import { nextNumber } from "@rebar/core/numbering";
+import { job, jobMember, jobPhase, jobTemplate } from "./schema";
+import { afterGenericCreate } from "./core/after-create";
+import { JOB_SERIES } from "./series";
 import {
-  type BILLING_MODELS,
-  type JOB_STATUSES,
-  type JOB_TYPES,
-  type MARKETING_STAGES,
-  job,
-  jobMember,
-  jobPhase,
-  jobTemplate,
-} from "./schema";
+  BILLING_MODEL_LABELS,
+  JOB_STATUS_COLORS,
+  JOB_STATUS_LABELS,
+  JOB_TYPE_LABELS,
+  MARKETING_STAGE_LABELS,
+} from "./shared";
 
-/** Číselná řada zakázek (`Z-{YYYY}-{NNN}`). */
-export const JOB_SERIES = "zakazky.cislo";
-
-/** Popisky typů zakázek (služeb). */
-export const JOB_TYPE_LABELS: Record<(typeof JOB_TYPES)[number], string> = {
-  web: "Web",
-  marketing: "Marketing",
-  systemy: "Systémy",
-};
-/** Popisky stavů zakázky. */
-export const JOB_STATUS_LABELS: Record<(typeof JOB_STATUSES)[number], string> = {
-  planned: "Plánovaná",
-  active: "Aktivní",
-  paused: "Pozastavená",
-  done: "Dokončená",
-  cancelled: "Zrušená",
-};
-/** Popisky způsobů fakturace. */
-export const BILLING_MODEL_LABELS: Record<(typeof BILLING_MODELS)[number], string> = {
-  one_off: "Jednorázově",
-  intro_then_retainer: "Úvodní fáze, pak retainer",
-  retainer: "Retainer",
-  hourly: "Hodinově",
-};
-/** Popisky fází marketingové zakázky. */
-export const MARKETING_STAGE_LABELS: Record<(typeof MARKETING_STAGES)[number], string> = {
-  intro: "Úvodní fáze",
-  decision: "Rozhodnutí",
-  retainer: "Retainer",
-  ended: "Ukončeno",
-};
+export { JOB_SERIES } from "./series";
+export {
+  BILLING_MODEL_LABELS,
+  JOB_STATUS_LABELS,
+  JOB_TYPE_LABELS,
+  MARKETING_STAGE_LABELS,
+} from "./shared";
 
 const choices = <K extends string>(
   labels: Record<K, string>,
@@ -104,8 +80,10 @@ export const jobEntity = defineEntity({
     });
     return { ...values, number };
   },
-  // událost pro rozšíření klienta (docs/CUSTOMIZATION.md); doménové události `project.*` doplní ZAK-A
-  afterCreate: async (_ctx, created) => {
+  // zakázka založená obecným formulářem dostane fáze z výchozí šablony a `project.created`; plnohodnotné založení
+  // (úkoly, platby, klient) je příkaz `zakazky.create`. Událost `zakazky.created` je pro rozšíření klienta.
+  afterCreate: async (ctx, created) => {
+    await afterGenericCreate(ctx, created);
     await emitEvent("zakazky.created", { id: String(created.id) });
   },
   visibility: { ownLock: true },
@@ -174,13 +152,9 @@ export const jobEntity = defineEntity({
       label: "Stav",
       type: "select",
       field: "status",
-      choices: choices(JOB_STATUS_LABELS, {
-        planned: "gray",
-        active: "green",
-        paused: "yellow",
-        done: "blue",
-        cancelled: "red",
-      }),
+      choices: choices(JOB_STATUS_LABELS, JOB_STATUS_COLORS),
+      // stav se mění příkazy (`zakazky.setStatus`/`complete`): datum dokončení, upozornění a událost `project.completed`
+      readonly: true,
       default: "planned",
       width: 130,
       defaultVisible: true,

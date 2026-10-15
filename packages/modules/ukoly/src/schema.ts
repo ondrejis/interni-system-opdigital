@@ -23,14 +23,11 @@ import {
   visibilityIndex,
 } from "@rebar/core/db";
 
+import { ATTENDEE_KINDS, TASK_PRIORITIES, TASK_STATUSES } from "./tasks/constants";
+
 const { user } = schema;
 
-/** Stav úkolu. */
-export const TASK_STATUSES = ["todo", "in_progress", "done", "canceled"] as const;
-/** Priorita úkolu. */
-export const TASK_PRIORITIES = ["none", "low", "medium", "high", "urgent"] as const;
-/** Druh účastníka úkolu/schůzky: uživatel systému, kontakt, nebo prosté e-mailové adresy. */
-export const ATTENDEE_KINDS = ["user", "person", "email"] as const;
+export { ATTENDEE_KINDS, TASK_PRIORITIES, TASK_STATUSES } from "./tasks/constants";
 
 /** Typ úkolu (Úkol, Hovor, Schůzka, E-mail, Termín…). Systémové typy se nemažou; `is_calendar_event` zobrazí úkol v kalendáři. */
 export const taskType = pgTable(

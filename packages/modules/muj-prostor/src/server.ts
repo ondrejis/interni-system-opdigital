@@ -25,3 +25,4 @@ export {
   entities,
 } from "./entities";
 export { emailLibraryItem, recurringInvoice, recurringService, webDomain } from "./schema";
+export { countCriticalDomains } from "./domains";

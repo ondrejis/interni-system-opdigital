@@ -8,10 +8,6 @@ import {
   unreadCount,
   addComment,
   deleteComment,
-  completeTask,
-  createTask,
-  listMyTasks,
-  taskInput,
 } from "@rebar/core/collab";
 import { detachAttachment } from "@rebar/core/files";
 import {
@@ -223,25 +219,12 @@ export const deleteCommentAction = defineAction({
   handler: async (ctx, i) => deleteComment(ctx, i.id),
 });
 
-export const createTaskAction = defineAction({
-  input: taskInput,
-  handler: async (ctx, i) => {
-    const t = await createTask(ctx, i);
-    return { id: t.id };
-  },
-});
-
-export const completeTaskAction = defineAction({
-  input: z.object({ id, done: z.boolean() }),
-  handler: async (ctx, i) => completeTask(ctx, i.id, i.done),
-});
-
 export const detachAttachmentAction = defineAction({
   input: z.object({ id }),
   handler: async (ctx, i) => detachAttachment(ctx, i.id),
 });
 
-/* ---------- inbox a moje úkoly ---------- */
+/* ---------- inbox ---------- */
 
 export const getInbox = defineAction({
   input: z.object({ unreadOnly: z.boolean().optional() }),
@@ -274,17 +257,4 @@ export const markNotificationsRead = defineAction({
 export const getUnreadCount = defineAction({
   input: z.object({}),
   handler: async (ctx) => unreadCount(ctx),
-});
-
-export const getMyTasks = defineAction({
-  input: z.object({}),
-  handler: async (ctx) =>
-    (await listMyTasks(ctx)).map((t) => ({
-      id: t.id,
-      title: t.title,
-      dueDate: t.dueDate,
-      priority: t.priority,
-      entityType: t.entityType,
-      entityId: t.entityId,
-    })),
 });

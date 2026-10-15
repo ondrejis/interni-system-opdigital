@@ -8,6 +8,7 @@ import type {
 import { newId } from "../db/ids";
 import type { ModuleDeps } from "../modules/server";
 import type { Ctx } from "../rbac/types";
+import { enqueueWebhookDeliveries } from "../webhooks/outbox";
 
 export type { DomainEvent, DomainEventMap, DomainEventName } from "../contracts/events";
 export { WEBHOOK_EVENTS } from "../contracts/events";
@@ -43,9 +44,10 @@ function actorOf(ctx: Ctx): DomainActor {
 }
 
 /**
- * Vyšle doménovou událost (D §2.1). Volat v transakci změny (`inTx`), aby handlery a (po C2) webhooky vznikly
- * atomicky se změnou. V S0 zavolá `eventHandlers` zapnutých modulů v pořadí modulů; chyba handleru propadne a vrátí
- * transakci. Doplní C2 (řádky `webhook_delivery`) a C3 (`pg_notify` pro realtime).
+ * Vyšle doménovou událost (D §2.1). Volat v transakci změny (`inTx`), aby handlery a webhooky vznikly atomicky se
+ * změnou: (1) zavolá `eventHandlers` zapnutých modulů v pořadí modulů (chyba handleru propadne a vrátí transakci),
+ * (2) je-li událost ve `WEBHOOK_EVENTS`, zapíše řádky `webhook_delivery` endpointům, které ji odebírají (soukromé záznamy
+ * jen endpointům `include_private`), (3) doplní C3 (`pg_notify` pro realtime).
  * `meta.entity.isPrivate` rozhoduje o webhookách a realtime; `meta.actor` přebije aktéra z `ctx` (n8n, Google, Meta).
  */
 export async function emitDomain<K extends DomainEventName>(
@@ -63,10 +65,15 @@ export async function emitDomain<K extends DomainEventName>(
     data,
     ...(meta.previous !== undefined ? { previous: meta.previous } : {}),
   };
+  // (1) obsluhy zapnutých modulů: chyba propadne a vrátí transakci emitenta
   const bus = g.__domainEvents;
-  if (!bus) return;
-  const handlers = (bus.handlers[name] ?? []) as readonly DomainEventHandler<K>[];
-  if (!handlers.length) return;
-  const deps = bus.deps();
-  for (const handler of handlers) await handler(ctx, event, deps);
+  const handlers = (bus?.handlers[name] ?? []) as readonly DomainEventHandler<K>[];
+  if (bus && handlers.length) {
+    const deps = bus.deps();
+    for (const handler of handlers) await handler(ctx, event, deps);
+  }
+  // (2) outbox webhooků (C2): řádky `webhook_delivery` vznikají v téže transakci, odešle je worker po commitu;
+  // chyba zápisu se jen nahlásí a změnu nezruší
+  await enqueueWebhookDeliveries(ctx, event as unknown as DomainEvent);
+  // (3) sem patří `pg_notify('opsys_change')` pro realtime (C3)
 }

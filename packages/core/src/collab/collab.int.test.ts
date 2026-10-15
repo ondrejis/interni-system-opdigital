@@ -5,12 +5,16 @@ import { newId } from "../db/ids";
 import { clearEntityPolicies, registerEntityPolicy } from "../entities/policy";
 import { createCtx } from "../rbac/context";
 import { loadActor } from "../rbac/actor";
-import { NotFoundError, PermissionError, UserError } from "../rbac/errors";
-import type { Ctx } from "../rbac/types";
+import { NotFoundError, PermissionError } from "../rbac/errors";
 import { connectAppDb, uniqueEmail } from "../testing";
 import { addComment, deleteComment, editComment, listComments, parseMentions } from "./comments";
-import { listNotifications, markAllRead, markRead, unreadCount } from "./notifications";
-import { completeTask, createTask, deleteTask, listMyTasks, listTasks, updateTask } from "./tasks";
+import {
+  createNotifications,
+  listNotifications,
+  markAllRead,
+  markRead,
+  unreadCount,
+} from "./notifications";
 
 const app = connectAppDb();
 afterAll(() => app.close());
@@ -135,128 +139,15 @@ describe("komentáře", () => {
   });
 });
 
-describe("úkoly", () => {
-  it("úkol si smí zadat každý sám sobě, ostatním jen s tasks.assign", async () => {
-    const worker = await person();
-    const boss = await person([["tasks.assign", "all"]]);
-    const t = await createTask(worker.ctx, { title: "Objednat materiál" });
-    expect(t.assigneeId).toBe(worker.id);
-    await expect(
-      createTask(worker.ctx, { title: "Cizí úkol", assigneeId: boss.id }),
-    ).rejects.toThrow(UserError);
-    const assigned = await createTask(boss.ctx, {
-      title: "Zkontrolovat zakázku",
-      assigneeId: worker.id,
-      dueDate: "2026-12-01",
-      priority: "high",
-    });
-    expect(assigned.createdBy).toBe(boss.id);
-    const inbox = await listNotifications(worker.ctx);
-    expect(inbox[0]).toMatchObject({ kind: "task.assigned" });
-    expect(inbox[0]!.body).toContain("Termín: 1. 12. 2026");
-  });
-
-  it("viditelnost: bez tasks.read jen přidělené a zadané, s rozsahem all všechny", async () => {
-    const a = await person();
-    const b = await person([["tasks.assign", "all"]]);
-    const all = await person([["tasks.read", "all"]]);
-    const tag = `Úkol ${newId()}`;
-    await createTask(a.ctx, { title: `${tag} A` });
-    await createTask(b.ctx, { title: `${tag} B pro A`, assigneeId: a.id });
-    await createTask(b.ctx, { title: `${tag} B sám` });
-    const names = async (ctx: Ctx) =>
-      (await listTasks(ctx))
-        .map((t) => t.title)
-        .filter((t) => t.startsWith(tag))
-        .sort();
-    expect(await names(a.ctx)).toEqual([`${tag} A`, `${tag} B pro A`]);
-    expect(await names(b.ctx)).toEqual([`${tag} B pro A`, `${tag} B sám`]);
-    expect(await names(all.ctx)).toHaveLength(3);
-  });
-
-  it("cizí úkol nejde otevřít, splnit ani smazat; Moje úkoly jsou otevřené a seřazené podle termínu", async () => {
-    const a = await person();
-    const b = await person();
-    const t = await createTask(a.ctx, { title: "Můj" });
-    await expect(completeTask(b.ctx, t.id)).rejects.toThrow(NotFoundError);
-    await expect(updateTask(b.ctx, t.id, { title: "Nový název" })).rejects.toThrow(NotFoundError);
-    await expect(deleteTask(b.ctx, t.id)).rejects.toThrow(NotFoundError);
-
-    const later = await createTask(a.ctx, { title: "Později", dueDate: "2027-01-02" });
-    const sooner = await createTask(a.ctx, { title: "Dřív", dueDate: "2027-01-01" });
-    const mine = (await listMyTasks(a.ctx)).map((x) => x.title);
-    expect(mine.indexOf("Dřív")).toBeLessThan(mine.indexOf("Později"));
-    await completeTask(a.ctx, later.id);
-    expect((await listMyTasks(a.ctx)).map((x) => x.id)).not.toContain(later.id);
-    await completeTask(a.ctx, later.id, false);
-    expect((await listMyTasks(a.ctx)).map((x) => x.id)).toContain(later.id);
-    void sooner;
-  });
-
-  it("splnění upozorní zadavatele; změna přiřazení upozorní nového řešitele; audit zná změny", async () => {
-    const boss = await person([["tasks.assign", "all"]]);
-    const w1 = await person();
-    const w2 = await person();
-    const t = await createTask(boss.ctx, { title: "Práce", assigneeId: w1.id });
-    await completeTask(w1.ctx, t.id);
-    expect((await listNotifications(boss.ctx)).map((n) => n.kind)).toContain("task.done");
-
-    await updateTask(boss.ctx, t.id, { assigneeId: w2.id, dueDate: "2027-03-03" });
-    expect((await listNotifications(w2.ctx))[0]).toMatchObject({ kind: "task.assigned" });
-    const audit = await app.db
-      .select()
-      .from(schema.auditLog)
-      .where(eq(schema.auditLog.entityId, t.id));
-    const update = audit.find(
-      (a) => a.action === "update" && a.changes.some((c) => c.field === "assigneeId"),
-    );
-    expect(update?.changes.find((c) => c.field === "assigneeId")).toMatchObject({
-      old: w1.id,
-      new: w2.id,
-    });
-  });
-
-  it("úkol navázaný na záznam vyžaduje přístup k záznamu; smazání je měkké", async () => {
-    const own = await person([["test_job.read", "own"]]);
-    const other = await person();
-    const mine = job(own.id);
-    const theirs = job(other.id);
-    await expect(
-      createTask(own.ctx, { title: "K zakázce", entityType: "test_job", entityId: theirs }),
-    ).rejects.toThrow(NotFoundError);
-    const t = await createTask(own.ctx, {
-      title: "K mé zakázce",
-      entityType: "test_job",
-      entityId: mine,
-    });
-    expect(
-      (await listTasks(own.ctx, { entityType: "test_job", entityId: mine })).map((x) => x.id),
-    ).toEqual([t.id]);
-    await deleteTask(own.ctx, t.id);
-    expect(await listTasks(own.ctx, { entityType: "test_job", entityId: mine })).toHaveLength(0);
-    const [row] = await app.db.select().from(schema.task).where(eq(schema.task.id, t.id));
-    expect(row?.deletedAt).toBeInstanceOf(Date);
-  });
-
-  it("neplatný vstup: krátký název, vazba bez typu", async () => {
-    const a = await person();
-    await expect(createTask(a.ctx, { title: "x" })).rejects.toThrow(
-      /Napište, co je potřeba udělat/,
-    );
-    await expect(createTask(a.ctx, { title: "Platný", entityId: newId() })).rejects.toThrow(
-      /typ i id/,
-    );
-  });
-});
-
 describe("upozornění", () => {
   it("inbox je jen vlastní; čtení cizího id nic nezmění; nepřečtené se počítají", async () => {
-    const boss = await person([["tasks.assign", "all"]]);
     const a = await person();
     const b = await person();
-    await createTask(boss.ctx, { title: "Pro A 1", assigneeId: a.id });
-    await createTask(boss.ctx, { title: "Pro A 2", assigneeId: a.id });
-    await createTask(boss.ctx, { title: "Pro B", assigneeId: b.id });
+    await createNotifications(app.db, [
+      { userId: a.id, kind: "test.note", title: "Pro A 1" },
+      { userId: a.id, kind: "test.note", title: "Pro A 2" },
+      { userId: b.id, kind: "test.note", title: "Pro B" },
+    ]);
     expect(await unreadCount(a.ctx)).toBe(2);
     expect(await unreadCount(b.ctx)).toBe(1);
 

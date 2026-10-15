@@ -3,7 +3,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { revokeSessions, setUserActive } from "../admin/users";
 import { listNotifications, markRead, unreadCount } from "../collab/notifications";
 import { createNotifications } from "../collab/notifications";
-import { createTask } from "../collab/tasks";
 import { schema } from "../db/client";
 import { clearEntityPolicies, registerEntityPolicy } from "../entities/policy";
 import {
@@ -28,7 +27,6 @@ import {
   type EmailMessage,
 } from "./dispatch";
 import { notify } from "./notify";
-import { sendTaskDigests } from "./scheduled";
 import {
   getAdminRules,
   getDeliveryStats,
@@ -934,66 +932,6 @@ describe("odběry zařízení", () => {
 });
 
 describe("plánované události a úklid", () => {
-  it("ranní přehled úkolů: jedna zpráva na člověka, idempotentní, o víkendu nic", async () => {
-    const mgr = await person([["tasks.assign", "all"]]);
-    const worker = await person();
-    const today = "2026-10-12"; // pondělí
-    const at = new Date("2026-10-12T05:00:00Z"); // 07:00 místně
-    await createTask(mgr.ctx, {
-      title: "Objednat sádrokarton",
-      assigneeId: worker.id,
-      dueDate: today,
-    });
-    await createTask(mgr.ctx, {
-      title: "Zavolat investorovi",
-      assigneeId: worker.id,
-      dueDate: "2026-10-09",
-    });
-    await createTask(mgr.ctx, {
-      title: "Budoucí úkol",
-      assigneeId: worker.id,
-      dueDate: "2026-10-30",
-    });
-    const r1 = await sendTaskDigests(app.db, at);
-    expect(r1.users).toBeGreaterThanOrEqual(1);
-    const mine = (await notificationsOf(worker.id)).filter((n) => n.kind === "task.due_today");
-    expect(mine).toHaveLength(1);
-    expect(mine[0]).toMatchObject({ title: "Dnes: 1 úkol na dnes, 1 po termínu" });
-    expect(mine[0]!.body).toBe("Zavolat investorovi · Objednat sádrokarton");
-    await sendTaskDigests(app.db, at);
-    await sendTaskDigests(app.db, new Date("2026-10-12T05:30:00Z"));
-    expect(
-      (await notificationsOf(worker.id)).filter((n) => n.kind === "task.due_today"),
-    ).toHaveLength(1);
-    // zítra je nový den
-    await sendTaskDigests(app.db, new Date("2026-10-13T05:00:00Z"));
-    expect(
-      (await notificationsOf(worker.id)).filter((n) => n.kind === "task.due_today"),
-    ).toHaveLength(2);
-    // sobota
-    const before = (await notificationsOf(worker.id)).length;
-    await sendTaskDigests(app.db, new Date("2026-10-17T05:00:00Z"));
-    expect((await notificationsOf(worker.id)).length).toBe(before);
-  });
-
-  it("přidělení úkolu používá katalog (kdo, termín) a respektuje předvolby", async () => {
-    const mgr = await person([["tasks.assign", "all"]], false);
-    const worker = await person();
-    await saveMyPreferences(worker.ctx, { events: { "task.assigned": { push: "off" } } });
-    await createTask(mgr.ctx, {
-      title: "Úkol z katalogu",
-      assigneeId: worker.id,
-      dueDate: "2026-10-30",
-    });
-    const [n] = await notificationsOf(worker.id);
-    expect(n).toMatchObject({ kind: "task.assigned", title: "Byl vám přidělen úkol" });
-    expect(n!.body).toMatch(/Úkol z katalogu\nTermín: .*30/);
-    expect((await deliveries(worker.id))[0]).toMatchObject({
-      status: "skipped",
-      reason: "user_off",
-    });
-  });
-
   it("zkušební upozornění obchází tiché hodiny a nezobrazuje se v Inboxu", async () => {
     const u = await person();
     await saveMyPreferences(u.ctx, {

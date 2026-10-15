@@ -1,11 +1,17 @@
-import { and, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
+import { phoneSearchKeys } from "@rebar/core/contracts";
 import {
   countActive,
   defineEntity,
+  indexRecord,
   type AttributeDef,
   type DeleteBlocker,
 } from "@rebar/core/entities";
-import { eq } from "drizzle-orm";
+import { UserError } from "@rebar/core/rbac";
+import { assertIcoFree, icoForStorage } from "./companies";
+import { companySearchDoc, personIndex, personSearchDoc } from "./indexing";
+import { normalizeEmail, normalizePhoneE164, webDomainOf } from "./normalize";
+import { setPrimaryPoint } from "./points";
 import {
   CLIENT_STATUSES,
   company,
@@ -47,6 +53,14 @@ const CLIENT_STATUS_CHOICES = CLIENT_STATUSES.map((v) => ({
 }));
 
 const contact = (extra: AttributeDef[]): AttributeDef[] => extra;
+
+/** Hlavní e-mail a telefon zapsané v poli osoby musí mít správný tvar (jinak věta pro uživatele). */
+function checkPrimary(email: unknown, phone: unknown): void {
+  if (typeof email === "string" && email.trim() && !normalizeEmail(email))
+    throw new UserError(`E-mail „${email.trim()}“ nemá správný tvar.`);
+  if (typeof phone === "string" && phone.trim() && !normalizePhoneE164(phone))
+    throw new UserError(`Telefon „${phone.trim()}“ nemá správný tvar.`);
+}
 
 /** Organizace: klienti, potenciální klienti, dodavatelé a ostatní firmy v jedné evidenci (klient = `client_status`). */
 export const companyEntity = defineEntity({
@@ -174,12 +188,38 @@ export const companyEntity = defineEntity({
       readonly: true,
       width: 150,
     },
+    {
+      key: "webDomain",
+      label: "Doména webu",
+      type: "text",
+      field: "webDomain",
+      readonly: true,
+      width: 160,
+    },
   ]),
-  search: (r) => ({
-    title: String(r.name),
-    ...(r.city || r.ico ? { subtitle: [r.city, r.ico].filter(Boolean).join(" · ") } : {}),
-    extra: [r.officialName, r.ico, r.dic, r.email, r.phone, r.webDomain].filter(Boolean).join(" "),
-  }),
+  search: companySearchDoc,
+  // IČO se normalizuje a musí být volné (ORG-05), doména webu se odvodí z adresy (ORG-06). ARES se při ukládání
+  // nevolá: uložení funguje i při jeho výpadku (ORG-04).
+  beforeCreate: async (ctx, input) => {
+    const out = { ...input };
+    const ico = icoForStorage(input.ico);
+    await assertIcoFree(ctx, ico);
+    if (ico) out.ico = ico;
+    else delete out.ico;
+    const domain = webDomainOf(typeof input.web === "string" ? input.web : null);
+    if (domain) out.webDomain = domain;
+    return out;
+  },
+  beforeUpdate: async (ctx, before, changes) => {
+    const extra: Record<string, unknown> = {};
+    if ("ico" in changes) {
+      const ico = icoForStorage(changes.ico);
+      if (ico !== (before.ico ?? null)) await assertIcoFree(ctx, ico, String(before.id));
+      extra.ico = ico;
+    }
+    if ("web" in changes) extra.webDomain = webDomainOf(changes.web as string | null);
+    return extra;
+  },
   url: (id) => `/kontakty/firmy/${id}`,
 });
 
@@ -201,6 +241,8 @@ export const personEntity = defineEntity({
   ownerColumns: [person.ownerId],
   ownerDefaults: (ctx) => ({ owner: ctx.actor.userId }),
   visibility: { ownLock: true },
+  // `last_activity_at` píše modul Úkoly (writeSystemFields)
+  systemFields: ["lastActivityAt"],
   quickFilters: [
     {
       key: "mine",
@@ -244,6 +286,23 @@ export const personEntity = defineEntity({
       defaultVisible: true,
       width: 160,
     },
+    // hlavní telefon a e-mail: zápis do pole upraví i hlavní kontaktní údaj osoby (další jsou v detailu)
+    {
+      key: "phone",
+      label: "Telefon",
+      type: "phone",
+      field: "primaryPhone",
+      defaultVisible: true,
+      width: 150,
+    },
+    {
+      key: "email",
+      label: "E-mail",
+      type: "email",
+      field: "primaryEmail",
+      defaultVisible: true,
+      width: 220,
+    },
     {
       key: "isDecisionMaker",
       label: "Rozhoduje",
@@ -261,6 +320,15 @@ export const personEntity = defineEntity({
       width: 160,
     },
     {
+      key: "lastActivityAt",
+      label: "Poslední aktivita",
+      type: "date",
+      field: "lastActivityAt",
+      readonly: true,
+      defaultVisible: true,
+      width: 140,
+    },
+    {
       key: "tags",
       label: "Štítky",
       type: "multiselect",
@@ -271,21 +339,59 @@ export const personEntity = defineEntity({
     },
     { key: "linkedin", label: "LinkedIn", type: "url", field: "linkedin", width: 200 },
   ]),
-  search: (r) => ({
-    title: String(r.fullName ?? r.lastName),
-    ...(r.position ? { subtitle: String(r.position) } : {}),
-  }),
-  // telefony a e-maily z kontaktních bodů se hledají přes `phoneSearchKeys` (C3)
+  search: personSearchDoc,
+  // všechny telefony a e-maily osoby (ne jen hlavní) se hledají; telefon podčástí čísla bez předvolby (C3)
   searchLoad: async (db, rows) => {
     const ids = rows.map((r) => String(r.id));
     if (!ids.length) return {};
     const points = await db
-      .select({ personId: personContactPoint.personId, valueNorm: personContactPoint.valueNorm })
+      .select({
+        personId: personContactPoint.personId,
+        kind: personContactPoint.kind,
+        value: personContactPoint.value,
+        valueNorm: personContactPoint.valueNorm,
+      })
       .from(personContactPoint)
       .where(and(inArray(personContactPoint.personId, ids), isNull(personContactPoint.deletedAt)));
     const out: Record<string, string> = {};
-    for (const p of points) out[p.personId] = `${out[p.personId] ?? ""} ${p.valueNorm}`.trim();
+    for (const p of points) {
+      const keys = p.kind === "phone" ? phoneSearchKeys(p.value).join(" ") : "";
+      out[p.personId] = `${out[p.personId] ?? ""} ${p.valueNorm} ${keys}`.trim();
+    }
     return out;
+  },
+  // hlavní telefon a e-mail zapsané v poli se promítnou do kontaktních údajů osoby (KON-01, KON-03)
+  beforeCreate: async (_ctx, input) => {
+    checkPrimary(input.email, input.phone);
+    return input;
+  },
+  afterCreate: async (ctx, created) => {
+    const id = String(created.id);
+    if (created.primaryEmail) await setPrimaryPoint(ctx, id, "email", String(created.primaryEmail));
+    if (created.primaryPhone) await setPrimaryPoint(ctx, id, "phone", String(created.primaryPhone));
+  },
+  beforeUpdate: async (_ctx, _before, changes) => {
+    checkPrimary(changes.primaryEmail, changes.primaryPhone);
+  },
+  afterUpdate: async (ctx, before, after) => {
+    const id = String(after.id);
+    let changed = false;
+    const patch: Record<string, unknown> = {};
+    for (const [kind, key] of [
+      ["email", "primaryEmail"],
+      ["phone", "primaryPhone"],
+    ] as const) {
+      if ((before[key] ?? null) === (after[key] ?? null)) continue;
+      const written = await setPrimaryPoint(ctx, id, kind, (after[key] as string | null) ?? null);
+      if ((written ?? null) !== (after[key] ?? null)) {
+        patch[key] = written ?? null; // smazaný hlavní údaj nahradil další
+        changed = true;
+      }
+    }
+    if (changed) {
+      const [row] = await ctx.db.update(person).set(patch).where(eq(person.id, id)).returning();
+      if (row) await indexRecord(ctx.db, personIndex, row as Record<string, unknown>);
+    }
   },
   url: (id) => `/kontakty/osoby/${id}`,
 });

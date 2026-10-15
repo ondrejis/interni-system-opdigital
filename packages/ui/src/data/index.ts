@@ -6,7 +6,6 @@ export type {
   RecordResult,
   ActivityResult,
   TimelineItem,
-  TaskItem,
   FileItem,
   ExportTemplateInfo,
 } from "./api";

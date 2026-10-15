@@ -51,7 +51,6 @@ export type { NotifyResult } from "./notify";
 export { NOTIFY_CHANNEL } from "./pipeline";
 export { actorHas, usersWithPermission, usersWithRole } from "./recipients";
 export { planDelivery, resolveEvent } from "./rules";
-export { sendTaskDigests } from "./scheduled";
 export { describeRecipient, validateRule } from "./validate";
 export {
   getAdminRules,

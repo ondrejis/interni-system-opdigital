@@ -11,9 +11,11 @@ import type { Ctx } from "../rbac/types";
 import type { Auth } from "./create-auth";
 import type { Mailer } from "./mailer";
 import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "./password";
+import { assertPasswordAcceptable, type BreachCheck } from "./password-policy";
+import { deriveShortName } from "./user-fields";
 
-/** Pozvánka platí 7 dní (demo měl 1 hodinu a pozvánka často vypršela dřív, než ji uživatel otevřel). */
-export const INVITATION_TTL_DAYS = 7;
+/** Pozvánka platí 48 hodin od vytvoření (AUT-02); pak ji musí majitel vystavit znovu. */
+export const INVITATION_TTL_HOURS = 48;
 
 const sha256 = (v: string) => createHash("sha256").update(v).digest("hex");
 
@@ -33,7 +35,7 @@ export async function createInvitation(
   const normalized = email.trim().toLowerCase();
 
   const token = randomBytes(32).toString("base64url");
-  const expiresAt = new Date(Date.now() + INVITATION_TTL_DAYS * 86_400_000);
+  const expiresAt = new Date(Date.now() + INVITATION_TTL_HOURS * 3_600_000);
 
   const invitation = await inTx(ctx, async (c) => {
     const [role] = await c.db
@@ -88,7 +90,11 @@ export async function createInvitation(
   await deps.mailer.send({
     to: normalized,
     template: "invitation",
-    vars: { url, expiresInDays: String(INVITATION_TTL_DAYS) },
+    vars: {
+      url,
+      expiresIn: `${INVITATION_TTL_HOURS} hodin`,
+      expiresInDays: String(Math.ceil(INVITATION_TTL_HOURS / 24)),
+    },
   });
   return { id: invitation.id, expiresAt };
 }
@@ -166,9 +172,10 @@ export const acceptInput = z.object({
 /**
  * Přijetí pozvánky (bez přihlášení): vytvoří uživatele s heslem. Pozvánku nejdřív „zabere“
  * jedním UPDATE, takže ji nejde přijmout dvakrát souběžně; při selhání se vrátí.
+ * Heslo musí projít pravidly (≥ 12 znaků, ne běžné ani uniklé, bez jména a e-mailu); `deps.breachCheck` jen pro testy.
  */
 export async function acceptInvitation(
-  deps: { auth: Auth; db: Db },
+  deps: { auth: Auth; db: Db; breachCheck?: BreachCheck },
   input: z.input<typeof acceptInput>,
 ) {
   const { token, name, password } = acceptInput.parse(input);
@@ -199,6 +206,12 @@ export async function acceptInvitation(
       );
     if (taken) throw new UserError("Uživatel s tímto e-mailem už existuje.");
 
+    await assertPasswordAcceptable(password, {
+      email: inv.email,
+      name,
+      ...(deps.breachCheck !== undefined ? { breachCheck: deps.breachCheck } : {}),
+    });
+
     const bac = await auth.$context;
     const user = await bac.internalAdapter.createUser(
       { email: inv.email, name, emailVerified: true, roleId: inv.roleId, active: true },
@@ -212,7 +225,7 @@ export async function acceptInvitation(
     });
     await db
       .update(schema.user)
-      .set({ createdBy: inv.createdBy, updatedBy: user.id })
+      .set({ createdBy: inv.createdBy, updatedBy: user.id, shortName: deriveShortName(name) })
       .where(eq(schema.user.id, user.id));
 
     const actor = {

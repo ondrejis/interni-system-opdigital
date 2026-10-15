@@ -41,7 +41,10 @@
     "./push": "./src/push/index.ts",
     "./notifications": "./src/notifications/index.ts",
     "./contracts": "./src/contracts/index.ts",
-    "./events": "./src/events/index.ts"
+    "./events": "./src/events/index.ts",
+    "./webhooks": "./src/webhooks/index.ts",
+    "./ingest": "./src/ingest/index.ts",
+    "./integrations": "./src/integrations/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

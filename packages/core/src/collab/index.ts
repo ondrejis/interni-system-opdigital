@@ -9,12 +9,3 @@ export {
 export type { NewNotification } from "./notifications";
 export { claimReminder } from "./reminders";
 export { addComment, listComments, editComment, deleteComment, parseMentions } from "./comments";
-export {
-  createTask,
-  listTasks,
-  listMyTasks,
-  completeTask,
-  updateTask,
-  deleteTask,
-  taskInput,
-} from "./tasks";

@@ -58,6 +58,7 @@ export async function getLookup(
       color: schema.lookupItem.color,
       active: schema.lookupItem.active,
       position: schema.lookupItem.position,
+      scopes: schema.lookupItem.scopes,
     })
     .from(schema.lookupItem)
     .innerJoin(schema.lookupList, eq(schema.lookupItem.listId, schema.lookupList.id))

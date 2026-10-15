@@ -1,56 +1,108 @@
-import { NotImplementedError } from "@rebar/core/contracts";
 import type { Ctx } from "@rebar/core/rbac";
-
-export { normalizeEmail, normalizeIco, normalizePhone } from "./duplicates";
-export type { ContactQuery, MatchedBy } from "./duplicates";
-export { aresLookup, isValidIco, normalizeIcoInput, mapAres } from "./ares";
-export type { AresCompany, AresResult } from "./ares";
+import { inTx, UserError } from "@rebar/core/rbac";
+import { createCompany } from "./companies";
+import { findPersonDuplicates } from "./duplicates";
+import { createPerson, type PersonInput } from "./persons";
 
 /*
-  Veřejné API pro jiné moduly podle D §2.4 (`@rebar/kontakty/api`). Těla doplní KON; dokud neexistují, vyhazují
-  `NotImplementedError`.
+  Veřejné API modulu „kontakty“ pro jiné moduly (D §2.4, `@rebar/kontakty/api`). Smí ho importovat jen modul, který
+  má `kontakty` v `dependsOn` (obchody, zakázky, klienti, reklama, šablony e-mailů, Můj prostor). Funkce neověřují
+  oprávnění `kontakty.*` (to je na příkazu volajícího modulu), ale **respektují soukromé záznamy**: soukromá osoba
+  nebo organizace se aktérovi bez `private.read` nenajde. Mock v testech: `vi.mock("@rebar/kontakty/api")`.
 */
 
-/** Živá firma podle IČO (bez ohledu na formát zápisu), nebo `null`. */
-export async function findCompanyByIco(
-  _ctx: Ctx,
-  _ico: string,
-): Promise<{ id: string; name: string } | null> {
-  throw new NotImplementedError("kontakty.api.findCompanyByIco");
-}
+export {
+  normalizeEmail,
+  normalizeIco,
+  normalizePhone,
+  normalizePhoneE164,
+  isValidIco,
+  isValidPhone,
+  formatPhone,
+  webDomainOf,
+  splitFullName,
+} from "./normalize";
+export type { ContactQuery, MatchedBy } from "./normalize";
+export { findCompanyByIco, findCompanyByName, companyUrl, icoDuplicateMessage } from "./companies";
+export { getPrimaryContact, listCompanyContacts, countCompanyContacts, personUrl } from "./persons";
+export type { CompanyContact } from "./persons";
+export { upsertContactFromLead } from "./leads";
+export type { LeadContactInput, LeadContactResult } from "./leads";
+export {
+  matchContactDuplicates,
+  checkCompanyDuplicates,
+  findPersonDuplicates,
+} from "./duplicates";
+export type {
+  CompanyDuplicate,
+  CompanyDuplicateCheck,
+  CompanyMatch,
+  PersonDuplicate,
+  PersonMatch,
+} from "./duplicates";
+export { searchContacts } from "./search";
+export type { CompanyHit, PersonHit } from "./search";
+export { listPoints } from "./points";
+export type { PointRow } from "./points";
+export { lookupAres, setAresClient, createDbAresCache } from "./ares";
 
-/** Hlavní kontaktní osoba firmy s primárním telefonem a e-mailem, nebo `null`. */
-export async function getPrimaryContact(
-  _ctx: Ctx,
-  _companyId: string,
-): Promise<{ personId: string; name: string; phone?: string; email?: string } | null> {
-  throw new NotImplementedError("kontakty.api.getPrimaryContact");
-}
-
-/** Osoby, které se shodují v e-mailu nebo telefonu (E.164), bez osoby `excludeId`. */
+/**
+ * Osoby, které se shodují v e-mailu nebo telefonu (E.164, bez ohledu na mezery a předvolbu) s některým ze zadaných,
+ * bez osoby `excludeId`. Shoduje se i podle jiných než hlavních údajů osoby.
+ */
 export async function findContactDuplicates(
-  _ctx: Ctx,
-  _input: { emails?: string[]; phones?: string[]; excludeId?: string },
+  ctx: Ctx,
+  input: { emails?: string[]; phones?: string[]; excludeId?: string },
 ): Promise<{ personId: string; name: string; match: "email" | "phone" }[]> {
-  throw new NotImplementedError("kontakty.api.findContactDuplicates");
+  const found = await findPersonDuplicates(ctx, input);
+  return found.map((f) => ({ personId: f.personId, name: f.name, match: f.match }));
 }
 
-/** Najde nebo založí kontakt a firmu z leadu (e-mail a telefon, firma podle IČO nebo názvu); firmě nenastaví `client_status`. */
-export async function upsertContactFromLead(
-  _ctx: Ctx,
-  _input: { name: string; email?: string; phone?: string; companyName?: string; ico?: string },
-): Promise<{
-  personId: string;
-  companyId: string | null;
-  created: { person: boolean; company: boolean };
-}> {
-  throw new NotImplementedError("kontakty.api.upsertContactFromLead");
-}
-
-/** Rychle založí organizaci jen s názvem (a volitelně IČO a vlastníkem). */
+/**
+ * Rychle založí organizaci jen s názvem (a volitelně IČO a vlastníkem). Stejné IČO nedovolí (vyhodí `UserError`
+ * s odkazem na existující organizaci, použijte nejdřív `findCompanyByIco`). `client_status` nenastavuje.
+ */
 export async function createCompanyQuick(
-  _ctx: Ctx,
-  _input: { name: string; ico?: string; ownerId?: string },
+  ctx: Ctx,
+  input: { name: string; ico?: string; ownerId?: string },
 ): Promise<{ id: string }> {
-  throw new NotImplementedError("kontakty.api.createCompanyQuick");
+  const { id } = await createCompany(ctx, {
+    name: input.name,
+    ico: input.ico ?? null,
+    ...(input.ownerId ? { ownerId: input.ownerId } : {}),
+  });
+  return { id };
+}
+
+/**
+ * Rychle založí kontaktní osobu (jméno, volitelně hlavní organizace, e-mail a telefon). Duplicity nehlídá: volající
+ * si je předtím zjistí přes `findContactDuplicates` a rozhodne se (použít existující, nebo založit).
+ */
+export async function createPersonQuick(
+  ctx: Ctx,
+  input: {
+    firstName?: string;
+    lastName: string;
+    companyId?: string;
+    position?: string;
+    email?: string;
+    phone?: string;
+    ownerId?: string;
+  },
+): Promise<{ id: string; name: string }> {
+  const points: PersonInput["points"] = [
+    ...(input.email?.trim() ? [{ kind: "email" as const, value: input.email }] : []),
+    ...(input.phone?.trim() ? [{ kind: "phone" as const, value: input.phone }] : []),
+  ];
+  if (!input.lastName.trim()) throw new UserError("Příjmení je povinné.");
+  return inTx(ctx, (c) =>
+    createPerson(c, {
+      firstName: input.firstName,
+      lastName: input.lastName,
+      companyId: input.companyId ?? null,
+      position: input.position,
+      ownerId: input.ownerId,
+      points,
+    }),
+  );
 }

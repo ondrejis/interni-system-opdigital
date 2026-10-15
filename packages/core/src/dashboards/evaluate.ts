@@ -1,6 +1,5 @@
 import { sql } from "drizzle-orm";
 import { toResult } from "../actions/run";
-import { listMyTasks } from "../collab/tasks";
 import { aggregateRecords, type AggregateGroup, type AggregateSpec } from "../entities/aggregate";
 import { describeEntity } from "../entities/describe";
 import {
@@ -45,6 +44,8 @@ export type DashboardEnv = {
   builtins?: {
     attention?: (ctx: Ctx) => Promise<AttentionItem[]>;
     tiles?: (ctx: Ctx) => Promise<WidgetData[]>;
+    /** Moje otevřené úkoly (modul `ukoly`; jádro vlastní úkoly nemá). Bez poskytovatele je seznam prázdný. */
+    myTasks?: (ctx: Ctx) => Promise<{ id: string; title: string; dueDate: string | null }[]>;
   };
   /** Doba platnosti mezipaměti na uživatele (ms); 0 = vypnuto. Výchozí 30 s. */
   cacheTtlMs?: number;
@@ -624,8 +625,7 @@ async function evalBuiltin(
       meta: m,
     };
   }
-  const open = (await listMyTasks(c.ctx)).filter((t) => !t.doneAt);
-  const shown = open.slice(0, 8);
+  const shown = ((await c.env.builtins?.myTasks?.(c.ctx)) ?? []).slice(0, 8);
   return {
     kind: "list",
     items: shown.map((t) => ({

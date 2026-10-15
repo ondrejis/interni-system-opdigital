@@ -1,7 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
-  date,
   index,
   integer,
   jsonb,
@@ -33,36 +32,6 @@ export const comment = pgTable(
     ...audit(),
   },
   (t) => [index("comment_entity_idx").on(t.entityType, t.entityId, t.createdAt)],
-);
-
-/**
- * Úkol; volitelně navázaný na záznam. „Moje úkoly“ = `assignee_id`.
- *
- * PŘECHODNÉ (S1): v databázi se tabulka jmenuje `core_task`, aby se uvolnil název `task` pro tabulku modulu
- * `ukoly` (D §1.2). C1 core `task` odstraní celé (D §5.2 g); do té doby kód dál používá symbol `task`.
- */
-export const task = pgTable(
-  "core_task",
-  {
-    id: pk(),
-    title: text("title").notNull(),
-    description: text("description"),
-    assigneeId: uuid("assignee_id")
-      .notNull()
-      .references(() => user.id),
-    dueDate: date("due_date", { mode: "string" }),
-    priority: text("priority", { enum: ["low", "normal", "high"] })
-      .notNull()
-      .default("normal"),
-    doneAt: ts("done_at"),
-    entityType: text("entity_type"),
-    entityId: uuid("entity_id"),
-    ...audit(),
-  },
-  (t) => [
-    index("core_task_assignee_idx").on(t.assigneeId, t.doneAt, t.dueDate),
-    index("core_task_entity_idx").on(t.entityType, t.entityId),
-  ],
 );
 
 /**
